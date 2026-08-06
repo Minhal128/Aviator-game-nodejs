@@ -1,0 +1,45 @@
+# Secrets / local env
+.env
+.env.*
+!.env.example
+laravel/.env
+laravel/.env.backup
+laravel/.env.production
+
+# Dependencies (install via composer/npm)
+laravel/vendor/
+node_modules/
+**/node_modules/
+
+# Laravel runtime
+laravel/storage/logs/*
+laravel/storage/framework/cache/*
+laravel/storage/framework/sessions/*
+laravel/storage/framework/views/*
+!laravel/storage/logs/.gitignore
+!laravel/storage/framework/cache/.gitignore
+!laravel/storage/framework/sessions/.gitignore
+!laravel/storage/framework/views/.gitignore
+laravel/bootstrap/cache/*.php
+!laravel/bootstrap/cache/.gitignore
+
+# IDE / OS
+.idea/
+.vscode/
+.fleet/
+*.swp
+Thumbs.db
+.DS_Store
+
+# Logs / junk
+error_log
+*.log
+npm-debug.log
+yarn-error.log
+
+# Build
+laravel/public/hot
+laravel/public/storage
+
+# Unrelated dump with third-party secrets
+install/database.sql
