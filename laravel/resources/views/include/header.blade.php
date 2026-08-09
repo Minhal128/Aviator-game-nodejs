@@ -2,7 +2,7 @@
 <header>
     <div class="header-top">
         <div class="header-left" onclick="window.location.href='/dashboard'">
-            <img src="images/logo.png" class="logo1" />
+            <img src="/images/logo.jpeg" class="logo1" alt="Turbo Legends" />
         </div>
         @if (session()->has('userlogin'))
             <div class="header-right d-flex align-items-center">
@@ -41,7 +41,7 @@
                                     <span class="material-symbols-outlined ico f-20">
                                         flight_takeoff
                                     </span>
-                                    <img src="../../images/logo.svg" class="side_logo">
+                                    <img src="/images/logo.jpeg" class="side_logo" alt="Turbo Legends">
                                 </div>
                             </a>
                         </li>

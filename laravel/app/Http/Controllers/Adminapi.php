@@ -7,7 +7,9 @@ use App\Models\Bank_detail;
 use App\Models\Setting;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Models\Userbit;
 use App\Models\Wallet;
+use App\Services\PoolCrashEngine;
 use Hash;
 use Illuminate\Http\Request;
 
@@ -264,5 +266,87 @@ class Adminapi extends Controller
                 return redirect('/withdraw?msg=error');
             }
         }
+    }
+
+    /** Live round snapshot for admin dashboard (poll / socket). */
+    public function liveRound()
+    {
+        $gameId = (int) currentid();
+        $engine = app(PoolCrashEngine::class);
+        $state = $engine->get($gameId);
+
+        $tick = [
+            'game_id' => $gameId,
+            'phase' => 'idle',
+            'multiplier' => 1.0,
+            'crashed' => false,
+            'remaining_pool' => 0,
+            'total_bets' => 0,
+            'pool' => 0,
+            'paid' => 0,
+            'mode' => null,
+            'house_pct' => PoolCrashEngine::HOUSE_PCT,
+        ];
+
+        if ($state) {
+            if (($state['phase'] ?? '') === 'flying') {
+                $out = $engine->tick($gameId);
+                $state = $engine->get($gameId) ?: $state;
+                $tick['multiplier'] = $out['multiplier'];
+                $tick['phase'] = $out['phase'];
+                $tick['crashed'] = !empty($out['crashed']);
+                $tick['remaining_pool'] = $out['remaining_pool'];
+            } else {
+                $tick['multiplier'] = round((float) ($state['multiplier'] ?? 1), 2);
+                $tick['phase'] = $state['phase'] ?? 'idle';
+                $tick['crashed'] = ($state['phase'] ?? '') === 'crashed';
+                $tick['remaining_pool'] = $engine->remainingPool($state);
+            }
+            $tick['total_bets'] = (float) ($state['total_bets'] ?? 0);
+            $tick['pool'] = (float) ($state['pool'] ?? 0);
+            $tick['paid'] = (float) ($state['paid'] ?? 0);
+            $tick['mode'] = $state['mode'] ?? null;
+        }
+
+        $bets = Userbit::where('userbits.gameid', $gameId)
+            ->leftJoin('users', 'users.id', '=', 'userbits.userid')
+            ->orderBy('userbits.id', 'desc')
+            ->get([
+                'userbits.id',
+                'userbits.userid',
+                'userbits.amount',
+                'userbits.status',
+                'userbits.cashout_multiplier',
+                'users.name',
+                'users.mobile',
+            ])
+            ->map(function ($b) use ($tick) {
+                $mult = ((string) $b->status === '0')
+                    ? (float) $tick['multiplier']
+                    : (float) $b->cashout_multiplier;
+                $potential = round((float) $b->amount * max($mult, 0), 2);
+                return [
+                    'id' => $b->id,
+                    'userid' => $b->userid,
+                    'name' => $b->name ?: ('User ' . $b->userid),
+                    'mobile' => $b->mobile,
+                    'amount' => (float) $b->amount,
+                    'status' => (string) $b->status === '0' ? 'flying' : 'cashed',
+                    'cashout_multiplier' => $b->cashout_multiplier,
+                    'potential' => $potential,
+                ];
+            });
+
+        $adminId = \App\Models\User::where('isadmin', '1')->value('id')
+            ?: \App\Models\User::where('email', 'admin@example.com')->value('id');
+        $adminWallet = $adminId ? wallet($adminId, 'num') : 0;
+
+        return response()->json([
+            'tick' => $tick,
+            'bets' => $bets,
+            'admin_wallet' => $adminWallet,
+            'pending_recharge' => Transaction::where('category', 'recharge')->where('status', '0')->count(),
+            'pending_withdraw' => Transaction::where('category', 'withdraw')->where('status', '0')->count(),
+        ]);
     }
 }

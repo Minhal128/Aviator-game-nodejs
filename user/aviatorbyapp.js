@@ -1,10 +1,12 @@
 function gameover(lastint) {
+    var gid = (current_game_data && current_game_data.id) ? current_game_data.id : '';
     $.ajax({
         url: '/game/game_over',
         type: "POST",
         data: {
             _token: hash_id,
-            "last_time": lastint
+            "last_time": lastint,
+            "game_id": gid
         },
         dataType: "text",
         success: function (result) {
@@ -91,41 +93,18 @@ function start_round() {
     });
 }
 
-function run_multiplier() {
+function refresh_my_bets_after_crash() {
+    $("#all_bets .mCSB_container").empty();
     $.ajax({
-        url: '/game/increamentor',
+        url: '/game/my_bets_history',
         type: "POST",
         data: { _token: hash_id },
         dataType: "json",
-        success: function (data) {
-            var currentbet = parseFloat(data.result);
-            var a = 1.0;
-
-            $.ajax({
-                url: '/game/currentlybet',
-                type: "POST",
-                data: { _token: hash_id },
-                dataType: "json",
-                success: function (intialData) { info_data(intialData); }
-            });
-
-            var increamtsappgame = setInterval(function () {
-                if (a >= currentbet) {
-                    var res = parseFloat(a).toFixed(2);
-                    crash_plane(res);
-                    incrementor(res);
-                    gameover(res);
-                    $("#all_bets .mCSB_container").empty();
-                    $.ajax({
-                        url: '/game/my_bets_history',
-                        type: "POST",
-                        data: { _token: hash_id },
-                        dataType: "json",
-                        success: function (rows) {
-                            $("#my_bet_list").empty();
-                            for (let $i = 0; $i < rows.length; $i++) {
-                                let date = new Date(rows[$i].created_at);
-                                $("#my_bet_list").append(`
+        success: function (rows) {
+            $("#my_bet_list").empty();
+            for (let $i = 0; $i < rows.length; $i++) {
+                let date = new Date(rows[$i].created_at);
+                $("#my_bet_list").append(`
                                     <div class="list-items">
                                     <div class="column-1 users fw-normal">
                                         ` + date.getHours() + `:` + date.getMinutes() + `
@@ -143,15 +122,91 @@ function run_multiplier() {
                                         ` + Math.round(rows[$i].cashout_multiplier * rows[$i].amount) + `₹
                                     </div>
                                 </div>`);
-                            }
+            }
+        }
+    });
+}
+
+// ponytail: server-authoritative multiplier + pool crash via socket (poll fallback)
+var _flight_tick_timer = null;
+var _flight_crashed = false;
+var gameSocket = null;
+
+(function initGameSocket() {
+    if (typeof io === 'undefined' || typeof GAME_SOCKET_URL === 'undefined') return;
+    try {
+        gameSocket = io(GAME_SOCKET_URL, { transports: ['websocket', 'polling'], autoConnect: true });
+        gameSocket.on('tick', function (tick) {
+            if (!tick || _flight_crashed) return;
+            var m = parseFloat(tick.multiplier).toFixed(2);
+            incrementor(m);
+            if (tick.crashed) {
+                end_flight_crash(m);
+            }
+        });
+    } catch (e) {
+        gameSocket = null;
+    }
+})();
+
+function end_flight_crash(res) {
+    if (_flight_crashed) return;
+    _flight_crashed = true;
+    if (_flight_tick_timer) {
+        clearInterval(_flight_tick_timer);
+        _flight_tick_timer = null;
+    }
+    crash_plane(res);
+    incrementor(res);
+    gameover(res);
+    refresh_my_bets_after_crash();
+    gamegenerate();
+}
+
+function run_multiplier() {
+    _flight_crashed = false;
+    if (_flight_tick_timer) {
+        clearInterval(_flight_tick_timer);
+        _flight_tick_timer = null;
+    }
+
+    $.ajax({
+        url: '/game/increamentor',
+        type: "POST",
+        data: { _token: hash_id },
+        dataType: "json",
+        success: function (data) {
+            var gameId = (data.game_id) ? data.game_id : (current_game_data && current_game_data.id);
+
+            $.ajax({
+                url: '/game/currentlybet',
+                type: "POST",
+                data: { _token: hash_id },
+                dataType: "json",
+                success: function (intialData) { info_data(intialData); }
+            });
+
+            if (gameSocket && gameSocket.connected) {
+                gameSocket.emit('watch', { game_id: gameId });
+                return;
+            }
+
+            // fallback: HTTP poll (same authority as socket)
+            _flight_tick_timer = setInterval(function () {
+                $.ajax({
+                    url: '/game/tick',
+                    type: "POST",
+                    data: { _token: hash_id, game_id: gameId },
+                    dataType: "json",
+                    success: function (tick) {
+                        if (!tick) return;
+                        var m = parseFloat(tick.multiplier).toFixed(2);
+                        incrementor(m);
+                        if (tick.crashed) {
+                            end_flight_crash(m);
                         }
-                    });
-                    clearInterval(increamtsappgame);
-                    gamegenerate();
-                } else {
-                    a = parseFloat(a) + 0.01;
-                    incrementor(parseFloat(a).toFixed(2));
-                }
+                    }
+                });
             }, 100);
         }
     });

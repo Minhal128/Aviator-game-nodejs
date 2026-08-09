@@ -22,6 +22,7 @@ namespace App\Http\Controllers;
 use App\Models\Gameresult;
 use App\Models\Setting;
 use App\Models\Userbit;
+use App\Services\PoolCrashEngine;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -53,72 +54,56 @@ class Gamesetting extends Controller
         return response()->json(array("id" => currentid()));
     }
     
+    /** Start authoritative flight (pool or random empty round). */
     public function increamentor(Request $r)
     {
-
-
         $gamestatusdata = Setting::where('category', 'game_status')->first();
-        $res = 0;
-        if($gamestatusdata){
-                
-        $totalbet = Userbit::where('gameid',currentid())->count();
-        $totalamount = Userbit::where('gameid',currentid())->sum('amount');
-        if ($totalbet == 0) {
-            $res = rand(8, 11);
-        } else {
-            // ponytail: use configured range (was fixed 1.56 — flew away before cashout)
-            $start = max(1.2, (float) setting('start_range_game_timer'));
-            $end = max($start, (float) setting('end_range_game_timer'));
-            $res = rand((int) round($start * 10), (int) round($end * 10)) / 10;
+        if (!$gamestatusdata) {
+            return response()->json(['status' => false]);
         }
-        
-                $status = true;
-                $result = $res;
-                $response = array('status'=>$status,'result'=>$result);
-        return response()->json($response);
-        }
+
+        $engine = app(PoolCrashEngine::class);
+        $gameId = (int) currentid();
+        $state = $engine->startFlight($gameId);
+
+        return response()->json([
+            'status' => true,
+            'result' => $state['mode'] === 'random' ? $state['crash_at'] : 0,
+            'mode' => $state['mode'],
+            'pool' => $state['pool'],
+            'total_bets' => $state['total_bets'],
+            'game_id' => $gameId,
+        ]);
     }
-    // public function increamentor(Request $r)
-    // {
-    //     // return 1.7;
-    //     $totalbet = Userbit::where('gameid',currentid())->count();
-    //     $totalamount = Userbit::where('gameid',currentid())->sum('amount');
-    //     if ($totalbet == 0) {
-    //         return rand(8,11);
-    //     }else{
-    //         $randomresult = array(1.1,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9);
-    //         $res = $randomresult[rand(0,8)];
-    //         if (session()->has('result')) {
-    //             return session()->get('result');
-    //         }
-    //         $r->session()->put('result',$res);
-    //         return $res;
-    //     }
-    //     return rand(setting('start_range_game_timer')*10, setting('end_range_game_timer')*10) / 10;
-    // }
-    
+
+    /** Server clock + pool crash check. Clients poll this (or via socket proxy). */
+    public function tick(Request $r)
+    {
+        $gameId = (int) ($r->game_id ?: currentid());
+        $engine = app(PoolCrashEngine::class);
+        $out = $engine->tick($gameId);
+        return response()->json($out);
+    }
+
+    /** Internal tick for Node game-server (shared secret). */
+    public function serverTick(Request $r)
+    {
+        $secret = env('GAME_SERVER_SECRET', 'change-me');
+        if ($r->header('X-Game-Secret') !== $secret) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+        return $this->tick($r);
+    }
+
     public function game_over(Request $r)
     {
         $r->session()->forget('result');
-        $result = Gameresult::where('id', currentid())->update([
-            "result" => number_format($r->last_time, 2),
-        ]);
-        $alluserbit = Userbit::where('gameid', currentid())->where('status', 0)->get();
-        foreach ($alluserbit as $key) {
-			if(floatval($r->last_time) <= 1.20){
-			$result = 0;
-		    }else{
-			$result = $r->last_time;
-			}
-            $finalamount = floatval($key->amount) * floatval($result);
-            Userbit::where('id', $key->id)->update(["status"=> 1]);
-            // addwallet($key->userid,$finalamount);
+        $gameId = (int) $r->game_id;
+        if ($gameId > 0) {
+            app(PoolCrashEngine::class)->ensureCrashed($gameId, floatval($r->last_time));
         }
-        $new = Setting::where('category', 'game_status')->update(['value' => '0']);
-        $r->session()->put('gamegenerate','0');
-        $result = new Gameresult;
-        $result->result = "pending";
-        $result->save();
+        Setting::where('category', 'game_status')->update(['value' => '0']);
+        $r->session()->put('gamegenerate', '0');
         return wallet(user('id'));
     }
 
@@ -181,26 +166,31 @@ class Gamesetting extends Controller
         return response()->json($userbets);
     }
 	public function cashout(Request $r){
-		$game_id = $r->game_id;
-		$bet_id = $r->bet_id;
-		$win_multiplier = $r->win_multiplier;
-		$cash_out_amount = 0;
+		$game_id = (int) $r->game_id;
+		$bet_id = (int) $r->bet_id;
 		$status = false;
         $message = "";
         $data = array();
-		$result = resultbyid($game_id) == 0 ? $win_multiplier : resultbyid($game_id);
-		// ponytail: demo — only zero out if multiplier never left 1.00
-		if(floatval($result) < 1.00){
-			$result = 0;
-		}
-		$cash_out_amount = floatval(userbetdetail($bet_id,'amount'))*floatval($result);
-		addwallet(user('id'),$cash_out_amount); 
-		$data = array(
-                    "wallet_balance" => wallet(user('id'),"num"),
-                    "cash_out_amount" => $cash_out_amount
-                );
-        Userbit::where('id', $bet_id)->update(["status"=> 1,"cashout_multiplier"=>$win_multiplier]);
-        $status = true;
+
+        $engine = app(PoolCrashEngine::class);
+        $out = $engine->cashout($game_id, $bet_id, (int) user('id'));
+
+        if (!empty($out['ok'])) {
+            $status = true;
+            $data = [
+                'wallet_balance' => $out['wallet_balance'],
+                'cash_out_amount' => $out['cash_out_amount'],
+                'crashed' => !empty($out['crashed']),
+                'multiplier' => $out['multiplier'] ?? null,
+            ];
+        } else {
+            $message = $out['message'] ?? 'Cashout failed';
+            $data = [
+                'crashed' => !empty($out['crashed']),
+                'multiplier' => $out['multiplier'] ?? null,
+            ];
+        }
+
 		$response = array("isSuccess" => $status, "data" => $data, "message" => $message);
         return response()->json($response);
 	}
@@ -229,26 +219,3 @@ class Gamesetting extends Controller
 	    }else{}
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

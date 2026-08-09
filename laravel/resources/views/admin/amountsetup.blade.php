@@ -12,11 +12,11 @@
             </h3>
         </div>
         <div class="row">
-            <div class="col-lg-8 grid-margin stretch-card">
+            <div class="col-lg-8 col-12 grid-margin stretch-card">
                 <div class="card">
                     <div class="card-body">
                         <h4 class="card-title">Settings List</h4>
-                        </p>
+                        <div class="table-responsive">
                         <table class="table">
                             <thead>
                                 <tr>
@@ -40,11 +40,12 @@
                                 @endforeach
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 </div>
             </div>
             @if (isset($id) && $id != null && $specificdata != null)
-                <div class="col-4 grid-margin stretch-card">
+                <div class="col-lg-4 col-12 grid-margin stretch-card">
                     <div class="card">
                         <div class="card-body">
                             <h4 class="card-title">Amount setup</h4>

@@ -45,6 +45,7 @@ Route::post('/auth/login', [Authentication::class, "login"]);
 Route::post('/auth/register', [Authentication::class, "register"]);
 Route::get('/is_login', [Userdetail::class, "is_login"]);
 Route::get('/game-cron', [Gamesetting::class, "cronjob"]);
+Route::post('/game/server/tick', [Gamesetting::class, "serverTick"]);
 // Auth Admin Login
 Route::post('/auth/admin/login', [Authentication::class, "adminlogin"]);
 
@@ -69,6 +70,7 @@ Route::group(['prefix' => 'admin/', 'middleware' => ['isAdmin']], function () {
         Route::post('/editamountsetup', [Adminapi::class, "editamountsetup"]);
         Route::post('/bankdetail', [Adminapi::class, "editbankdetail"]);
         Route::post('/updatewallet', [Adminapi::class, "updatewallet"]);
+        Route::get('/live-round', [Adminapi::class, "liveRound"]);
     });
 
     Route::get('/logout', [Admin::class, "logout"]);
@@ -105,6 +107,7 @@ Route::group(['middleware' => ['isUser']], function () {
     Route::post('/game/crash_plane', [Gamesetting::class, "crash_plane"]);
     Route::post('/game/new_game_generated', [Gamesetting::class, "new_game_generated"]);
     Route::post('/game/increamentor', [Gamesetting::class, "increamentor"]);
+    Route::post('/game/tick', [Gamesetting::class, "tick"]);
     Route::post('/game/game_over', [Gamesetting::class, "game_over"]);
     Route::post('/game/add_bet', [Gamesetting::class, "betNow"]);
 	Route::get('/cash_out', [Gamesetting::class, "cashout"]);

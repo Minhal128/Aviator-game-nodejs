@@ -15,7 +15,7 @@
                 <div class="card">
                     <div class="card-body">
                         <h4 class="card-title">Recharge List</h4>
-                        </p>
+                        <div class="table-responsive">
                         <table class="table table-bordered">
                             <thead>
                                 <tr>
@@ -62,6 +62,7 @@
                                 @endif
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 </div>
             </div>

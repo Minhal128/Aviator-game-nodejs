@@ -12,7 +12,7 @@
             </h3>
         </div>
         <div class="row">
-            <div class="col-6 grid-margin stretch-card">
+            <div class="col-lg-6 col-12 grid-margin stretch-card">
                 <div class="card">
                     <div class="card-body">
                         <h4 class="card-title">Bank detail</h4>
@@ -54,7 +54,7 @@
                                 <input type="file" class="form-control" id="barcode" name="barcode">
                             </div>
                             @if ($bank->barcode != '')
-                                <img src="{{ $bank->barcode }}" alt="" style="width:260px;"> <br>
+                                <img src="{{ $bank->barcode }}" alt="" class="img-fluid" style="max-width:260px;"> <br>
                             @endif
                             <button type="submit" class="btn btn-gradient-primary me-2">Update</button>
                         </form>

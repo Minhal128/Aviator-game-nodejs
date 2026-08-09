@@ -13,6 +13,7 @@
 <!-- endinject -->
 <!-- Layout styles -->
 <link rel="stylesheet" href="/aviatoradmin/assets/css/style.css">
+<link rel="stylesheet" href="/aviatoradmin/assets/css/turbo-theme.css">
 <link rel="stylesheet" href="{{ asset('aviatoradmin/izitoast/css/iziToast.min.css') }}">
 <!-- End layout styles -->
-<link rel="shortcut icon" href="/images/logo.png" />
+<link rel="shortcut icon" href="/images/logo.jpeg" type="image/jpeg" />

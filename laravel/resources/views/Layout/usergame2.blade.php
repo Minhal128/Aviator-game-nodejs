@@ -10,7 +10,7 @@
     <title>Betting company {{env('APP_NAME')}} - online sports betting</title>
 
     <!--====== Favicon Icon ======-->
-    <link rel="shortcut icon" href="{{asset('images/logo.png')}}" type="image/png" />
+    <link rel="shortcut icon" href="{{asset('images/logo.jpeg')}}" type="image/jpeg" />
 
     <!--====== Material Design Icons CSS ======-->
     <!-- <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500&family=Oswald:wght@200;300;400&display=swap" rel="stylesheet"> -->

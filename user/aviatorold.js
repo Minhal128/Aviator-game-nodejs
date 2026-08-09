@@ -261,6 +261,10 @@ function cash_out_now(element, section_no, increment = '') {
         type: "get",
         dataType: "json",
         success: function (result) {
+            if (result.data && result.data.crashed && typeof end_flight_crash === 'function') {
+                var cm = result.data.multiplier ? parseFloat(result.data.multiplier).toFixed(2) : $("#auto_increment_number").text().slice(0, -1);
+                end_flight_crash(cm);
+            }
             if (result.isSuccess) {
                 if (result.data.wallet_balance != '' && result.data.wallet_balance != NaN && result.data.wallet_balance != 'NaN') {
                     $("#wallet_balance").text(currency_symbol + result.data.wallet_balance);

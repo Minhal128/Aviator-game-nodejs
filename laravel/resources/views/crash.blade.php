@@ -10,7 +10,7 @@
     <title>{{ env('APP_NAME') }}</title>
 
     <!--====== Favicon Icon ======-->
-    <link rel="shortcut icon" href="{{ asset('images/logo.png') }}" type="image/png" />
+    <link rel="shortcut icon" href="{{ asset('images/logo.jpeg') }}" type="image/jpeg" />
 
     <!--====== Material Design Icons CSS ======-->
     <!-- <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500&family=Oswald:wght@200;300;400&display=swap" rel="stylesheet"> -->
@@ -1111,6 +1111,7 @@
         var min_bet_amount = parseFloat('{{ setting('min_bet_amount') }}');
         var max_bet_amount = parseFloat('{{ setting('max_bet_amount') }}');
         var current_game_data = {{ currentid() }};
+        var GAME_SOCKET_URL = @json(env('GAME_SOCKET_URL', 'http://127.0.0.1:3001'));
     </script>
 
 
@@ -1195,6 +1196,7 @@
     </script>
     <script src="/user/avatar.js"></script>
     <script src="/user/canvas.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script src="/user/aviatorold.js?v={{env('APP_VERSION')}}"></script>
     <script src="/user/aviatorbyapp.js?v={{env('APP_VERSION')}}"></script>
 

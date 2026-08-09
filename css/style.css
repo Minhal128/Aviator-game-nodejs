@@ -214,10 +214,21 @@ a, a:hover {
 
 .logo {
     width: 84px;
+    height: auto;
+    object-fit: contain;
 }
 
 .logo1 {
     width: 175px;
+    height: auto;
+    object-fit: contain;
+}
+
+.side_logo {
+    width: 72px;
+    height: auto;
+    object-fit: contain;
+    margin-left: 6px;
 }
 
 .login-btn, .register-btn, .deposite-btn {

@@ -1,329 +1,218 @@
 @extends('Layout.admindashboard')
 @section('css')
-    
 @endsection
 
 @section('content')
 <div class="content-wrapper">
   <div class="page-header">
-    <h3 class="page-title">
+    <h3 class="page-title mb-0">
       <span class="page-title-icon bg-gradient-primary text-white me-2">
-        <i class="mdi mdi-home"></i>
-      </span> Dashboard
+        <i class="mdi mdi-radar"></i>
+      </span> Control Tower
     </h3>
-    <nav aria-label="breadcrumb">
-      <ul class="breadcrumb">
-        <li class="breadcrumb-item active" aria-current="page">
-          <span></span>Overview <i class="mdi mdi-alert-circle-outline icon-sm text-primary align-middle"></i>
-        </li>
-      </ul>
-    </nav>
+    <div id="hdr_live_pill" class="tl-live-pill is-idle">
+      <span class="dot"></span>
+      <span class="lbl">STANDBY</span>
+    </div>
   </div>
+
+  <div class="tl-hud" id="flight_hud">
+    <div class="tl-hud-inner">
+      <div class="tl-hud-top">
+        <h4 class="tl-hud-title">Live Flight <span id="hud_game_id">#—</span></h4>
+        <div id="hud_phase_pill" class="tl-live-pill is-idle"><span class="dot"></span><span class="lbl">IDLE</span></div>
+      </div>
+      <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
+        <div>
+          <div class="tl-stat-label" style="color:var(--tl-muted);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;">Multiplier</div>
+          <div id="hud_mult" class="tl-mult">1.00x</div>
+        </div>
+        <div class="text-end">
+          <div class="tl-stat-label" style="color:var(--tl-muted);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;">Admin wallet</div>
+          <div id="hud_admin_wallet" style="font-family:var(--tl-mono);font-size:1.4rem;font-weight:700;">—</div>
+        </div>
+      </div>
+      <div class="tl-hud-grid">
+        <div class="tl-metric"><label>Total bets</label><strong id="hud_total">0</strong></div>
+        <div class="tl-metric"><label>Payout pool</label><strong id="hud_pool">0</strong></div>
+        <div class="tl-metric"><label>Paid out</label><strong id="hud_paid">0</strong></div>
+        <div class="tl-metric"><label>Remaining</label><strong id="hud_remain">0</strong></div>
+      </div>
+      <div class="tl-pool-bar" title="Pool remaining"><i id="hud_bar"></i></div>
+    </div>
+  </div>
+
   <div class="row">
-    <div class="col-md-4 stretch-card grid-margin">
-      <div class="card bg-gradient-danger card-img-holder text-white">
+    <div class="col-12 col-sm-6 col-lg-3 stretch-card grid-margin">
+      <div class="card tl-stat">
         <div class="card-body">
-          <img src="/aviatoradmin/assets/images/dashboard/circle.svg" class="card-img-absolute" alt="circle-image" />
-          <h4 class="font-weight-normal mb-3">Total User 
-          </h4>
-          <h2 class="mb-5">{{count($user)}}</h2>
+          <div class="tl-stat-label">Total users</div>
+          <p class="tl-stat-value">{{ count($user) }}</p>
         </div>
       </div>
     </div>
-    <div class="col-md-4 stretch-card grid-margin">
-      <div class="card bg-gradient-info card-img-holder text-white">
+    <div class="col-12 col-sm-6 col-lg-3 stretch-card grid-margin">
+      <div class="card tl-stat tl-stat-amber">
         <div class="card-body">
-          <img src="/aviatoradmin/assets/images/dashboard/circle.svg" class="card-img-absolute" alt="circle-image" />
-          <h4 class="font-weight-normal mb-3">Total Recharge
-          </h4>
-          <h2 class="mb-5">{{count($recharge)}}</h2>
+          <div class="tl-stat-label">Recharges</div>
+          <p class="tl-stat-value">{{ count($recharge) }}</p>
         </div>
       </div>
     </div>
-    <div class="col-md-4 stretch-card grid-margin">
-      <div class="card bg-gradient-success card-img-holder text-white">
+    <div class="col-12 col-sm-6 col-lg-3 stretch-card grid-margin">
+      <div class="card tl-stat tl-stat-signal">
         <div class="card-body">
-          <img src="/aviatoradmin/assets/images/dashboard/circle.svg" class="card-img-absolute" alt="circle-image" />
-          <h4 class="font-weight-normal mb-3">Total Withdrawal
-          </h4>
-          <h2 class="mb-5">{{count($withdrawal)}}</h2>
+          <div class="tl-stat-label">Withdrawals</div>
+          <p class="tl-stat-value">{{ count($withdrawal) }}</p>
         </div>
       </div>
     </div>
-  </div>
-  {{-- <div class="row">
-    <div class="col-md-7 grid-margin stretch-card">
-      <div class="card">
+    <div class="col-12 col-sm-6 col-lg-3 stretch-card grid-margin">
+      <div class="card tl-stat">
         <div class="card-body">
-          <div class="clearfix">
-            <h4 class="card-title float-left">Visit And Sales Statistics</h4>
-            <div id="visit-sale-chart-legend" class="rounded-legend legend-horizontal legend-top-right float-right"></div>
-          </div>
-          <canvas id="visit-sale-chart" class="mt-4"></canvas>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-5 grid-margin stretch-card">
-      <div class="card">
-        <div class="card-body">
-          <h4 class="card-title">Traffic Sources</h4>
-          <canvas id="traffic-chart"></canvas>
-          <div id="traffic-chart-legend" class="rounded-legend legend-vertical legend-bottom-left pt-4"></div>
+          <div class="tl-stat-label">Pending queue</div>
+          <p class="tl-stat-value"><span id="hud_pending">0</span></p>
         </div>
       </div>
     </div>
   </div>
-  <div class="row">
-    <div class="col-12 grid-margin">
-      <div class="card">
-        <div class="card-body">
-          <h4 class="card-title">Recent Tickets</h4>
-          <div class="table-responsive">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th> Assignee </th>
-                  <th> Subject </th>
-                  <th> Status </th>
-                  <th> Last Update </th>
-                  <th> Tracking ID </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>
-                    <img src="/aviatoradmin/assets/images/faces/face1.jpg" class="me-2" alt="image"> David Grey
-                  </td>
-                  <td> Fund is not recieved </td>
-                  <td>
-                    <label class="badge badge-gradient-success">DONE</label>
-                  </td>
-                  <td> Dec 5, 2017 </td>
-                  <td> WD-12345 </td>
-                </tr>
-                <tr>
-                  <td>
-                    <img src="/aviatoradmin/assets/images/faces/face2.jpg" class="me-2" alt="image"> Stella Johnson
-                  </td>
-                  <td> High loading time </td>
-                  <td>
-                    <label class="badge badge-gradient-warning">PROGRESS</label>
-                  </td>
-                  <td> Dec 12, 2017 </td>
-                  <td> WD-12346 </td>
-                </tr>
-                <tr>
-                  <td>
-                    <img src="/aviatoradmin/assets/images/faces/face3.jpg" class="me-2" alt="image"> Marina Michel
-                  </td>
-                  <td> Website down for one week </td>
-                  <td>
-                    <label class="badge badge-gradient-info">ON HOLD</label>
-                  </td>
-                  <td> Dec 16, 2017 </td>
-                  <td> WD-12347 </td>
-                </tr>
-                <tr>
-                  <td>
-                    <img src="/aviatoradmin/assets/images/faces/face4.jpg" class="me-2" alt="image"> John Doe
-                  </td>
-                  <td> Loosing control on server </td>
-                  <td>
-                    <label class="badge badge-gradient-danger">REJECTED</label>
-                  </td>
-                  <td> Dec 3, 2017 </td>
-                  <td> WD-12348 </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+
   <div class="row">
     <div class="col-12 grid-margin stretch-card">
-      <div class="card">
+      <div class="card tl-bets-panel">
         <div class="card-body">
-          <h4 class="card-title">Recent Updates</h4>
-          <div class="d-flex">
-            <div class="d-flex align-items-center me-4 text-muted font-weight-light">
-              <i class="mdi mdi-account-outline icon-sm me-2"></i>
-              <span>jack Menqu</span>
-            </div>
-            <div class="d-flex align-items-center text-muted font-weight-light">
-              <i class="mdi mdi-clock icon-sm me-2"></i>
-              <span>October 3rd, 2018</span>
-            </div>
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="card-title mb-0">Round bets</h4>
+            <span class="text-muted" style="font-size:.8rem;">Updates every 400ms</span>
           </div>
-          <div class="row mt-3">
-            <div class="col-6 pe-1">
-              <img src="/aviatoradmin/assets/images/dashboard/img_1.jpg" class="mb-2 mw-100 w-100 rounded" alt="image">
-              <img src="/aviatoradmin/assets/images/dashboard/img_4.jpg" class="mw-100 w-100 rounded" alt="image">
-            </div>
-            <div class="col-6 ps-1">
-              <img src="/aviatoradmin/assets/images/dashboard/img_2.jpg" class="mb-2 mw-100 w-100 rounded" alt="image">
-              <img src="/aviatoradmin/assets/images/dashboard/img_3.jpg" class="mw-100 w-100 rounded" alt="image">
-            </div>
-          </div>
-          <div class="d-flex mt-5 align-items-top">
-            <img src="/aviatoradmin/assets/images/faces/face3.jpg" class="img-sm rounded-circle me-3" alt="image">
-            <div class="mb-0 flex-grow">
-              <h5 class="me-2 mb-2">School Website - Authentication Module.</h5>
-              <p class="mb-0 font-weight-light">It is a long established fact that a reader will be distracted by the readable content of a page.</p>
-            </div>
-            <div class="ms-auto">
-              <i class="mdi mdi-heart-outline text-muted"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-md-7 grid-margin stretch-card">
-      <div class="card">
-        <div class="card-body">
-          <h4 class="card-title">Project Status</h4>
           <div class="table-responsive">
-            <table class="table">
+            <table class="table mb-0">
               <thead>
                 <tr>
-                  <th> # </th>
-                  <th> Name </th>
-                  <th> Due Date </th>
-                  <th> Progress </th>
+                  <th>Player</th>
+                  <th>Bet</th>
+                  <th>Status</th>
+                  <th>Mult</th>
+                  <th>Value</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr>
-                  <td> 1 </td>
-                  <td> Herman Beck </td>
-                  <td> May 15, 2015 </td>
-                  <td>
-                    <div class="progress">
-                      <div class="progress-bar bg-gradient-success" role="progressbar" style="width: 25%" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td> 2 </td>
-                  <td> Messsy Adam </td>
-                  <td> Jul 01, 2015 </td>
-                  <td>
-                    <div class="progress">
-                      <div class="progress-bar bg-gradient-danger" role="progressbar" style="width: 75%" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td> 3 </td>
-                  <td> John Richards </td>
-                  <td> Apr 12, 2015 </td>
-                  <td>
-                    <div class="progress">
-                      <div class="progress-bar bg-gradient-warning" role="progressbar" style="width: 90%" aria-valuenow="90" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td> 4 </td>
-                  <td> Peter Meggik </td>
-                  <td> May 15, 2015 </td>
-                  <td>
-                    <div class="progress">
-                      <div class="progress-bar bg-gradient-primary" role="progressbar" style="width: 50%" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td> 5 </td>
-                  <td> Edward </td>
-                  <td> May 03, 2015 </td>
-                  <td>
-                    <div class="progress">
-                      <div class="progress-bar bg-gradient-danger" role="progressbar" style="width: 35%" aria-valuenow="35" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td> 5 </td>
-                  <td> Ronald </td>
-                  <td> Jun 05, 2015 </td>
-                  <td>
-                    <div class="progress">
-                      <div class="progress-bar bg-gradient-info" role="progressbar" style="width: 65%" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                  </td>
-                </tr>
+              <tbody id="hud_bets">
+                <tr><td colspan="5" class="tl-empty">Waiting for round…</td></tr>
               </tbody>
             </table>
           </div>
         </div>
       </div>
     </div>
-    <div class="col-md-5 grid-margin stretch-card">
-      <div class="card">
-        <div class="card-body">
-          <h4 class="card-title text-white">Todo</h4>
-          <div class="add-items d-flex">
-            <input type="text" class="form-control todo-list-input" placeholder="What do you need to do today?">
-            <button class="add btn btn-gradient-primary font-weight-bold todo-list-add-btn" id="add-task">Add</button>
-          </div>
-          <div class="list-wrapper">
-            <ul class="d-flex flex-column-reverse todo-list todo-list-custom">
-              <li>
-                <div class="form-check">
-                  <label class="form-check-label">
-                    <input class="checkbox" type="checkbox"> Meeting with Alisa </label>
-                </div>
-                <i class="remove mdi mdi-close-circle-outline"></i>
-              </li>
-              <li class="completed">
-                <div class="form-check">
-                  <label class="form-check-label">
-                    <input class="checkbox" type="checkbox" checked> Call John </label>
-                </div>
-                <i class="remove mdi mdi-close-circle-outline"></i>
-              </li>
-              <li>
-                <div class="form-check">
-                  <label class="form-check-label">
-                    <input class="checkbox" type="checkbox"> Create invoice </label>
-                </div>
-                <i class="remove mdi mdi-close-circle-outline"></i>
-              </li>
-              <li>
-                <div class="form-check">
-                  <label class="form-check-label">
-                    <input class="checkbox" type="checkbox"> Print Statements </label>
-                </div>
-                <i class="remove mdi mdi-close-circle-outline"></i>
-              </li>
-              <li class="completed">
-                <div class="form-check">
-                  <label class="form-check-label">
-                    <input class="checkbox" type="checkbox" checked> Prepare for presentation </label>
-                </div>
-                <i class="remove mdi mdi-close-circle-outline"></i>
-              </li>
-              <li>
-                <div class="form-check">
-                  <label class="form-check-label">
-                    <input class="checkbox" type="checkbox"> Pick up kids from school </label>
-                </div>
-                <i class="remove mdi mdi-close-circle-outline"></i>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div> --}}
+  </div>
 </div>
-<!-- content-wrapper ends -->
 @endsection
 
 @section('js')
-    
+<script src="/socket.io/socket.io.js"></script>
+<script>
+(function () {
+  var GAME_SOCKET_URL = @json(env('GAME_SOCKET_URL', 'http://127.0.0.1:3001'));
+  var pollTimer = null;
+  var watchedId = null;
+  var socket = null;
+
+  function money(n) {
+    return (Number(n) || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
+
+  function setPill(el, phase) {
+    if (!el) return;
+    el.classList.remove('is-idle', 'is-crash');
+    var lbl = el.querySelector('.lbl');
+    if (phase === 'flying') {
+      if (lbl) lbl.textContent = 'LIVE';
+    } else if (phase === 'crashed') {
+      el.classList.add('is-crash');
+      if (lbl) lbl.textContent = 'CRASHED';
+    } else {
+      el.classList.add('is-idle');
+      if (lbl) lbl.textContent = phase === 'idle' ? 'STANDBY' : String(phase || 'IDLE').toUpperCase();
+    }
+  }
+
+  function render(data) {
+    var t = data.tick || {};
+    var phase = t.phase || 'idle';
+    setPill(document.getElementById('hdr_live_pill'), phase === 'flying' ? 'flying' : (phase === 'crashed' ? 'crashed' : 'idle'));
+    setPill(document.getElementById('hud_phase_pill'), phase);
+
+    document.getElementById('hud_game_id').textContent = t.game_id ? ('#' + t.game_id) : '#—';
+    var multEl = document.getElementById('hud_mult');
+    var m = (Number(t.multiplier) || 1).toFixed(2) + 'x';
+    if (multEl.textContent !== m) {
+      multEl.textContent = m;
+      multEl.style.transform = 'scale(1.04)';
+      setTimeout(function () { multEl.style.transform = 'scale(1)'; }, 120);
+    }
+    multEl.classList.toggle('is-crash', !!t.crashed || phase === 'crashed');
+
+    document.getElementById('hud_total').textContent = money(t.total_bets);
+    document.getElementById('hud_pool').textContent = money(t.pool);
+    document.getElementById('hud_paid').textContent = money(t.paid);
+    document.getElementById('hud_remain').textContent = money(t.remaining_pool);
+    document.getElementById('hud_admin_wallet').textContent = money(data.admin_wallet);
+    document.getElementById('hud_pending').textContent =
+      (Number(data.pending_recharge) || 0) + (Number(data.pending_withdraw) || 0);
+
+    var pct = t.pool > 0 ? Math.max(0, Math.min(100, (t.remaining_pool / t.pool) * 100)) : 0;
+    document.getElementById('hud_bar').style.width = pct + '%';
+
+    var bets = data.bets || [];
+    var tb = document.getElementById('hud_bets');
+    if (!bets.length) {
+      tb.innerHTML = '<tr><td colspan="5" class="tl-empty">No bets this round</td></tr>';
+    } else {
+      tb.innerHTML = bets.map(function (b) {
+        var st = b.status === 'cashed'
+          ? '<span class="tl-bet-cashed">CASHED</span>'
+          : '<span class="tl-bet-flying">FLYING</span>';
+        var mx = b.status === 'cashed' ? (b.cashout_multiplier || '—') : (Number(t.multiplier) || 1).toFixed(2);
+        return '<tr>' +
+          '<td>' + (b.name || b.userid) + '</td>' +
+          '<td>' + money(b.amount) + '</td>' +
+          '<td>' + st + '</td>' +
+          '<td>' + mx + 'x</td>' +
+          '<td>' + money(b.potential) + '</td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    if (socket && socket.connected && t.game_id && t.game_id !== watchedId && phase === 'flying') {
+      watchedId = t.game_id;
+      socket.emit('watch', { game_id: t.game_id });
+    }
+  }
+
+  function fetchLive() {
+    $.getJSON('/admin/api/live-round')
+      .done(render)
+      .fail(function () { /* keep last frame */ });
+  }
+
+  try {
+    if (typeof io !== 'undefined') {
+      socket = io(GAME_SOCKET_URL, { transports: ['websocket', 'polling'] });
+      socket.on('tick', function (tick) {
+        // merge socket tick into next poll paint; still poll for bets/wallet
+        var multEl = document.getElementById('hud_mult');
+        if (multEl && tick && tick.multiplier != null) {
+          multEl.textContent = Number(tick.multiplier).toFixed(2) + 'x';
+          multEl.classList.toggle('is-crash', !!tick.crashed);
+          setPill(document.getElementById('hud_phase_pill'), tick.crashed ? 'crashed' : 'flying');
+          setPill(document.getElementById('hdr_live_pill'), tick.crashed ? 'crashed' : 'flying');
+        }
+      });
+    }
+  } catch (e) {}
+
+  fetchLive();
+  pollTimer = setInterval(fetchLive, 400);
+})();
+</script>
 @endsection

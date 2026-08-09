@@ -3,7 +3,7 @@
     <div class="header-top">
         <div class="header-left">
             <a href="dashboard">
-                <img src="../../images/logo.png" class="logo1" />
+                <img src="/images/logo.jpeg" class="logo1" alt="Turbo Legends" />
             </a>
         </div>
         <div class="header-right d-flex align-items-center">
@@ -88,7 +88,7 @@
                                     <span class="material-symbols-outlined ico f-20">
                                         flight_takeoff
                                     </span>
-                                    <img src="../../images/logo.svg" class="side_logo">
+                                    <img src="/images/logo.jpeg" class="side_logo" alt="Turbo Legends">
                                 </div>
                             </a>
                         </li>
@@ -185,7 +185,7 @@
     </div>
     <div class="header-bottom ">
         <div class="header-left">
-            <img src="../../images/logo.svg" class="logo" />
+            <img src="/images/logo.jpeg" class="logo" alt="Turbo Legends" />
         </div>
         <div class="header-right d-flex align-items-center">
             <!-- <button class="btn btn-warning m-font-0 rounded-pill py-1 px-2 f-14 d-flex align-items-center h-26" data-bs-toggle="modal" data-bs-target="#how-to-play">
