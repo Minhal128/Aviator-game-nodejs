@@ -57,21 +57,26 @@ class Pages extends Controller
         return view('level_management',compact('users','level1','level2','level3'));
     }
 
-    /** Serve Chicken-Road/Main or Ludo client/dist under /chicken-road|/ludo. */
+    /** Serve the bundled game builds under /chicken-road|/ludo|/gold-egypt|/slot-glamour. */
     public function gameStatic(string $game, ?string $path = null)
     {
+        $games = dirname(base_path()) . DIRECTORY_SEPARATOR;
         $roots = [
-            'chicken-road' => dirname(base_path()) . DIRECTORY_SEPARATOR . 'Chicken-Road' . DIRECTORY_SEPARATOR . 'Main',
-            'ludo' => dirname(base_path()) . DIRECTORY_SEPARATOR . 'ludo' . DIRECTORY_SEPARATOR . 'ludo-royale' . DIRECTORY_SEPARATOR . 'client' . DIRECTORY_SEPARATOR . 'dist',
+            'chicken-road' => $games . 'Chicken-Road' . DIRECTORY_SEPARATOR . 'Main',
+            'ludo' => $games . 'ludo' . DIRECTORY_SEPARATOR . 'ludo-royale' . DIRECTORY_SEPARATOR . 'client' . DIRECTORY_SEPARATOR . 'dist',
+            'gold-egypt' => $games . 'goldegypt' . DIRECTORY_SEPARATOR . 'game',
+            'slot-glamour' => $games . 'slotglamor' . DIRECTORY_SEPARATOR . 'game',
         ];
         if (!isset($roots[$game])) {
             abort(404);
         }
         $root = realpath($roots[$game]);
         if ($root === false || !is_dir($root)) {
-            abort(503, $game === 'ludo'
-                ? 'Ludo client not built. From ludo/ludo-royale: npm i && npm run build --workspace @ludo/client'
-                : 'Game files missing');
+            abort(503, match ($game) {
+                'ludo' => 'Ludo client not built. From ludo/ludo-royale: npm i && npm run build --workspace @ludo/client',
+                'slot-glamour' => 'Slot build missing. Extract slotglamor/html5.zip into slotglamor/game',
+                default => 'Game files missing',
+            });
         }
         $rel = ($path === null || $path === '') ? 'index.html' : str_replace(['..', '\\'], '', $path);
         $file = realpath($root . DIRECTORY_SEPARATOR . $rel);
@@ -82,11 +87,40 @@ class Pages extends Controller
         if ($rel === 'index.html') {
             $html = file_get_contents($file);
             if ($html !== false && !str_contains($html, '<base ')) {
-                $base = $game === 'ludo' ? '/ludo/' : '/chicken-road/';
-                $html = preg_replace('/<head>/i', '<head><base href="' . $base . '">', $html, 1);
+                $html = preg_replace('/<head>/i', '<head><base href="/' . $game . '/">', $html, 1);
             }
             return response($html, 200)->header('Content-Type', 'text/html; charset=UTF-8');
         }
-        return response()->file($file);
+        // Windows mime_content_type often returns text/plain for .css → browser ignores stylesheet
+        $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+        $mimes = [
+            'css' => 'text/css; charset=UTF-8',
+            'js' => 'application/javascript; charset=UTF-8',
+            'mjs' => 'application/javascript; charset=UTF-8',
+            'json' => 'application/json',
+            'png' => 'image/png',
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'svg' => 'image/svg+xml',
+            'ico' => 'image/x-icon',
+            'mp3' => 'audio/mpeg',
+            'wav' => 'audio/wav',
+            'ogg' => 'audio/ogg',
+            'm4a' => 'audio/mp4',
+            'webm' => 'video/webm',
+            'mp4' => 'video/mp4',
+            'otf' => 'font/otf',
+            'ttf' => 'font/ttf',
+            'woff' => 'font/woff',
+            'woff2' => 'font/woff2',
+            'xml' => 'application/xml',
+            'pdf' => 'application/pdf',
+            'webmanifest' => 'application/manifest+json',
+            'html' => 'text/html; charset=UTF-8',
+        ];
+        $headers = isset($mimes[$ext]) ? ['Content-Type' => $mimes[$ext]] : [];
+        return response()->file($file, $headers);
     }
 }

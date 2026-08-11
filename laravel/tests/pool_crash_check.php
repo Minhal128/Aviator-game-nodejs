@@ -88,4 +88,48 @@ assert(can_cashout(100, 2.56, $wrongPool) === false); // bug case
 $fixed = pool(770);
 assert(can_cashout(100, 2.56, $fixed) === true);
 
+// --- BUG: varchar MIN() picked the wrong bet (round 378: 1000 + 670) ---
+$pool378 = pool(1670);
+assert($pool378 === 1169.0);
+assert(should_crash(1000, 1.17, $pool378) === true);  // what the text MIN gave: crashed at 1.17
+assert(should_crash(670, 1.17, $pool378) === false);  // real smallest bet: still flying
+assert(should_crash(670, 1.75, $pool378) === true);   // correct crash point
+
+// --- amount must be numeric in the DB, else MIN() compares as text again ---
+$env = @parse_ini_file(__DIR__ . '/../.env', false, INI_SCANNER_RAW);
+if ($env && ($env['DB_CONNECTION'] ?? '') === 'mysql') {
+    try {
+        $pdo = new PDO(
+            "mysql:host={$env['DB_HOST']};port={$env['DB_PORT']};dbname={$env['DB_DATABASE']}",
+            $env['DB_USERNAME'], $env['DB_PASSWORD'] ?? '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+        );
+        $type = $pdo->query("SHOW COLUMNS FROM userbits LIKE 'amount'")->fetch()['Type'];
+        assert(stripos($type, 'char') === false, "userbits.amount is still $type — run php artisan migrate");
+        echo "  db: userbits.amount is $type\n";
+    } catch (PDOException $e) {
+        echo "  db: skipped ({$e->getMessage()})\n";
+    }
+}
+
+// --- house mode: 30% edge kept over rounds, not guaranteed per round ---
+require_once __DIR__ . '/../app/Services/PoolCrashEngine.php';
+$engine = 'App\Services\PoolCrashEngine';
+
+$rounds = 200000;
+$target = 2.0;   // every player cashes out at 2x
+$paidTotal = 0.0;
+$bust = 0;
+$maxSeen = 0.0;
+for ($i = 0; $i < $rounds; $i++) {
+    $c = $engine::houseCrashPoint();
+    assert($c >= 1.0 && $c <= $engine::MAX_MULT);
+    $maxSeen = max($maxSeen, $c);
+    if ($c <= 1.0) { $bust++; }
+    if ($c > $target) { $paidTotal += $target; }
+}
+$rtp = $paidTotal / $rounds;
+assert(abs($rtp - 0.70) < 0.02, "house RTP $rtp is not ~0.70");
+assert(abs(($bust / $rounds) - 0.30) < 0.02, "bust rate " . ($bust / $rounds) . " is not ~0.30");
+printf("  house mode: RTP %.3f (target 0.700), bust@1.00x %.1f%%, max %.2fx\n", $rtp, 100 * $bust / $rounds, $maxSeen);
+
 echo "pool_crash_check OK — all scenarios passed\n";
