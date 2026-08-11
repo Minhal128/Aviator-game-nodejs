@@ -86,6 +86,12 @@ Route::group(['middleware' => ['isUser']], function () {
     Route::get('/ludo/{path?}', function (?string $path = null) {
         return app(Pages::class)->gameStatic('ludo', $path);
     })->where('path', '.*');
+    Route::get('/gold-egypt/{path?}', function (?string $path = null) {
+        return app(Pages::class)->gameStatic('gold-egypt', $path);
+    })->where('path', '.*');
+    Route::get('/slot-glamour/{path?}', function (?string $path = null) {
+        return app(Pages::class)->gameStatic('slot-glamour', $path);
+    })->where('path', '.*');
     Route::get('/deposit', [Pages::class, 'deposit']);
     Route::get('/amount-transfer', [Pages::class, "amount_transfer"]);
     Route::get('/withdraw', function () {

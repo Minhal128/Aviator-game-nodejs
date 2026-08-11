@@ -68,7 +68,7 @@ class Gamesetting extends Controller
 
         return response()->json([
             'status' => true,
-            'result' => $state['mode'] === 'random' ? $state['crash_at'] : 0,
+            'result' => 0, // never ship crash_at to the browser
             'mode' => $state['mode'],
             'pool' => $state['pool'],
             'total_bets' => $state['total_bets'],
@@ -100,7 +100,7 @@ class Gamesetting extends Controller
         $r->session()->forget('result');
         $gameId = (int) $r->game_id;
         if ($gameId > 0) {
-            app(PoolCrashEngine::class)->ensureCrashed($gameId, floatval($r->last_time));
+            app(PoolCrashEngine::class)->ensureCrashed($gameId);
         }
         Setting::where('category', 'game_status')->update(['value' => '0']);
         $r->session()->put('gamegenerate', '0');

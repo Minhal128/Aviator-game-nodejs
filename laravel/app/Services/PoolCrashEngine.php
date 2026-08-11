@@ -7,17 +7,25 @@ use App\Models\User;
 use App\Models\Userbit;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * House keeps 30%. Payout pool = 70% of round bets.
  * Crash when no active (non-cashed) bet can be paid at current multiplier:
  *   min(active.amount) * multiplier > remaining_pool
+ *
+ * When the pool cannot pay even the smallest bet at 1.00x (solo player, or one
+ * bet >70% of the round), that rule can only ever crash at 1.00x — the round is
+ * then flown in 'house' mode: random crash point with the same 30% edge,
+ * banked over many rounds instead of guaranteed per round.
  */
 class PoolCrashEngine
 {
     public const HOUSE_PCT = 30.0;
     public const TICK_MS = 100;
     public const STEP = 0.01;
+    /** ponytail: hard ceiling on house-mode payout; raise if the client wants bigger tails */
+    public const MAX_MULT = 100.0;
 
     private function key(int $gameId): string
     {
@@ -56,11 +64,12 @@ class PoolCrashEngine
 
         $total = (float) Userbit::where('gameid', (string) $gameId)->sum('amount');
         $pool = round($total * (100.0 - self::HOUSE_PCT) / 100.0, 2);
+        $minBet = $this->minActiveBet($gameId);
 
         $state = [
             'game_id' => $gameId,
             'phase' => 'flying',
-            'mode' => $total > 0 ? 'pool' : 'random',
+            'mode' => ($minBet !== null && $minBet <= $pool) ? 'pool' : 'house',
             'total_bets' => $total,
             'pool' => $pool,
             'paid' => 0.0,
@@ -69,12 +78,24 @@ class PoolCrashEngine
             'crash_at' => null,
         ];
 
-        if ($state['mode'] === 'random') {
-            $state['crash_at'] = (float) rand(8, 11);
+        if ($state['mode'] === 'house') {
+            $state['crash_at'] = self::houseCrashPoint();
         }
 
         $this->put($gameId, $state);
         return $state;
+    }
+
+    /**
+     * Crash point for house-risk rounds. P(crash >= x) = 0.70 / x, so cashing out
+     * at any target returns 70% long run — the same 30% edge, spread over rounds.
+     * ~30% of these rounds bust at 1.00x, exactly like a real crash curve.
+     */
+    public static function houseCrashPoint(): float
+    {
+        $u = mt_rand(0, mt_getrandmax() - 1) / mt_getrandmax(); // [0,1)
+        $c = (100.0 - self::HOUSE_PCT) / 100.0 / (1.0 - $u);
+        return round(min(self::MAX_MULT, max(1.0, $c)), 2);
     }
 
     public function liveMultiplier(array $state): float
@@ -95,7 +116,9 @@ class PoolCrashEngine
     /** @return float|null min active bet amount */
     public function minActiveBet(int $gameId): ?float
     {
-        $min = Userbit::where('gameid', (string) $gameId)->where('status', '0')->min('amount');
+        // amount + 0: the column is text on legacy installs, where MIN() would
+        // compare as text and pick '1000.00' over '670.00'
+        $min = Userbit::where('gameid', (string) $gameId)->where('status', '0')->min(DB::raw('amount + 0'));
         return $min === null ? null : (float) $min;
     }
 
@@ -105,14 +128,14 @@ class PoolCrashEngine
             return true;
         }
 
-        if (($state['mode'] ?? '') === 'random') {
-            return $mult >= (float) $state['crash_at'];
-        }
-
         $minBet = $this->minActiveBet($gameId);
-        if ($minBet === null) {
+        if ($minBet === null && (float) ($state['total_bets'] ?? 0) > 0) {
             // everyone cashed out — end round
             return true;
+        }
+
+        if (($state['mode'] ?? '') === 'house') {
+            return $mult >= (float) $state['crash_at'];
         }
 
         $need = round($minBet * $mult, 2);
@@ -181,10 +204,19 @@ class PoolCrashEngine
         if ($total <= 0) {
             return;
         }
-        $state['mode'] = 'pool';
         $state['total_bets'] = $total;
         $state['pool'] = round($total * (100.0 - self::HOUSE_PCT) / 100.0, 2);
-        $state['crash_at'] = null;
+
+        // Bets that landed after startFlight can make pool mode viable. Only before
+        // the first payout — re-deciding mid-round would move an announced crash point.
+        if ((float) $state['paid'] > 0) {
+            return;
+        }
+        $minBet = $this->minActiveBet($gameId);
+        if ($minBet !== null && $minBet <= $state['pool']) {
+            $state['mode'] = 'pool';
+            $state['crash_at'] = null;
+        }
     }
 
     /**
@@ -220,8 +252,9 @@ class PoolCrashEngine
             $payout = round((float) $bet->amount * $mult, 2);
             $remaining = $this->remainingPool($state);
 
-            if ($payout > $remaining) {
+            if (($state['mode'] ?? '') === 'pool' && $payout > $remaining) {
                 // this bet can't be paid — fly away, no error toast needed
+                Log::info('pool_crash: silent crash on cashout', compact('gameId', 'betId', 'mult', 'payout', 'remaining'));
                 $this->settleCrash($gameId, $state, $mult);
                 return [
                     'ok' => false,
@@ -260,10 +293,13 @@ class PoolCrashEngine
         });
     }
 
-    /** Idempotent crash settlement. Admin gets total_bets - paid (house + leftover pool). */
-    public function ensureCrashed(int $gameId, float $fallbackMult): void
+    /**
+     * Idempotent crash settlement. Admin gets total_bets - paid (house + leftover pool).
+     * The multiplier is always the server's own clock — never a number from the browser.
+     */
+    public function ensureCrashed(int $gameId): void
     {
-        Cache::lock("pool_crash_lock:{$gameId}", 5)->block(3, function () use ($gameId, $fallbackMult) {
+        Cache::lock("pool_crash_lock:{$gameId}", 5)->block(3, function () use ($gameId) {
             $state = $this->get($gameId);
             $gr = Gameresult::find($gameId);
             if (!$gr) {
@@ -285,13 +321,12 @@ class PoolCrashEngine
                     'total_bets' => (float) Userbit::where('gameid', $gameId)->sum('amount'),
                     'pool' => 0,
                     'paid' => 0,
-                    'multiplier' => $fallbackMult,
+                    'multiplier' => 1.0,
                     'started_at' => microtime(true),
                 ];
                 $state['pool'] = round($state['total_bets'] * (100.0 - self::HOUSE_PCT) / 100.0, 2);
             }
-            $mult = $fallbackMult > 0 ? $fallbackMult : $this->liveMultiplier($state);
-            $this->settleCrash($gameId, $state, $mult);
+            $this->settleCrash($gameId, $state, $this->liveMultiplier($state));
         });
     }
 
@@ -312,13 +347,14 @@ class PoolCrashEngine
 
             Userbit::where('gameid', (string) $gameId)->where('status', '0')->update(['status' => 1]);
 
-            // ponytail: admin = money not paid to winners (house cut + leftover pool)
-            $adminCredit = round(max(0, (float) $state['total_bets'] - (float) $state['paid']), 2);
-            if ($adminCredit > 0) {
+            // ponytail: admin = money not paid to winners (house cut + leftover pool).
+            // Negative in house mode when a player beat the curve — debit, don't hide it.
+            $delta = round((float) $state['total_bets'] - (float) $state['paid'], 2);
+            if ($delta != 0.0) {
                 $adminId = User::where('isadmin', '1')->value('id')
                     ?: User::where('email', 'admin@example.com')->value('id');
                 if ($adminId) {
-                    addwallet((int) $adminId, $adminCredit);
+                    addwallet((int) $adminId, abs($delta), $delta > 0 ? '+' : '-');
                 }
             }
 

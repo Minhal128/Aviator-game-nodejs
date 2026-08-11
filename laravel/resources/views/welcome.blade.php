@@ -80,6 +80,48 @@
                         </div>
                     </div>
                 </div>
+                <div class="col-md-4 col-12 mb-4">
+                    <div class="game-list-boxs">
+                        <div class="position-relative">
+                            <img src="images/goldegypt-img.png" class="w-100" alt="Gold of Egypt" />
+                        </div>
+                        <div class="px-3 mt-4 pb-2 text-center">
+                            <h4 class=" mb-2">
+                                @if (session()->has('userlogin'))
+                                    <a href="/gold-egypt/" class="btn demo-btns">
+                                        PLAY NOW
+                                    </a>
+                                @else
+                                    <a href="#" class="btn demo-btns" data-bs-toggle="modal"
+                                        data-bs-target="#login-modal">
+                                        LOGIN
+                                    </a>
+                                @endif
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 col-12 mb-4">
+                    <div class="game-list-boxs">
+                        <div class="position-relative">
+                            <img src="images/slotglamor-img.png" class="w-100" alt="Glamour Spins" />
+                        </div>
+                        <div class="px-3 mt-4 pb-2 text-center">
+                            <h4 class=" mb-2">
+                                @if (session()->has('userlogin'))
+                                    <a href="/slot-glamour/" class="btn demo-btns">
+                                        PLAY NOW
+                                    </a>
+                                @else
+                                    <a href="#" class="btn demo-btns" data-bs-toggle="modal"
+                                        data-bs-target="#login-modal">
+                                        LOGIN
+                                    </a>
+                                @endif
+                            </h4>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <!--====== Game List End ======-->

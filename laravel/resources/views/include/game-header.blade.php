@@ -112,6 +112,22 @@
                                 </div>
                             </a>
                         </li>
+                        <li>
+                            <a href="/gold-egypt/" class="f-12 justify-content-between">
+                                <div class="d-flex align-items-center">
+                                    <span class="material-symbols-outlined ico f-20">diamond</span>
+                                    GOLD OF EGYPT
+                                </div>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/slot-glamour/" class="f-12 justify-content-between">
+                                <div class="d-flex align-items-center">
+                                    <span class="material-symbols-outlined ico f-20">stars</span>
+                                    GLAMOUR SPINS
+                                </div>
+                            </a>
+                        </li>
 
                         <li>
                             <a href="/deposit" class="f-12 justify-content-between">
