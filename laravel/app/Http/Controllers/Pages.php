@@ -56,4 +56,37 @@ class Pages extends Controller
         }
         return view('level_management',compact('users','level1','level2','level3'));
     }
+
+    /** Serve Chicken-Road/Main or Ludo client/dist under /chicken-road|/ludo. */
+    public function gameStatic(string $game, ?string $path = null)
+    {
+        $roots = [
+            'chicken-road' => dirname(base_path()) . DIRECTORY_SEPARATOR . 'Chicken-Road' . DIRECTORY_SEPARATOR . 'Main',
+            'ludo' => dirname(base_path()) . DIRECTORY_SEPARATOR . 'ludo' . DIRECTORY_SEPARATOR . 'ludo-royale' . DIRECTORY_SEPARATOR . 'client' . DIRECTORY_SEPARATOR . 'dist',
+        ];
+        if (!isset($roots[$game])) {
+            abort(404);
+        }
+        $root = realpath($roots[$game]);
+        if ($root === false || !is_dir($root)) {
+            abort(503, $game === 'ludo'
+                ? 'Ludo client not built. From ludo/ludo-royale: npm i && npm run build --workspace @ludo/client'
+                : 'Game files missing');
+        }
+        $rel = ($path === null || $path === '') ? 'index.html' : str_replace(['..', '\\'], '', $path);
+        $file = realpath($root . DIRECTORY_SEPARATOR . $rel);
+        if ($file === false || !is_file($file) || !str_starts_with($file, $root)) {
+            abort(404);
+        }
+        // ponytail: base href so /game (no slash) still loads relative assets
+        if ($rel === 'index.html') {
+            $html = file_get_contents($file);
+            if ($html !== false && !str_contains($html, '<base ')) {
+                $base = $game === 'ludo' ? '/ludo/' : '/chicken-road/';
+                $html = preg_replace('/<head>/i', '<head><base href="' . $base . '">', $html, 1);
+            }
+            return response($html, 200)->header('Content-Type', 'text/html; charset=UTF-8');
+        }
+        return response()->file($file);
+    }
 }

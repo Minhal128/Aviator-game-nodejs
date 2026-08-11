@@ -13,9 +13,6 @@
         <div class="container">
             <div class="title-bg1">
                 <h2 class="fw-bold">
-                    <!-- <span class="material-symbols-outlined me-2">
-                        grid_view
-                    </span> -->
                     Our Games
                 </h2>
             </div>
@@ -23,7 +20,7 @@
                 <div class="col-md-4 col-12 mb-4">
                     <div class="game-list-boxs">
                         <div class="position-relative">
-                            <img src="images/aviator-img.png" class="w-100" />
+                            <img src="images/aviator-img.png" class="w-100" alt="Aviator" />
                         </div>
                         <div class="px-3 mt-4 pb-2 text-center">
                             <h4 class=" mb-2">
@@ -34,6 +31,48 @@
                                 @else
                                     <a href="#" class="btn demo-btns" data-bs-toggle="modal"
                                         data-bs-target="#login-modal" id="login">
+                                        LOGIN
+                                    </a>
+                                @endif
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 col-12 mb-4">
+                    <div class="game-list-boxs">
+                        <div class="position-relative">
+                            <img src="images/chicken-road-img.png" class="w-100" alt="Chicken Road" />
+                        </div>
+                        <div class="px-3 mt-4 pb-2 text-center">
+                            <h4 class=" mb-2">
+                                @if (session()->has('userlogin'))
+                                    <a href="/chicken-road/" class="btn demo-btns">
+                                        PLAY NOW
+                                    </a>
+                                @else
+                                    <a href="#" class="btn demo-btns" data-bs-toggle="modal"
+                                        data-bs-target="#login-modal">
+                                        LOGIN
+                                    </a>
+                                @endif
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 col-12 mb-4">
+                    <div class="game-list-boxs">
+                        <div class="position-relative">
+                            <img src="images/ludo-img.jpg" class="w-100" alt="Ludo Royale" />
+                        </div>
+                        <div class="px-3 mt-4 pb-2 text-center">
+                            <h4 class=" mb-2">
+                                @if (session()->has('userlogin'))
+                                    <a href="/ludo/" class="btn demo-btns">
+                                        PLAY NOW
+                                    </a>
+                                @else
+                                    <a href="#" class="btn demo-btns" data-bs-toggle="modal"
+                                        data-bs-target="#login-modal">
                                         LOGIN
                                     </a>
                                 @endif

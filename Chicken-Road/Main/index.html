@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chicken Road</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <div class="sidebar-mask" id="sidebarMask" onclick="toggleSidebarMenu(false)"></div>
+
+    <div class="sidebar-menu" id="sidebarMenu">
+        <div class="sidebar-header">
+            <h2 class="sidebar-title">Game Options</h2>
+            <button class="sidebar-close-btn" onclick="toggleSidebarMenu(false)">&times;</button>
+        </div>
+
+        <div class="menu-card">
+            <span class="card-label">Your Wallet Balance</span>
+            <p class="wallet-amount" id="walletBalanceText">$100.00</p>
+            <button class="btn-refill" onclick="refillWalletBalance()">Refill Balance</button>
+        </div>
+
+        <div class="menu-card">
+            <span class="card-label">Audio Settings</span>
+            <div class="sound-row">
+                <span class="sound-text">Music Volume</span>
+                <input type="range" class="volume-slider" id="musicVolumeSlider" min="0" max="1" step="0.05" value="1" oninput="handleMusicVolumeChange(this.value)">
+            </div>
+            <div class="sound-row">
+                <span class="sound-text">SFX Volume</span>
+                <input type="range" class="volume-slider" id="sfxVolumeSlider" min="0" max="1" step="0.05" value="1" oninput="handleSfxVolumeChange(this.value)">
+            </div>
+        </div>
+    </div>
+
+    <div class="win-toast" id="winToastNotification">
+        🎉 You won! Multiplier: <span id="toastMultiplierText">1.00x</span>
+    </div>
+
+    <div class="road-viewport" id="viewportArea">
+        <button class="menu-toggle-btn" onclick="toggleSidebarMenu(true)">
+            <div></div>
+            <div></div>
+            <div></div>
+        </button>
+
+        <div class="road-container" id="roadContainer">
+            <div class="player-wrapper" id="playerRig">
+                <canvas id="characterSprite" width="256" height="256"></canvas>
+                <div class="multiplier-badge" id="badgeText">1.00x</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-panel" id="dashboardControls">
+        <div class="dashboard-row">
+            <div class="input-stepper-box">
+                <button class="stepper-btn" onclick="setMinBet()">MIN</button>
+                <input type="number" class="stepper-input" id="betDisplayVal" value="3" min="1" max="50" onchange="handleCustomBetInput()" onblur="handleCustomBetInput()">
+                <button class="stepper-btn" onclick="setMaxBet()">MAX</button>
+            </div>
+        </div>
+
+        <div class="dashboard-row">
+            <button class="bet-shortcut-btn" onclick="setFixedBet(2)">2 <span>$</span></button>
+            <button class="bet-shortcut-btn" onclick="setFixedBet(3)">3 <span>$</span></button>
+            <button class="bet-shortcut-btn" onclick="setFixedBet(8)">8 <span>$</span></button>
+            <button class="bet-shortcut-btn" onclick="setFixedBet(20)">20 <span>$</span></button>
+        </div>
+
+        <div class="dashboard-row">
+            <select class="dropdown-select" id="difficultyDropdown" onchange="handleDifficultyChange()">
+                <option value="easy">Easy</option>
+                <option value="medium" selected>Medium</option>
+                <option value="hard">Hard</option>
+                <option value="hardcore">Hardcore</option>
+            </select>
+        </div>
+
+        <div class="dashboard-row">
+            <button class="action-play-btn" id="playActionButton" onclick="triggerBetMatchStart()">Play</button>
+        </div>
+    </div>
+
+    <div class="dashboard-panel" id="activeGameControls">
+        <div class="game-controls-wrapper">
+            <button class="action-play-btn btn-cashout" id="cashoutActionButton" onclick="cashoutGame()">Cashout</button>
+            <button class="action-play-btn btn-go" id="goActionButton" onclick="performJump()">GO</button>
+        </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

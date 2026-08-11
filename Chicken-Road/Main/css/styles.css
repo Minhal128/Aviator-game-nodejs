@@ -1,0 +1,588 @@
+html {
+    height: 100.5vh; 
+    overflow-y: scroll;
+    background-color: #1a1d20;
+    -webkit-overflow-scrolling: touch;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #1a1d20;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 100vh;
+    height: auto;
+    user-select: none;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Game Map Viewport Container */
+.road-viewport {
+    position: relative;
+    width: 100vw;
+    height: 60vh; 
+    flex-grow: 1; 
+    overflow: hidden;
+    background-color: #444;
+}
+
+.road-container {
+    position: absolute;
+    display: flex;
+    height: 100%; 
+    background-color: #555e63;
+    left: 0;
+    top: 0; 
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Footpath starting zone */
+.footpath {
+    width: 110px;
+    min-width: 110px;
+    height: 100%;
+    background-color: #b3b9bc;
+    background-image: 
+        linear-gradient(rgba(0,0,0,0.15) 3px, transparent 3px),
+        linear-gradient(90deg, rgba(0,0,0,0.15) 3px, transparent 3px);
+    background-size: 55px 60px;
+    border-right: 8px solid #848a8c;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 2;
+}
+
+/* Standard Asphalt Lane */
+.lane {
+    width: 110px; 
+    min-width: 110px;
+    height: 100%;
+    box-sizing: border-box;
+    position: relative;
+    background-color: #555e63;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.lane::after {
+    content: '';
+    position: absolute;
+    right: -3px;
+    top: 0;
+    width: 6px;
+    height: 100%;
+    background: linear-gradient(to bottom, #fff 0%, #fff 60%, transparent 60%, transparent 100%);
+    background-size: 100% 50px;
+    z-index: 1;
+    opacity: 0.7;
+}
+
+/* Manhole Cover Multiplier */
+.manhole {
+    width: 76px;
+    height: 76px;
+    background: radial-gradient(circle, #5a5a5a 40%, #3a3a3a 75%, #222 100%);
+    border: 4px dashed #2c2c2c;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    font-weight: 900;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.8), 0 4px 6px rgba(0,0,0,0.4);
+    position: absolute;
+    top: calc(50% - 38px);
+    z-index: 3;
+    text-shadow: 1px 2px 3px rgba(0,0,0,0.8);
+    opacity: 0.85;
+}
+
+/* The Player Character Container */
+.player-wrapper {
+    position: absolute;
+    width: 128px;
+    height: 170px;
+    z-index: 10;
+    top: calc(50% - 95px);
+    left: -9px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    will-change: transform, left;
+    transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* HTML5 Canvas Sprite Container */
+canvas#characterSprite {
+    width: 128px;
+    height: 128px;
+    display: block;
+    image-rendering: pixelated;
+    filter: drop-shadow(0px 8px 6px rgba(0,0,0,0.4));
+    transition: transform 0.15s ease-out, filter 0.15s ease-out;
+}
+
+.player-wrapper.jumping canvas#characterSprite {
+    transform: scale(1.2) translateY(-22px);
+    filter: drop-shadow(0px 28px 18px rgba(0,0,0,0.6));
+}
+
+/* Float Multiplier Indicator Badge */
+.multiplier-badge {
+    margin-top: 5px;
+    background-color: #2b5797;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 13px;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.2);
+    white-space: nowrap;
+}
+
+/* Traffic Trucks / Cars */
+.car {
+    position: absolute;
+    width: 95%; 
+    left: 2.5%; 
+    top: 0; 
+    z-index: 5;
+    filter: drop-shadow(0px 8px 10px rgba(0,0,0,0.45));
+    will-change: transform;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    transform: translate3d(0, -250px, 0);
+}
+
+/* Custom Graphic Roadblock Safety Barriers from Image */
+.barrier {
+    position: absolute;
+    width: 112px; 
+    height: 68px; 
+    left: -1px;
+    z-index: 7;
+    will-change: transform;
+    background-image: url('../assets/images/br.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    filter: drop-shadow(0px 5px 8px rgba(0,0,0,0.45));
+    animation: popIn 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards;
+}
+
+/* --- HAMBURGER MENU BUTTON --- */
+.menu-toggle-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
+    background-color: rgba(30, 33, 36, 0.85);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    z-index: 100;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.menu-toggle-btn div {
+    width: 18px;
+    height: 2px;
+    background-color: #ffffff;
+    border-radius: 2px;
+    transition: 0.25s ease-in-out;
+}
+
+/* --- SIDEBAR PANEL OVERLAY --- */
+.sidebar-menu {
+    position: fixed;
+    top: 0;
+    right: -280px;
+    width: 280px;
+    height: 100vh;
+    background-color: rgba(26, 29, 32, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: -5px 0 25px rgba(0, 0, 0, 0.5);
+    z-index: 500;
+    box-sizing: border-box;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sidebar-menu.open {
+    right: 0;
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 12px;
+    margin-top: 10px;
+}
+
+.sidebar-title {
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: bold;
+    margin: 0;
+}
+
+.sidebar-close-btn {
+    background: none;
+    border: none;
+    color: #b0b5b9;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+/* Menu Section Items */
+.menu-card {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.card-label {
+    color: #b0b5b9;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.wallet-amount {
+    color: #2cb769;
+    font-size: 28px;
+    font-weight: 800;
+    margin: 0;
+}
+
+.btn-refill {
+    background: linear-gradient(135deg, #2b5797 0%, #1e3a67 100%);
+    border: none;
+    border-radius: 8px;
+    color: #ffffff;
+    padding: 10px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: opacity 0.1s;
+    box-shadow: 0 3px 8px rgba(43, 87, 151, 0.3);
+}
+
+.btn-refill:active {
+    opacity: 0.85;
+}
+
+/* Sound Row Control Toggle Switch */
+.sound-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.sound-row:last-child {
+    margin-bottom: 0;
+}
+
+.sound-text {
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+/* Custom Range Slider Style */
+.volume-slider {
+    -webkit-appearance: none;
+    width: 120px;
+    background: transparent;
+}
+
+.volume-slider:focus {
+    outline: none;
+}
+
+.volume-slider::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 6px;
+    cursor: pointer;
+    background: #4e555c;
+    border-radius: 4px;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    height: 18px;
+    width: 18px;
+    border-radius: 50%;
+    background: #2cb769;
+    cursor: pointer;
+    -webkit-appearance: none;
+    margin-top: -6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.volume-slider::-moz-range-track {
+    width: 100%;
+    height: 6px;
+    cursor: pointer;
+    background: #4e555c;
+    border-radius: 4px;
+}
+
+.volume-slider::-moz-range-thumb {
+    height: 18px;
+    width: 18px;
+    border-radius: 50%;
+    background: #2cb769;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+/* Overlay Background dims map while sidebar is displayed open */
+.sidebar-mask {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background-color: rgba(0,0,0,0.4);
+    z-index: 400;
+    display: none;
+}
+
+.sidebar-mask.active {
+    display: block;
+}
+
+/* --- DASHBOARD & GAME CONTROLS STYLING --- */
+.dashboard-panel {
+    width: 100vw;
+    height: auto; 
+    background-color: #232629;
+    box-sizing: border-box;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border-top: 2px solid #2e3236;
+    z-index: 20;
+}
+
+.dashboard-row {
+    display: flex;
+    width: 100%;
+    gap: 10px;
+    align-items: center;
+}
+
+.input-stepper-box {
+    flex: 1;
+    background-color: #2f3438;
+    border-radius: 8px;
+    height: 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 4px;
+    border: 1px solid #3a3f44;
+}
+
+.stepper-btn {
+    width: 54px;
+    height: 40px;
+    background-color: #3e4449;
+    border: none;
+    border-radius: 6px;
+    color: #b0b5b9;
+    font-weight: bold;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.stepper-btn:active { background-color: #4e555c; }
+
+.stepper-input { 
+    background: transparent;
+    border: none;
+    color: #ffffff; 
+    font-weight: bold; 
+    font-size: 16px; 
+    text-align: center;
+    width: 60px;
+    outline: none;
+    -moz-appearance: textfield;
+}
+
+.stepper-input::-webkit-outer-spin-button,
+.stepper-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.bet-shortcut-btn {
+    flex: 1;
+    height: 44px;
+    background-color: #2f3438;
+    border: 1px solid #3a3f44;
+    border-radius: 8px;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    transition: background 0.1s;
+}
+
+.bet-shortcut-btn span {
+    background-color: #ffffff;
+    color: #232629;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.bet-shortcut-btn:active { background-color: #3a3f44; }
+
+.dropdown-select {
+    width: 100%;
+    height: 48px;
+    background-color: #2f3438;
+    border: 1px solid #3a3f44;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 0 14px;
+    appearance: none;
+    cursor: pointer;
+    outline: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 16px;
+}
+
+.action-play-btn {
+    width: 100%;
+    height: 56px;
+    background-color: #2cb769;
+    border: none;
+    border-radius: 10px;
+    color: #ffffff;
+    font-size: 22px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(44, 183, 105, 0.3);
+    transition: background 0.15s, transform 0.1s, opacity 0.2s;
+}
+
+.action-play-btn:active {
+    background-color: #249e59;
+    transform: scale(0.99);
+}
+
+/* Active Game Controls */
+#activeGameControls {
+    display: none; 
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 16px;
+}
+
+.game-controls-wrapper {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    gap: 16px;
+    align-items: center;
+}
+
+.btn-cashout {
+    flex: 1; 
+    background-color: #e6a23c;
+    box-shadow: 0 4px 12px rgba(230, 162, 60, 0.3);
+    height: 80px;
+    font-size: 24px;
+}
+
+.btn-cashout:active {
+    background-color: #cf8e30;
+}
+
+.btn-go {
+    flex: 1; 
+    height: 80px; 
+    font-size: 24px;
+}
+
+/* --- IN-APP TOAST POPUP NOTIFICATION --- */
+.win-toast {
+    position: absolute;
+    top: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #2cb769 0%, #1e874b 100%);
+    color: #ffffff;
+    padding: 14px 28px;
+    border-radius: 50px;
+    font-weight: bold;
+    font-size: 18px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3);
+    border: 1px solid rgba(255,255,255,0.2);
+    z-index: 999;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.win-toast.show {
+    top: 20px;
+}
+
+@keyframes popIn {
+    0% { opacity: 0; transform: scale(0.5); }
+    100% { opacity: 1; transform: scale(1); }
+}

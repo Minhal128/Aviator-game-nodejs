@@ -2,8 +2,12 @@
 <header>
     <div class="header-top">
         <div class="header-left">
-            <a href="dashboard">
-                <img src="/images/logo.jpeg" class="logo1" alt="Turbo Legends" />
+            <a href="dashboard" class="tl-brand" aria-label="Turbo Legends">
+                <svg class="tl-brand-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M4 18 L28 10 L22 18 L28 22 L4 18 Z" fill="#E50539"/>
+                    <path d="M8 18 L14 16.5" stroke="#fff" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+                </svg>
+                <span class="tl-brand-text"><b>TURBO</b><span>LEGENDS</span></span>
             </a>
         </div>
         <div class="header-right d-flex align-items-center">
@@ -60,7 +64,7 @@
                     </div>
                     <div>
                         <div class="form-check form-switch lg-switch">
-                            <input class="form-check-input" type="checkbox" role="switch" id="music" checked="">
+                            <input class="form-check-input" type="checkbox" role="switch" id="music">
                             <label class="form-check-label" for="music"></label>
                         </div>
                     </div>
@@ -92,7 +96,22 @@
                                 </div>
                             </a>
                         </li>
-
+                        <li>
+                            <a href="/chicken-road/" class="f-12 justify-content-between">
+                                <div class="d-flex align-items-center">
+                                    <span class="material-symbols-outlined ico f-20">pets</span>
+                                    CHICKEN ROAD
+                                </div>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/ludo/" class="f-12 justify-content-between">
+                                <div class="d-flex align-items-center">
+                                    <span class="material-symbols-outlined ico f-20">casino</span>
+                                    LUDO
+                                </div>
+                            </a>
+                        </li>
 
                         <li>
                             <a href="/deposit" class="f-12 justify-content-between">
@@ -185,7 +204,13 @@
     </div>
     <div class="header-bottom ">
         <div class="header-left">
-            <img src="/images/logo.jpeg" class="logo" alt="Turbo Legends" />
+            <a href="dashboard" class="tl-brand" aria-label="Turbo Legends">
+                <svg class="tl-brand-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M4 18 L28 10 L22 18 L28 22 L4 18 Z" fill="#E50539"/>
+                    <path d="M8 18 L14 16.5" stroke="#fff" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+                </svg>
+                <span class="tl-brand-text"><b>TURBO</b><span>LEGENDS</span></span>
+            </a>
         </div>
         <div class="header-right d-flex align-items-center">
             <!-- <button class="btn btn-warning m-font-0 rounded-pill py-1 px-2 f-14 d-flex align-items-center h-26" data-bs-toggle="modal" data-bs-target="#how-to-play">

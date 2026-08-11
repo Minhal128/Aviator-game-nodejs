@@ -1,0 +1,18 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "sourceMap": true,
+    "types": ["node"],
+    // @colyseus/schema 4.x requires legacy decorators and pre-ES2022 class
+    // field semantics (docs.colyseus.io/state/schema — TypeScript setup).
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    // Colyseus declares Room lifecycle members as optional upstream and the
+    // shape shifts between minors — the override-modifier check would break
+    // on SDK updates, so it is relaxed for this workspace only.
+    "noImplicitOverride": false
+  },
+  "include": ["src"]
+}

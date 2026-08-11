@@ -146,18 +146,11 @@ class Gamesetting extends Controller
     }
     public function currentlybet()
     {
+        // ponytail: only real bets this round (was injecting 400–900 fake rows)
         $allbets = Userbit::where("gameid", currentid())->join('users','users.id','=','userbits.userid')->get();
-        $currentGameBet = $allbets;
-        for ($i=0; $i < rand(400,900); $i++) { 
-            $currentGameBet[]=array(
-                "userid" => rand(10000,50000),
-                "amount" => rand(999,9999),
-				"image"  => "/images/avtar/av-".rand(1,72).".png"
-            );
-        }
         $currentGame = array("id"=>currentid());
-        $currentGameBetCount = count($currentGameBet);
-        $response = array("currentGame" => $currentGame, "currentGameBet" => $currentGameBet, "currentGameBetCount" => $currentGameBetCount);
+        $currentGameBetCount = count($allbets);
+        $response = array("currentGame" => $currentGame, "currentGameBet" => $allbets, "currentGameBetCount" => $currentGameBetCount);
         return response()->json($response);
     }
     public function my_bets_history(){
@@ -173,7 +166,7 @@ class Gamesetting extends Controller
         $data = array();
 
         $engine = app(PoolCrashEngine::class);
-        $out = $engine->cashout($game_id, $bet_id, (int) user('id'));
+        $out = $engine->cashout($game_id, $bet_id, (int) user('id'), floatval($r->win_multiplier));
 
         if (!empty($out['ok'])) {
             $status = true;
@@ -188,6 +181,7 @@ class Gamesetting extends Controller
             $data = [
                 'crashed' => !empty($out['crashed']),
                 'multiplier' => $out['multiplier'] ?? null,
+                'silent' => !empty($out['silent']),
             ];
         }
 

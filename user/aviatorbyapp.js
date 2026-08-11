@@ -32,10 +32,32 @@ function currentid() {
     });
 }
 
-// ponytail: 8s bet window with visible countdown, then place bet → crash target → fly
-var ROUND_WAIT_SEC = 8;
+// ponytail: staging bet window (was 8s)
+var ROUND_WAIT_SEC = 25;
+var _wait_timer = null;
+var _wait_left = 0;
+var _flight_paused = false;
+var _flight_game_id = null;
+var _in_flight = false;
+
+function resetFillLine(seconds) {
+    var el = document.getElementById('round_fill_line') || document.querySelector('.fill-line');
+    if (!el) return;
+    el.classList.remove('is-paused');
+    el.style.animation = 'none';
+    void el.offsetWidth;
+    el.style.animation = 'line-fill ' + seconds + 's linear';
+}
+
+function setStageButtons(paused) {
+    $("#stg_pause").toggleClass('is-active', !!paused);
+    $("#stg_play").toggleClass('is-active', !paused);
+}
 
 function gamegenerate() {
+    _flight_paused = false;
+    _in_flight = false;
+    setStageButtons(false);
     setTimeout(function () {
         stage_time_out = 0;
         $("#auto_increment_number_div").hide();
@@ -43,14 +65,18 @@ function gamegenerate() {
         $("#auto_increment_number").removeClass('text-danger');
         $('.loading-game').addClass('show');
 
-        var left = ROUND_WAIT_SEC;
-        $("#round_countdown").text(left);
+        _wait_left = ROUND_WAIT_SEC;
+        $("#round_countdown").text(_wait_left);
+        resetFillLine(ROUND_WAIT_SEC);
 
-        var tick = setInterval(function () {
-            left--;
-            $("#round_countdown").text(Math.max(left, 0));
-            if (left <= 0) {
-                clearInterval(tick);
+        if (_wait_timer) clearInterval(_wait_timer);
+        _wait_timer = setInterval(function () {
+            if (_flight_paused) return;
+            _wait_left--;
+            $("#round_countdown").text(Math.max(_wait_left, 0));
+            if (_wait_left <= 0) {
+                clearInterval(_wait_timer);
+                _wait_timer = null;
                 start_round();
             }
         }, 1000);
@@ -137,7 +163,7 @@ var gameSocket = null;
     try {
         gameSocket = io(GAME_SOCKET_URL, { transports: ['websocket', 'polling'], autoConnect: true });
         gameSocket.on('tick', function (tick) {
-            if (!tick || _flight_crashed) return;
+            if (!tick || _flight_crashed || _flight_paused) return;
             var m = parseFloat(tick.multiplier).toFixed(2);
             incrementor(m);
             if (tick.crashed) {
@@ -152,6 +178,7 @@ var gameSocket = null;
 function end_flight_crash(res) {
     if (_flight_crashed) return;
     _flight_crashed = true;
+    _in_flight = false;
     if (_flight_tick_timer) {
         clearInterval(_flight_tick_timer);
         _flight_tick_timer = null;
@@ -163,8 +190,35 @@ function end_flight_crash(res) {
     gamegenerate();
 }
 
+function startFlightPoll(gameId) {
+    if (_flight_tick_timer) {
+        clearInterval(_flight_tick_timer);
+        _flight_tick_timer = null;
+    }
+    _flight_tick_timer = setInterval(function () {
+        if (_flight_paused || _flight_crashed) return;
+        $.ajax({
+            url: '/game/tick',
+            type: "POST",
+            data: { _token: hash_id, game_id: gameId },
+            dataType: "json",
+            success: function (tick) {
+                if (!tick || _flight_paused) return;
+                var m = parseFloat(tick.multiplier).toFixed(2);
+                incrementor(m);
+                if (tick.crashed) {
+                    end_flight_crash(m);
+                }
+            }
+        });
+    }, 100);
+}
+
 function run_multiplier() {
     _flight_crashed = false;
+    _in_flight = true;
+    _flight_paused = false;
+    setStageButtons(false);
     if (_flight_tick_timer) {
         clearInterval(_flight_tick_timer);
         _flight_tick_timer = null;
@@ -177,6 +231,7 @@ function run_multiplier() {
         dataType: "json",
         success: function (data) {
             var gameId = (data.game_id) ? data.game_id : (current_game_data && current_game_data.id);
+            _flight_game_id = gameId;
 
             $.ajax({
                 url: '/game/currentlybet',
@@ -191,29 +246,55 @@ function run_multiplier() {
                 return;
             }
 
-            // fallback: HTTP poll (same authority as socket)
-            _flight_tick_timer = setInterval(function () {
-                $.ajax({
-                    url: '/game/tick',
-                    type: "POST",
-                    data: { _token: hash_id, game_id: gameId },
-                    dataType: "json",
-                    success: function (tick) {
-                        if (!tick) return;
-                        var m = parseFloat(tick.multiplier).toFixed(2);
-                        incrementor(m);
-                        if (tick.crashed) {
-                            end_flight_crash(m);
-                        }
-                    }
-                });
-            }, 100);
+            startFlightPoll(gameId);
         }
     });
+}
+
+function stagingPause() {
+    _flight_paused = true;
+    setStageButtons(true);
+    $("#round_fill_line, .fill-line").addClass('is-paused');
+    if (_flight_tick_timer) {
+        clearInterval(_flight_tick_timer);
+        _flight_tick_timer = null;
+    }
+}
+
+function stagingPlay() {
+    _flight_paused = false;
+    setStageButtons(false);
+    $("#round_fill_line, .fill-line").removeClass('is-paused');
+    if (_in_flight && !_flight_crashed && !(gameSocket && gameSocket.connected) && _flight_game_id) {
+        startFlightPoll(_flight_game_id);
+    }
+}
+
+function stagingRestart() {
+    _flight_paused = false;
+    setStageButtons(false);
+    if (_wait_timer) {
+        clearInterval(_wait_timer);
+        _wait_timer = null;
+    }
+    if (_flight_tick_timer) {
+        clearInterval(_flight_tick_timer);
+        _flight_tick_timer = null;
+    }
+    if (_in_flight && !_flight_crashed) {
+        var res = $("#auto_increment_number").text().replace(/x/i, '').trim() || '1.00';
+        _flight_crashed = false; // allow end_flight_crash
+        end_flight_crash(parseFloat(res).toFixed(2));
+        return;
+    }
+    gamegenerate();
 }
 
 function check_game_running(event) {}
 
 $(document).ready(function () {
     check_game_running("check");
+    $("#stg_pause").on("click", stagingPause);
+    $("#stg_play").on("click", stagingPlay);
+    $("#stg_restart").on("click", stagingRestart);
 });

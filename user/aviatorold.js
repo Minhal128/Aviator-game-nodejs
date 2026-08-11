@@ -10,18 +10,14 @@ scrollFunction();
 
 
 document.addEventListener("visibilitychange", function () {
-    // console.log(document.visibilityState); // "hidden" or "visible"
-    // console.log(document.hidden); // true or false
     const music = document.getElementById("background_Audio");
+    if (!music) return;
     if (document.hidden) {
         music.pause();
+    } else if (window_blur == 0 && $("#music").prop("checked") == true) {
+        music.play().catch(function () {});
     } else {
-        if (window_blur == 0) {
-            music.play();
-        } else {
-            music.pause();
-        }
-        // sound.play()
+        music.pause();
     }
 }, false);
 
@@ -186,13 +182,10 @@ function cash_out_now(element, section_no, increment = '') {
         var bet_amount = $("#extra_bet_section #bet_amount").val();
     }
     // let incrementor = $("#auto_increment_number").text().slice(0,-1);
-    game_id = current_game_data.id
+    game_id = (current_game_data && current_game_data.id) ? current_game_data.id : current_game_data;
 
-    if (currency_id == 1) {
-        var amt = parseFloat(parseFloat(incrementor) * parseFloat(bet_amount)).toFixed(2);
-    } else {
-        var amt = parseFloat(parseFloat(incrementor) * (parseFloat(bet_amount) / 80)).toFixed(2);
-    }
+    // ponytail: always bet × mult (currency was "₹" so old /80 made 71.38 from 1000×5.71)
+    var amt = parseFloat(parseFloat(incrementor) * parseFloat(bet_amount)).toFixed(2);
 
     $('#all_bets .mCSB_container .bet_id_' + member_id + section_no + '').addClass('active');
     $('#all_bets .mCSB_container .bet_id_' + member_id + section_no + ' .column-3').html('<div class="' + get_multiplier_badge_class(incrementor) + ' custom-badge mx-auto">' + incrementor + 'x</div>');
@@ -218,10 +211,6 @@ function cash_out_now(element, section_no, increment = '') {
         }
 
         $("#main_bet_section").find("#cash_out_amount").text('');
-        $(".cashout-toaster1 .stop-number").html(incrementor + 'x');
-        $(".cashout-toaster1 .out-amount").html(amt + currency_symbol);
-        $(".cashout-toaster1").addClass('show');
-        firstToastr();
     }
 
     if (section_no == 1) {
@@ -243,13 +232,7 @@ function cash_out_now(element, section_no, increment = '') {
         }
 
         $("#extra_bet_section").find("#cash_out_amount").text('');
-        $(".cashout-toaster2 .stop-number").html(incrementor + 'x');
-        $(".cashout-toaster2 .out-amount").html(amt + currency_symbol);
-        $(".cashout-toaster2").addClass('show');
-        secondToastr();
     }
-
-    // toastr.success('You have cashed out! ' + incrementor + 'x You got ' + amt + currency_symbol);
 
     $.ajax({
         url: '/cash_out',
@@ -261,17 +244,27 @@ function cash_out_now(element, section_no, increment = '') {
         type: "get",
         dataType: "json",
         success: function (result) {
-            if (result.data && result.data.crashed && typeof end_flight_crash === 'function') {
-                var cm = result.data.multiplier ? parseFloat(result.data.multiplier).toFixed(2) : $("#auto_increment_number").text().slice(0, -1);
-                end_flight_crash(cm);
-            }
+            // success UI first, then flew-away (so 100 cashout toast isn't skipped)
             if (result.isSuccess) {
+                var paid = result.data.cash_out_amount;
+                var wonMult = result.data.multiplier != null ? result.data.multiplier : incrementor;
+                if (section_no == 0) {
+                    $(".cashout-toaster1 .stop-number").html(wonMult + 'x');
+                    $(".cashout-toaster1 .out-amount").html(paid + currency_symbol);
+                    $(".cashout-toaster1").addClass('show');
+                    firstToastr();
+                } else {
+                    $(".cashout-toaster2 .stop-number").html(wonMult + 'x');
+                    $(".cashout-toaster2 .out-amount").html(paid + currency_symbol);
+                    $(".cashout-toaster2").addClass('show');
+                    secondToastr();
+                }
                 if (result.data.wallet_balance != '' && result.data.wallet_balance != NaN && result.data.wallet_balance != 'NaN') {
                     $("#wallet_balance").text(currency_symbol + result.data.wallet_balance);
-                    $("#header_wallet_balance").text(currency_symbol + result.data.wallet_balance); // Show Header Wallet Balance
+                    $("#header_wallet_balance").text(currency_symbol + result.data.wallet_balance);
                 } else {
                     $("#wallet_balance").text(currency_symbol + '0.00');
-                    $("#header_wallet_balance").text(currency_symbol + '0.00'); // Show Header Wallet Balance
+                    $("#header_wallet_balance").text(currency_symbol + '0.00');
                 }
                 if (section_no == 0) {
                     $("#main_bet_section").find("#bet_button").show();
@@ -281,15 +274,14 @@ function cash_out_now(element, section_no, increment = '') {
                     stage_time_out = 0;
                     
                     $("#my_bet_list #my_bet_section_0").addClass('active');
-                    $("#my_bet_list #my_bet_section_0 .column-3").html('<div class="' + get_multiplier_badge_class(incrementor) + ' custom-badge mx-auto">' + incrementor + 'x</div>');
-                    $("#my_bet_list #my_bet_section_0 .column-4").html(result.data.cash_out_amount + currency_symbol);
+                    $("#my_bet_list #my_bet_section_0 .column-3").html('<div class="' + get_multiplier_badge_class(wonMult) + ' custom-badge mx-auto">' + wonMult + 'x</div>');
+                    $("#my_bet_list #my_bet_section_0 .column-4").html(paid + currency_symbol);
                     let is_main_auto_bet_checked = $("#main_auto_bet").prop('checked');
 
                     $("#my_bet_list #my_bet_section_0").removeAttr('id');
 
 
                     if (is_main_auto_bet_checked == false) {
-                        // Main Bet Button and text box enable
                         $(".main_bet_amount").prop('disabled', false);
                         $("#main_plus_btn").prop('disabled', false);
                         $("#main_minus_btn").prop('disabled', false);
@@ -309,15 +301,14 @@ function cash_out_now(element, section_no, increment = '') {
                     stage_time_out = 0;
                     
                     $("#my_bet_list #my_bet_section_1").addClass('active');
-                    $("#my_bet_list #my_bet_section_1 .column-3").html('<div class="' + get_multiplier_badge_class(incrementor) + ' custom-badge mx-auto">' + incrementor + 'x</div>');
-                    $("#my_bet_list #my_bet_section_1 .column-4").html(result.data.cash_out_amount + currency_symbol);
+                    $("#my_bet_list #my_bet_section_1 .column-3").html('<div class="' + get_multiplier_badge_class(wonMult) + ' custom-badge mx-auto">' + wonMult + 'x</div>');
+                    $("#my_bet_list #my_bet_section_1 .column-4").html(paid + currency_symbol);
                     let is_extra_auto_bet_checked = $("#extra_auto_bet").prop('checked');
 
                     $("#my_bet_list #my_bet_section_1").removeAttr('id');
 
 
                     if (is_extra_auto_bet_checked == false) {
-                        // Extra Bet Button and text box enable
                         $(".extra_bet_amount").prop('disabled', false);
                         $("#extra_minus_btn").prop('disabled', false);
                         $("#extra_plus_btn").prop('disabled', false);
@@ -330,6 +321,14 @@ function cash_out_now(element, section_no, increment = '') {
                     $("#extra_auto_bet").prop('disabled', false);
 
                 }
+            } else if (!(result.data && (result.data.crashed || result.data.silent)) && result.message) {
+                $(".error-toaster1 .msg").html(result.message);
+                $(".error-toaster1").addClass('show');
+                errorToastr();
+            }
+            if (result.data && result.data.crashed && typeof end_flight_crash === 'function') {
+                var cm = result.data.multiplier ? parseFloat(result.data.multiplier).toFixed(2) : $("#auto_increment_number").text().slice(0, -1);
+                setTimeout(function () { end_flight_crash(cm); }, result.isSuccess ? 400 : 0);
             }
         }
     });
@@ -750,7 +749,7 @@ function update_bet_list(bets, target, appendType = '') {
             var sectionNo = '';
         }
         html += '<div class="list-items ' + isActive + ' ' + sectionNo + ' ' + '">' +
-            '<div class="column-1 users"> <img src="' + bets[i].image + '" class="avatar me-1"> ' + bets[i].userid + ' </div>' +
+            '<div class="column-1 users"> <img src="' + (bets[i].image || '/images/avtar/av-1.png') + '" class="avatar me-1"> ' + bets[i].userid + ' </div>' +
             '<div class="column-2"> <button class="btn btn-transparent previous-history d-flex align-items-center mx-auto"> ' + bets[i].amount + currency_symbol + ' </button> </div>' +
             '<div class="column-3"> ' + multiplication + ' </div>' +
             '<div class="column-4"> ' + cashOut + ' </div>' +
@@ -1454,13 +1453,14 @@ function cashOutSoundOtherSection() {
 
 function backgroundSound() {
     let music = document.getElementById("background_Audio");
+    if (!music) return;
     if ($("#music").prop("checked") == true) {
         music.volume = 0.5;
-        music.autoplay = true;
         music.loop = true;
-        music.load();
+        music.play().catch(function () {});
     } else {
         music.pause();
+        music.currentTime = 0;
     }
 }
 
@@ -1570,11 +1570,11 @@ $(window).blur(function () {
 
 
 $(window).focus(function () {
-    // console.log('blur');
     window_blur = 0;
     const music = document.getElementById("background_Audio");
-    music.play();
-
+    if (music && $("#music").prop("checked") == true) {
+        music.play().catch(function () {});
+    }
 });
 document.addEventListener('visibilitychange', function (event) {
     if (document.hidden) {

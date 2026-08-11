@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chicken Road &mdash; Documentation</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            font-size: 15px;
+            line-height: 1.75;
+            color: #2c3140;
+            background: #f4f6f9;
+        }
+
+        /* ── Layout ── */
+        .doc-wrap {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 20px 60px;
+        }
+
+        /* ── Header ── */
+        .doc-header {
+            background: linear-gradient(135deg, #1a1d20 0%, #2b3b52 100%);
+            color: #fff;
+            padding: 48px 40px 36px;
+            border-radius: 0 0 12px 12px;
+            margin-bottom: 40px;
+        }
+        .doc-header .product-name {
+            font-size: 36px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+        }
+        .doc-header .product-tagline {
+            font-size: 16px;
+            color: #a9b8cc;
+            margin-bottom: 18px;
+        }
+        .doc-header .badge-row { display: flex; flex-wrap: wrap; gap: 10px; }
+        .badge {
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #d8e8ff;
+        }
+
+        /* ── Section cards ── */
+        .section {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            padding: 36px 40px;
+            margin-bottom: 28px;
+        }
+
+        /* ── Typography ── */
+        h2 {
+            font-size: 22px;
+            font-weight: 800;
+            color: #1a1d20;
+            border-left: 5px solid #2cb769;
+            padding-left: 14px;
+            margin-bottom: 22px;
+        }
+        h3 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #2b3b52;
+            margin: 22px 0 10px;
+        }
+        p { margin-bottom: 14px; color: #3c4455; }
+        p:last-child { margin-bottom: 0; }
+
+        ul, ol {
+            padding-left: 22px;
+            margin-bottom: 14px;
+        }
+        ul { list-style: disc; }
+        ol { list-style: decimal; }
+        li { margin-bottom: 7px; color: #3c4455; }
+        li:last-child { margin-bottom: 0; }
+
+        /* ── Code blocks ── */
+        pre {
+            background: #1e2229;
+            color: #c9d1d9;
+            border-radius: 8px;
+            padding: 20px 22px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.7;
+            margin: 16px 0;
+        }
+        code {
+            font-family: 'Consolas', 'Courier New', monospace;
+        }
+        p code, li code {
+            background: #eef1f7;
+            color: #c0392b;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 13px;
+        }
+
+        /* ── Table ── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+        th {
+            background: #f0f3f8;
+            text-align: left;
+            padding: 10px 14px;
+            font-weight: 700;
+            color: #2b3b52;
+            border-bottom: 2px solid #d4dae6;
+        }
+        td {
+            padding: 10px 14px;
+            border-bottom: 1px solid #e8ecf2;
+            color: #3c4455;
+            vertical-align: top;
+        }
+        tr:last-child td { border-bottom: none; }
+
+        /* ── Note / Warning boxes ── */
+        .note {
+            background: #eef6ff;
+            border-left: 4px solid #2b5797;
+            border-radius: 0 6px 6px 0;
+            padding: 14px 18px;
+            margin: 16px 0;
+            color: #2b3b52;
+            font-size: 14px;
+        }
+        .warn {
+            background: #fff8ec;
+            border-left: 4px solid #e6a23c;
+            border-radius: 0 6px 6px 0;
+            padding: 14px 18px;
+            margin: 16px 0;
+            color: #6b4c1a;
+            font-size: 14px;
+        }
+
+        /* ── Section number pill ── */
+        .sec-num {
+            display: inline-block;
+            background: #2cb769;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            border-radius: 4px;
+            padding: 2px 8px;
+            margin-bottom: 10px;
+        }
+
+        /* ── Footer ── */
+        .doc-footer {
+            text-align: center;
+            color: #8a95a5;
+            font-size: 13px;
+            padding-top: 10px;
+        }
+        .doc-footer a { color: #2b5797; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════ HEADER ══ -->
+<div class="doc-header">
+    <div class="doc-wrap" style="padding-top:0;padding-bottom:0;">
+        <div class="product-name">Chicken Road</div>
+        <div class="product-tagline">HTML5 Browser-Based Casino-Style Game &mdash; Complete Source Code</div>
+        <div class="badge-row">
+            <span class="badge">HTML5 / CSS3 / ES6+</span>
+            <span class="badge">No Dependencies</span>
+            <span class="badge">Canvas Sprite Animation</span>
+            <span class="badge">Provably-Fair PRNG</span>
+            <span class="badge">4 Difficulty Modes</span>
+            <span class="badge">Mobile Ready</span>
+        </div>
+    </div>
+</div>
+
+<div class="doc-wrap">
+
+<!-- ═══════════════════════════════════════════ 1. OVERVIEW ══ -->
+<div class="section">
+    <span class="sec-num">01</span>
+    <h2>Product Overview</h2>
+
+    <p><strong>Chicken Road</strong> is a self-contained, browser-based casino-style game built entirely with native HTML5, CSS3, and modern JavaScript (ES6 modules). No external frameworks, no build tools, and no server-side language are required to run the game. Open the file in a browser and play.</p>
+
+    <p>The game concept is a lane-crossing risk game: the player character (a chicken) starts on a pavement and advances across traffic lanes one step at a time. Each successful crossing increases a multiplier. The player may cash out at any point to collect their winnings, or continue advancing for a higher reward at the risk of being hit by a vehicle. The outcome of each lane is determined by a seeded, deterministic pseudo-random number generator (PRNG), making results reproducible and auditable.</p>
+
+    <h3>Target Users</h3>
+    <ul>
+        <li>Game developers or agencies building HTML5 casino or gambling-style mini-games.</li>
+        <li>iGaming platform operators looking for a ready-to-integrate game widget.</li>
+        <li>Web developers who need a fully functional game template to customise.</li>
+        <li>Beginners who want to study a well-structured, dependency-free JavaScript game.</li>
+    </ul>
+
+    <h3>Use Cases</h3>
+    <ul>
+        <li>Embedding in an online casino or gaming portal as a standalone game page.</li>
+        <li>Prototype or demo for a custom iGaming product pitch.</li>
+        <li>Educational reference for game loop design, sprite animation, and PRNG-based outcome systems.</li>
+        <li>Starting point for a custom-branded road-crossing casino game.</li>
+    </ul>
+
+    <h3>Platform Compatibility</h3>
+    <table>
+        <tr><th>Category</th><th>Details</th></tr>
+        <tr><td>Delivery</td><td>Static HTML files &mdash; no server required for local testing; a basic web server for production hosting.</td></tr>
+        <tr><td>Browsers</td><td>All modern browsers: Chrome, Firefox, Edge, Safari (desktop and mobile).</td></tr>
+        <tr><td>Devices</td><td>Desktop, tablet, and smartphone. Layout is designed for vertical / portrait orientation on mobile.</td></tr>
+        <tr><td>Operating Systems</td><td>Windows, macOS, Linux, iOS, Android.</td></tr>
+    </table>
+</div>
+
+<!-- ═══════════════════════════════════════════ 2. FEATURES ══ -->
+<div class="section">
+    <span class="sec-num">02</span>
+    <h2>Key Features</h2>
+
+    <h3>Gameplay &amp; Logic</h3>
+    <ul>
+        <li><strong>Lane-crossing risk mechanic</strong> &mdash; the player advances one lane at a time and may stop to cash out at any moment.</li>
+        <li><strong>Dynamic multiplier system</strong> &mdash; each lane carries a mathematically calculated multiplier that grows as the player progresses deeper into traffic.</li>
+        <li><strong>Four difficulty modes</strong> &mdash; Easy, Medium, Hard, and Hardcore. Each mode defines its own survival probability curve, RTP (return-to-player) ratio, volatility factor, and decay rate.</li>
+        <li><strong>Instant cashout</strong> &mdash; the player can collect winnings at any lane with a single button press.</li>
+        <li><strong>Wallet system</strong> &mdash; a virtual wallet tracks the current balance. Bets are deducted on game start; winnings are added on cashout. A refill button restores $100 when the balance is low.</li>
+        <li><strong>Bet management controls</strong> &mdash; MIN / MAX stepper buttons, a numeric input field, and four quick-select shortcut buttons ($2, $3, $8, $20).</li>
+        <li><strong>Insufficient funds protection</strong> &mdash; the Play button displays a temporary warning if the wallet balance is below the selected bet amount.</li>
+    </ul>
+
+    <h3>Pseudo-Random Number Generator (PRNG)</h3>
+    <ul>
+        <li><strong>Seeded PRNG engine</strong> &mdash; uses the cyrb128 hashing algorithm combined with the sfc32 generator for high-quality randomness.</li>
+        <li><strong>Three-part seed</strong> &mdash; outcomes are derived from a server seed, a client seed, and a per-round nonce. The seed string changes every round, making outcomes unique and non-repeating.</li>
+        <li><strong>Deterministic results</strong> &mdash; given the same seed combination, the sequence of safe and crash lanes is always identical, enabling provably-fair verification.</li>
+    </ul>
+
+    <h3>Rendering &amp; Animation</h3>
+    <ul>
+        <li><strong>Canvas-based sprite animation</strong> &mdash; the player character is rendered on an HTML5 <code>&lt;canvas&gt;</code> element at 24 fps using sprite-sheet frame data defined in JavaScript.</li>
+        <li><strong>Three character states</strong> &mdash; idle animation, jump animation, and crash image, each backed by a separate sprite sheet.</li>
+        <li><strong>Hardware-accelerated transforms</strong> &mdash; all road and player movement uses <code>translate3d</code> and CSS transitions with a custom cubic-bezier easing, offloaded to the GPU via <code>will-change: transform</code>.</li>
+        <li><strong>requestAnimationFrame game loop</strong> &mdash; smooth, frame-rate-aware rendering loop with timestamped delta control.</li>
+        <li><strong>Nine randomised vehicle sprites</strong> &mdash; cars are drawn from a pool of nine PNG images, chosen at random per lane.</li>
+        <li><strong>Dynamic vehicle aspect-ratio loading</strong> &mdash; each car image is introspected after loading so its rendered height matches its actual proportions.</li>
+        <li><strong>Crash animation sequence</strong> &mdash; when a collision occurs, the crash car spawns at high speed and runs over the character with a tinted visual effect before the game resets.</li>
+        <li><strong>Safety roadblock pop-in animation</strong> &mdash; on a safe lane, two barrier elements appear above and below the player with a scale-in CSS keyframe animation.</li>
+    </ul>
+
+    <h3>Audio</h3>
+    <ul>
+        <li>Looping background music with real-time volume control.</li>
+        <li>Independent SFX volume control (separate from music).</li>
+        <li>Sound events: button clicks, game start (GO), cashout, crash, car pass-by, car honk (two variants), and braking.</li>
+        <li>Polyphonic SFX playback via <code>cloneNode()</code> &mdash; overlapping sounds play simultaneously without interrupting each other.</li>
+    </ul>
+
+    <h3>User Interface</h3>
+    <ul>
+        <li>Full-screen sliding sidebar panel with backdrop blur for wallet and audio settings.</li>
+        <li>Hamburger toggle button overlaid on the game viewport.</li>
+        <li>Live multiplier badge that floats above the player character and updates on each lane advance.</li>
+        <li>Win toast notification that slides down from the top of the screen on a successful cashout, displaying the achieved multiplier.</li>
+        <li>Dashboard panel (pre-game controls) and active game panel (GO / Cashout buttons) are swapped in and out automatically.</li>
+        <li>Touch-friendly controls &mdash; large tap targets, no hover-only interactions.</li>
+    </ul>
+
+    <h3>Architecture</h3>
+    <ul>
+        <li>Modular ES6 code split across four files: <code>app.js</code>, <code>math.js</code>, <code>audio.js</code>, <code>sprites.js</code>.</li>
+        <li>An alternative single-file build (<code>h.js</code>) is included for environments that do not support ES6 modules.</li>
+        <li>Zero external libraries or CDN dependencies.</li>
+    </ul>
+</div>
+
+<!-- ═══════════════════════════════════════════ 3. DEMO ══ -->
+<div class="section">
+    <span class="sec-num">03</span>
+    <h2>Demo &amp; Preview Information</h2>
+
+    <p>The project runs directly in the browser without compilation. To preview it locally, open <code>index.html</code> through a local web server (see the Installation section). Browsers block ES6 module imports from <code>file://</code> URLs for security reasons, so double-clicking the HTML file will not work.</p>
+
+    <h3>Expected User Flow</h3>
+    <ol>
+        <li>The game loads showing the road, the animated chicken on the starting pavement, and the dashboard panel at the bottom.</li>
+        <li>The player selects a bet amount using the stepper, shortcut buttons, or the numeric input.</li>
+        <li>The player selects a difficulty from the dropdown (Easy, Medium, Hard, Hardcore).</li>
+        <li>The player presses <strong>Play</strong>. The bet is deducted from the wallet and the active game controls (GO and Cashout) appear.</li>
+        <li>Each press of <strong>GO</strong> moves the chicken one lane to the right. The multiplier badge updates. If the lane is safe, roadblock barriers appear. If the lane is a crash lane, a vehicle spawns and collides with the chicken.</li>
+        <li>At any point before a crash, the player can press <strong>Cashout</strong> to collect their winnings. A win toast notification confirms the multiplier achieved.</li>
+        <li>After a crash or a cashout, the game resets to the dashboard panel automatically.</li>
+    </ol>
+
+    <div class="note">
+        <strong>Note:</strong> All wallet amounts are virtual and exist only in browser memory. They reset to $100.00 on page refresh. The project does not connect to any external payment system or back-end server out of the box.
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ 4. FILE STRUCTURE ══ -->
+<div class="section">
+    <span class="sec-num">04</span>
+    <h2>Folder &amp; File Structure</h2>
+
+<pre><code>chicken-road/
+│
+├── index.html              Main entry point. Contains all HTML markup.
+│
+├── css/
+│   └── styles.css          All visual styles for the game layout, controls,
+│                           sidebar, animations, and UI components.
+│
+├── js/
+│   ├── app.js              Core game controller. Manages game state, DOM
+│                           manipulation, lane generation, collision detection,
+│                           and the main animation loop.
+│   ├── math.js             PRNG engine and multiplier calculator. Exports:
+│                           initPRNG, getRNG, calculateMultiplierForIndex,
+│                           and the GAME_MODES configuration object.
+│   ├── audio.js            Audio engine. Declares all Audio objects, handles
+│                           music and SFX volume, and exports the playSound
+│                           utility function.
+│   ├── sprites.js          Sprite data module. Exports car image paths,
+│                           idle/jump frame coordinate arrays, and pre-loaded
+│                           Image objects for idle, jump, and crash states.
+│   └── h.js                Single-file (non-module) alternative build that
+│                           combines all logic into one script tag. Use this
+│                           if ES6 module support is unavailable.
+│
+└── assets/
+    ├── audio/
+    │   ├── bgm.mp3         Looping background music track.
+    │   ├── crash.mp3       Collision sound effect.
+    │   ├── passby.mp3      Car passing sound.
+    │   ├── honk1.mp3       Horn sound, variant 1.
+    │   ├── honk2.mp3       Horn sound, variant 2.
+    │   ├── brake.mp3       Braking / tyre screech effect.
+    │   ├── go.mp3          Jump / advance sound.
+    │   ├── cashout.mp3     Cashout success sound.
+    │   └── buttons.mp3     UI button click sound.
+    │
+    └── images/
+        ├── 1.png – 9.png   Nine vehicle sprite images used as traffic cars.
+        ├── idle.png        Sprite sheet for the idle character animation
+        │                   (5-column × 5-row grid, 256 × 256 px per frame,
+        │                   25 frames total).
+        ├── jump.png        Sprite sheet for the jump animation
+        │                   (same format as idle.png, 25 frames).
+        ├── crash.png       Single image displayed when the character is hit.
+        └── br.png          Roadblock / barrier graphic shown on safe lanes.
+</code></pre>
+</div>
+
+<!-- ═══════════════════════════════════════════ 5. INSTALLATION ══ -->
+<div class="section">
+    <span class="sec-num">05</span>
+    <h2>Installation Guide</h2>
+
+    <h3>Requirements</h3>
+    <ul>
+        <li>A modern web browser (Chrome 80+, Firefox 75+, Edge 80+, Safari 14+).</li>
+        <li>A local or remote web server capable of serving static files.</li>
+        <li>No Node.js, PHP, database, or build tool is required.</li>
+    </ul>
+
+    <div class="warn">
+        <strong>Important:</strong> The modular version (<code>index.html</code> + <code>js/app.js</code>) uses ES6 <code>import</code> statements. Browsers do not allow module imports when opening HTML files directly from the filesystem (<code>file://</code> protocol). You must serve the files through a web server.
+    </div>
+
+    <h3>Option A &mdash; Local Development Server (Quickest Method)</h3>
+    <ol>
+        <li>Install <a href="https://nodejs.org/" target="_blank">Node.js</a> if not already installed.</li>
+        <li>Open a terminal or command prompt in the project root folder.</li>
+        <li>Run the following command:
+<pre><code>npx serve .</code></pre>
+        </li>
+        <li>Open the URL shown in the terminal (typically <code>http://localhost:3000</code>) in your browser.</li>
+    </ol>
+
+    <p>Alternatively, if you use Visual Studio Code, install the <strong>Live Server</strong> extension, right-click <code>index.html</code>, and select <em>Open with Live Server</em>.</p>
+
+    <h3>Option B &mdash; Apache / Nginx / cPanel Web Hosting</h3>
+    <ol>
+        <li>Extract the downloaded ZIP archive on your computer.</li>
+        <li>Connect to your hosting account using FTP (FileZilla, WinSCP, etc.) or the hosting control panel file manager.</li>
+        <li>Upload the entire extracted folder to the <code>public_html</code> directory (or a subdirectory of your choice).</li>
+        <li>Visit the corresponding URL in your browser, for example: <code>https://yourdomain.com/chicken-road/</code>.</li>
+    </ol>
+    <p>No <code>.htaccess</code> modifications or server configuration changes are required.</p>
+
+    <h3>Option C &mdash; Single-File Version (No Module Support)</h3>
+    <p>If your environment cannot serve ES6 modules, use the alternative single-file build:</p>
+    <ol>
+        <li>Open <code>index.html</code> in a text editor.</li>
+        <li>Replace the last <code>&lt;script&gt;</code> tag:
+<pre><code>&lt;!-- Replace this: --&gt;
+&lt;script type="module" src="js/app.js"&gt;&lt;/script&gt;
+
+&lt;!-- With this: --&gt;
+&lt;script src="js/h.js"&gt;&lt;/script&gt;</code></pre>
+        </li>
+        <li>Save the file and open it in a browser. This version has no module imports and will work over <code>file://</code> as well.</li>
+    </ol>
+</div>
+
+<!-- ═══════════════════════════════════════════ 6. CONFIGURATION ══ -->
+<div class="section">
+    <span class="sec-num">06</span>
+    <h2>Configuration &amp; Customization</h2>
+
+    <h3>Changing the Starting Wallet Balance and Bet Limits</h3>
+    <p>Open <code>js/app.js</code> (or <code>js/h.js</code> for the single-file version) and locate the economy constants near the top of the file:</p>
+<pre><code>let currentBetAmount = 3;       // Default bet amount shown on load
+let currentWalletBalance = 100.00; // Starting wallet balance
+const MIN_BET = 1;              // Minimum allowed bet
+const MAX_BET = 50;             // Maximum allowed bet</code></pre>
+    <p>Change these values to suit your use case.</p>
+
+    <h3>Changing Quick-Bet Shortcut Amounts</h3>
+    <p>Open <code>index.html</code> and find the shortcut buttons in the dashboard panel:</p>
+<pre><code>&lt;button class="bet-shortcut-btn" onclick="setFixedBet(2)"&gt;2 &lt;span&gt;$&lt;/span&gt;&lt;/button&gt;
+&lt;button class="bet-shortcut-btn" onclick="setFixedBet(3)"&gt;3 &lt;span&gt;$&lt;/span&gt;&lt;/button&gt;
+&lt;button class="bet-shortcut-btn" onclick="setFixedBet(8)"&gt;8 &lt;span&gt;$&lt;/span&gt;&lt;/button&gt;
+&lt;button class="bet-shortcut-btn" onclick="setFixedBet(20)"&gt;20 &lt;span&gt;$&lt;/span&gt;&lt;/button&gt;</code></pre>
+    <p>Edit the numeric argument inside <code>setFixedBet()</code> and the label text to match your desired amounts.</p>
+
+    <h3>Adjusting Difficulty Modes</h3>
+    <p>Open <code>js/math.js</code> and find the <code>GAME_MODES</code> object:</p>
+<pre><code>export const GAME_MODES = {
+    easy:     { rtp: 0.97,  baseSurvival: 0.96, maxSteps: 40, volatility: 0.15, decay: 0.005 },
+    medium:   { rtp: 0.96,  baseSurvival: 0.92, maxSteps: 30, volatility: 0.25, decay: 0.010 },
+    hard:     { rtp: 0.955, baseSurvival: 0.85, maxSteps: 20, volatility: 0.40, decay: 0.018 },
+    hardcore: { rtp: 0.94,  baseSurvival: 0.75, maxSteps: 15, volatility: 0.65, decay: 0.025 }
+};</code></pre>
+
+    <table>
+        <tr><th>Property</th><th>Description</th></tr>
+        <tr><td><code>rtp</code></td><td>Return-to-player ratio (0&ndash;1). Higher values are more generous to players.</td></tr>
+        <tr><td><code>baseSurvival</code></td><td>Base probability of surviving the first lane. Decreases as lanes advance (controlled by <code>decay</code>).</td></tr>
+        <tr><td><code>maxSteps</code></td><td>Reference number of steps used in the volatility bonus formula. Higher values spread the bonus across more steps.</td></tr>
+        <tr><td><code>volatility</code></td><td>Strength of the late-game multiplier bonus. Higher volatility = larger potential rewards at deep lanes.</td></tr>
+        <tr><td><code>decay</code></td><td>How much the survival chance drops per lane. Higher decay = difficulty ramps up faster.</td></tr>
+    </table>
+
+    <h3>Replacing Vehicle Images</h3>
+    <p>Vehicle images are stored as <code>assets/images/1.png</code> through <code>assets/images/9.png</code>. Replace any of these files with your own PNG images (transparent background recommended). The game loads and adjusts the aspect ratio automatically. The list of paths is defined in <code>js/sprites.js</code>:</p>
+<pre><code>export const carImageAssets = [
+    'assets/images/1.png', 'assets/images/2.png', ...
+];</code></pre>
+    <p>You may add or remove entries from this array to change the pool of vehicle sprites.</p>
+
+    <h3>Replacing Character Sprite Sheets</h3>
+    <p>The character uses three sprite sheets located in <code>assets/images/</code>:</p>
+    <ul>
+        <li><code>idle.png</code> &mdash; 25-frame idle animation (5 columns &times; 5 rows, each frame 256&times;256 px).</li>
+        <li><code>jump.png</code> &mdash; 25-frame jump animation (same grid layout).</li>
+        <li><code>crash.png</code> &mdash; single static image shown on collision.</li>
+    </ul>
+    <p>Replace these files with your own artwork. If you change the frame dimensions or grid layout, update the frame coordinate arrays in <code>js/sprites.js</code> to match.</p>
+
+    <h3>Replacing Audio Files</h3>
+    <p>All audio files are located in <code>assets/audio/</code>. Replace any <code>.mp3</code> file with your own audio of the same name. The file names are hardcoded in <code>js/audio.js</code>. If you need to rename files, update the paths in that file accordingly.</p>
+
+    <h3>Changing Colors and Visual Theme</h3>
+    <p>Open <code>css/styles.css</code>. Key color values to modify:</p>
+    <table>
+        <tr><th>Element</th><th>CSS Selector / Property</th><th>Default Value</th></tr>
+        <tr><td>Page background</td><td><code>body { background-color }</code></td><td><code>#1a1d20</code></td></tr>
+        <tr><td>Dashboard panel</td><td><code>.dashboard-panel { background-color }</code></td><td><code>#232629</code></td></tr>
+        <tr><td>Play / GO button</td><td><code>.action-play-btn { background-color }</code></td><td><code>#2cb769</code></td></tr>
+        <tr><td>Cashout button</td><td><code>.btn-cashout { background-color }</code></td><td><code>#e6a23c</code></td></tr>
+        <tr><td>Wallet balance text</td><td><code>.wallet-amount { color }</code></td><td><code>#2cb769</code></td></tr>
+        <tr><td>Asphalt lane</td><td><code>.lane { background-color }</code></td><td><code>#555e63</code></td></tr>
+        <tr><td>Pavement / footpath</td><td><code>.footpath { background-color }</code></td><td><code>#b3b9bc</code></td></tr>
+    </table>
+
+    <h3>Changing the Game Title</h3>
+    <p>Open <code>index.html</code> and edit the <code>&lt;title&gt;</code> tag:</p>
+<pre><code>&lt;title&gt;Chicken Road&lt;/title&gt;</code></pre>
+
+    <h3>Changing the Lane Width</h3>
+    <p>Lane width is controlled by a constant in <code>js/app.js</code>:</p>
+<pre><code>const LANE_WIDTH = 110;</code></pre>
+    <p>If you change this value, also update the corresponding <code>width</code> and <code>min-width</code> values in the <code>.lane</code> and <code>.footpath</code> CSS rules in <code>styles.css</code> to keep the layout consistent.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════ 7. ARCHITECTURE ══ -->
+<div class="section">
+    <span class="sec-num">07</span>
+    <h2>Code Architecture &amp; Logic Overview</h2>
+
+    <h3>High-Level Flow</h3>
+    <ol>
+        <li>On page load, <code>initPRNG()</code> is called with the server seed, client seed, and nonce 0. This seeds the random number generator for the pre-built road layout.</li>
+        <li><code>buildInitialHighwayLayout()</code> creates 25 lane <code>&lt;div&gt;</code> elements and calls <code>generateLaneTraffic()</code> on each. This populates each lane with a random number of cars, a direction (incoming or outgoing), a speed, and a manhole cover showing the lane multiplier.</li>
+        <li><code>requestAnimationFrame(updateGameLoop)</code> starts the render loop. Each frame: car positions are updated, sprite frames are drawn to the canvas, proximity sounds are evaluated, and live collisions are checked.</li>
+        <li>When the player presses <strong>Play</strong>, the nonce increments, the PRNG is re-seeded, the bet is deducted, and the game enters an active session.</li>
+        <li>Each press of <strong>GO</strong> moves the player one lane right, creates a new lane at the end of the road, checks the lane outcome (safe or crash), and either places safety barriers or schedules a crash car spawn.</li>
+        <li>Old lanes beyond a threshold of six columns behind the player are removed from the DOM to keep memory usage stable (virtual infinite scrolling).</li>
+        <li>On <strong>Cashout</strong> or after a crash animation completes, the game calls <code>resetGameToDashboard()</code>, which re-seeds the PRNG and calls <code>resetGameEnvironment()</code> to clear all state and rebuild the road for the next round.</li>
+    </ol>
+
+    <h3>Key Modules</h3>
+
+    <p><strong>math.js &mdash; PRNG &amp; Multiplier Engine</strong></p>
+    <ul>
+        <li><code>cyrb128(str)</code>: A 128-bit non-cryptographic hash function that converts the combined seed string into four 32-bit integers used to seed the generator.</li>
+        <li><code>sfc32(a, b, c, d)</code>: A fast, high-quality pseudo-random float generator. Returns a closure that yields a new float in [0, 1) on each call.</li>
+        <li><code>initPRNG(serverSeed, clientSeed, gameNonce)</code>: Combines the three seed components, hashes them, and assigns the resulting generator to <code>getRNG</code>.</li>
+        <li><code>calculateMultiplierForIndex(targetIdx, difficultyLevel)</code>: Calculates the displayed multiplier for a given lane index. It compounds the survival probability for all preceding lanes, divides the mode RTP by that compound probability, and applies a volatility bonus that grows nonlinearly as the player reaches deeper lanes.</li>
+    </ul>
+
+    <p><strong>audio.js &mdash; Audio Engine</strong></p>
+    <ul>
+        <li>Each sound effect is an <code>Audio</code> DOM object declared at module level, so assets are pre-loaded when the script is parsed.</li>
+        <li><code>playSound(audioObj)</code> calls <code>cloneNode()</code> on the audio object before playing. This creates a disposable copy, which allows the same sound to overlap with itself (polyphonic playback) without interrupting an in-progress sound.</li>
+        <li>Music volume and SFX volume are maintained as separate state values, allowing the user to mute effects without affecting music and vice versa.</li>
+    </ul>
+
+    <p><strong>sprites.js &mdash; Sprite Data</strong></p>
+    <ul>
+        <li>Idle and jump sprite sheets are 1280&times;1280 px grids (5 columns &times; 5 rows, 256&times;256 px per frame). Frame coordinates are stored as arrays of <code>{ x, y, w, h }</code> objects.</li>
+        <li>Three <code>Image</code> objects (<code>idle</code>, <code>jump</code>, <code>crash</code>) are pre-loaded at module initialisation time.</li>
+    </ul>
+
+    <p><strong>app.js &mdash; Game Controller</strong></p>
+    <ul>
+        <li><code>generateLaneTraffic(laneEl, domIdx, absIdx)</code>: Populates a lane. Determines if the lane is safe or a crash lane using <code>checkIsCrashLane()</code>, picks a random car count, direction, and speed, and creates car elements positioned at evenly spaced starting offsets.</li>
+        <li><code>checkIsCrashLane(domIdx, absIdx)</code>: Calls <code>getRNG()</code> once and compares the result to the survival probability for that lane index and difficulty. The result is cached in <code>safeLaneMap</code> so subsequent calls for the same lane are consistent.</li>
+        <li><code>updateGameLoop(timestamp)</code>: The main <code>requestAnimationFrame</code> callback. Updates all car positions, draws the current sprite frame to canvas, triggers proximity audio (honking, braking), and checks live collisions.</li>
+        <li><code>spawnInstantCrashCar(laneEl, domIdx)</code>: Removes existing cars from the crash lane and spawns a single high-speed, darkened vehicle heading directly at the player.</li>
+        <li><code>triggerCarOverDeath(hittingCar)</code>: Marks the game as over, plays the crash sound, reparents the player element inside the colliding lane for correct Z-ordering, switches the sprite to the crash image, and schedules a timed reset.</li>
+        <li><code>resetGameEnvironment()</code>: Clears all DOM lane elements, resets all state variables, and calls <code>buildInitialHighwayLayout()</code> to rebuild the road.</li>
+    </ul>
+
+    <h3>Lane Indexing</h3>
+    <p>Two lane index values are tracked simultaneously. <code>currentLaneIndex</code> is the DOM position of the player's current lane within the <code>roadContainer</code> children array. <code>absoluteLaneIndex</code> is the cumulative count of lanes crossed across the entire session, including lanes removed from the DOM. The multiplier and survival calculations use the absolute index. The DOM index is used for rendering and collision checks.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════ 8. PERFORMANCE ══ -->
+<div class="section">
+    <span class="sec-num">08</span>
+    <h2>Performance &amp; Optimization Notes</h2>
+
+    <ul>
+        <li><strong>GPU-accelerated rendering</strong> &mdash; All moving elements (road container, car elements, player wrapper) declare <code>will-change: transform</code> and use <code>translate3d</code> transforms. This promotes the elements to their own compositor layers, keeping animations off the main thread.</li>
+        <li><strong>DOM recycling</strong> &mdash; Lanes more than six positions behind the player are removed from the DOM automatically. Cars and barriers within those lanes are also removed from the <code>activeCars</code> and <code>activeBarriers</code> arrays. This prevents unbounded DOM growth during long play sessions.</li>
+        <li><strong>Delta-timed animation</strong> &mdash; The sprite frame timer uses a timestamp delta so the character animation runs at a consistent 24 fps regardless of the actual display refresh rate.</li>
+        <li><strong>requestAnimationFrame loop</strong> &mdash; The game loop is driven by <code>requestAnimationFrame</code>, which pauses automatically when the browser tab is hidden, conserving CPU and battery.</li>
+        <li><strong>Polyphonic audio via cloneNode</strong> &mdash; Sound effects do not allocate new <code>AudioContext</code> nodes or decode audio data on each play. Cloning a DOM <code>Audio</code> element is a lightweight operation.</li>
+        <li><strong>Image pre-loading</strong> &mdash; All sprite sheet <code>Image</code> objects are created and their <code>src</code> assigned at module load time, ensuring assets are cached before the first game round begins.</li>
+        <li><strong>CSS transition reuse</strong> &mdash; Player and road movement are handled by CSS transitions rather than JavaScript-driven <code>requestAnimationFrame</code> tweens. This reduces script execution per frame.</li>
+    </ul>
+
+    <h3>Recommendations for Production</h3>
+    <ul>
+        <li>Serve all assets (images, audio, JavaScript) with HTTP caching headers (<code>Cache-Control: max-age=31536000</code> for static assets).</li>
+        <li>Enable GZIP or Brotli compression on your web server for the JS and CSS files.</li>
+        <li>If the game is embedded inside a larger page, ensure the embedding container does not apply <code>overflow: hidden</code> or <code>transform</code> on an ancestor element, as this can break <code>fixed</code> positioning used by the sidebar and toast.</li>
+        <li>For mobile deployment, verify that the viewport meta tag remains intact: <code>width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no</code>.</li>
+    </ul>
+</div>
+
+<!-- ═══════════════════════════════════════════ 9. COMPATIBILITY ══ -->
+<div class="section">
+    <span class="sec-num">09</span>
+    <h2>Compatibility &amp; Requirements</h2>
+
+    <table>
+        <tr><th>Browser</th><th>Minimum Version</th><th>Notes</th></tr>
+        <tr><td>Google Chrome</td><td>80+</td><td>Fully supported.</td></tr>
+        <tr><td>Mozilla Firefox</td><td>75+</td><td>Fully supported.</td></tr>
+        <tr><td>Microsoft Edge</td><td>80+ (Chromium)</td><td>Fully supported.</td></tr>
+        <tr><td>Safari</td><td>14+</td><td>Supported. Audio playback requires user interaction before the first sound.</td></tr>
+        <tr><td>Opera</td><td>67+</td><td>Fully supported (Chromium-based).</td></tr>
+        <tr><td>Internet Explorer</td><td>Not supported</td><td>IE does not support ES6 modules or <code>Math.imul</code>.</td></tr>
+    </table>
+
+    <h3>Device Support</h3>
+    <ul>
+        <li><strong>Desktop</strong> &mdash; Fully supported. The layout uses viewport units and is flexible across different screen sizes.</li>
+        <li><strong>Mobile (portrait)</strong> &mdash; Fully supported. Controls are designed with large tap targets. The <code>user-select: none</code> and <code>-webkit-tap-highlight-color: transparent</code> properties are applied for a native-like feel.</li>
+        <li><strong>Tablet</strong> &mdash; Supported. The layout stretches to fill the available width.</li>
+    </ul>
+
+    <h3>Known Limitations</h3>
+    <ul>
+        <li>Audio will not autoplay on page load in Safari or Chrome without a prior user interaction. Background music begins on the first Play button press.</li>
+        <li>The game is designed for a single vertical column of play. Landscape orientation on narrow mobile devices may result in reduced vertical space for the game viewport.</li>
+        <li>The wallet balance is stored only in JavaScript memory. It resets to $100.00 on every page refresh. Persistent balance requires a back-end integration not included in this package.</li>
+        <li>The project does not implement a back-end seed verification endpoint. The seed components are generated client-side. Implementing a server-side seed for full provably-fair compliance requires additional back-end development.</li>
+    </ul>
+</div>
+
+<!-- ═══════════════════════════════════════════ 10. TROUBLESHOOTING ══ -->
+<div class="section">
+    <span class="sec-num">10</span>
+    <h2>Common Issues &amp; Troubleshooting</h2>
+
+    <h3>The game shows a blank screen or the road does not appear</h3>
+    <p>This is almost always caused by opening <code>index.html</code> directly from the file system using the <code>file://</code> protocol. The browser blocks ES6 module imports in this context. Use a local web server as described in the Installation section.</p>
+
+    <h3>No sound is playing</h3>
+    <ul>
+        <li>Verify that the audio files exist at <code>assets/audio/</code> with the correct file names.</li>
+        <li>Check that the browser has not blocked autoplay. Interact with the page (press Play) before expecting audio.</li>
+        <li>Confirm the Music Volume and SFX Volume sliders in the sidebar are not set to zero.</li>
+    </ul>
+
+    <h3>Vehicle images are not displaying (cars appear invisible)</h3>
+    <ul>
+        <li>Confirm that <code>assets/images/1.png</code> through <code>assets/images/9.png</code> are present and correctly named.</li>
+        <li>Verify the image paths in <code>js/sprites.js</code> (<code>carImageAssets</code> array) match the actual file locations relative to the HTML file.</li>
+    </ul>
+
+    <h3>The character sprite is a coloured circle instead of the chicken graphic</h3>
+    <p>This is the fallback rendering drawn when the sprite sheet images have not finished loading or cannot be found. Confirm that <code>assets/images/idle.png</code>, <code>assets/images/jump.png</code>, and <code>assets/images/crash.png</code> are present and correctly named.</p>
+
+    <h3>The game throws a JavaScript error in the browser console about "import"</h3>
+    <p>The browser does not support ES6 modules, or the file is being served over <code>file://</code>. Switch to the single-file version by replacing the script tag in <code>index.html</code> to use <code>js/h.js</code> without <code>type="module"</code>.</p>
+
+    <h3>The sidebar panel or win toast appears behind other elements</h3>
+    <p>An ancestor element in your hosting page may have a CSS <code>transform</code> or <code>overflow: hidden</code> property that creates a new stacking context, breaking <code>position: fixed</code>. Remove or adjust that property on the ancestor element.</p>
+
+    <h3>The player character jumps off-screen or the road scrolls incorrectly</h3>
+    <p>This may occur if the <code>LANE_WIDTH</code> constant in <code>js/app.js</code> has been changed without updating the corresponding <code>width</code> and <code>min-width</code> values in the <code>.lane</code> and <code>.footpath</code> CSS rules in <code>styles.css</code>. Ensure all three values are identical.</p>
+
+    <h3>FAQ</h3>
+    <table>
+        <tr><th>Question</th><th>Answer</th></tr>
+        <tr><td>Can I run this without a web server?</td><td>Use the single-file version (<code>h.js</code>) as described in Installation Option C. This removes the ES6 module requirement.</td></tr>
+        <tr><td>Does the game require an internet connection?</td><td>No. All assets are local. An internet connection is not required at runtime.</td></tr>
+        <tr><td>Can I add more difficulty levels?</td><td>Yes. Add a new entry to the <code>GAME_MODES</code> object in <code>math.js</code> and a corresponding <code>&lt;option&gt;</code> element to the difficulty dropdown in <code>index.html</code>.</td></tr>
+        <tr><td>How do I connect this to a real payment system?</td><td>That integration is outside the scope of this package. You would need to intercept the <code>triggerBetMatchStart</code> and <code>cashoutGame</code> functions to communicate with your back-end API.</td></tr>
+    </table>
+</div>
+
+<!-- ═══════════════════════════════════════════ 11. SECURITY ══ -->
+<div class="section">
+    <span class="sec-num">11</span>
+    <h2>Security &amp; Best Practices</h2>
+
+    <h3>Client-Side Seed Generation</h3>
+    <p>In the current implementation, both the server seed and client seed are generated in the browser. The server seed is a prefixed random string (<code>SRV_</code> + <code>Math.random()</code>) and the client seed is a prefixed timestamp (<code>CLI_</code> + <code>Date.now()</code>). These are combined with the round nonce to seed the PRNG for each game round.</p>
+    <p>For a demo or entertainment context this is acceptable. For a real-money or competitive deployment, the server seed should be generated and kept secret on a trusted back-end server and only revealed to the player after the round ends, to achieve full provably-fair compliance. Implementing this requires back-end development beyond this package.</p>
+
+    <h3>Input Validation</h3>
+    <p>Bet input is sanitised in <code>handleCustomBetInput()</code>: non-numeric values default to <code>MIN_BET</code>, and values outside the <code>MIN_BET</code>&ndash;<code>MAX_BET</code> range are clamped. The <code>setFixedBet()</code> function also clamps values before assigning them.</p>
+
+    <h3>State Integrity</h3>
+    <p>Multiple guard conditions prevent actions during invalid states. The <code>performJump()</code> and <code>cashoutGame()</code> functions return immediately if <code>isGameSessionActive</code> is false, if <code>isGameOver</code> is true, if a crash animation is in progress, or if the player is mid-jump. This prevents duplicate actions from rapid button presses.</p>
+
+    <h3>Deployment Recommendations</h3>
+    <ul>
+        <li>Serve the game over HTTPS to prevent asset interception and to satisfy browser security requirements for audio.</li>
+        <li>Do not expose the PRNG seed logic as an API endpoint, as it could allow players to predict outcomes before placing bets.</li>
+        <li>If embedding in a real-money platform, move all outcome determination to a trusted server and treat the client as display-only.</li>
+    </ul>
+</div>
+
+<!-- ═══════════════════════════════════════════ 12. MAINTENANCE ══ -->
+<div class="section">
+    <span class="sec-num">12</span>
+    <h2>Update &amp; Maintenance Guide</h2>
+
+    <h3>Updating to a New Version</h3>
+    <ol>
+        <li>Back up any files you have customised (particularly <code>js/app.js</code>, <code>js/math.js</code>, <code>css/styles.css</code>, and <code>index.html</code>).</li>
+        <li>Download the new version package from CodeCanyon.</li>
+        <li>Compare your customised files against the new originals using a diff tool (e.g., VS Code Compare, WinMerge, or <code>diff</code> on Linux/macOS).</li>
+        <li>Re-apply your customisations to the new files manually, rather than overwriting with your old files, to avoid losing bug fixes or improvements in the update.</li>
+        <li>Replace <code>assets/</code> images and audio files only if you have not customised them. If you have replaced sprite sheets or audio, keep your custom versions.</li>
+    </ol>
+
+    <h3>Versioning Recommendation</h3>
+    <p>Keep a dated backup of your working deployment before applying any update. If using a version control system such as Git, commit your current customised state before merging changes from the new release.</p>
+
+    <h3>Safe Files to Replace Without Risk</h3>
+    <ul>
+        <li><code>assets/audio/*.mp3</code> &mdash; safe to replace without touching any code.</li>
+        <li><code>assets/images/1.png</code> through <code>9.png</code> &mdash; safe to replace with your own vehicle graphics.</li>
+        <li><code>assets/images/idle.png</code>, <code>jump.png</code>, <code>crash.png</code> &mdash; safe to replace if frame dimensions and grid layout are preserved.</li>
+    </ul>
+</div>
+
+<!-- ═══════════════════════════════════════════ 13. LICENSE ══ -->
+<div class="section">
+    <span class="sec-num">13</span>
+    <h2>License &amp; Usage Information</h2>
+
+    <p>This project is sold and distributed through CodeCanyon (Envato Market) under the Envato standard license terms. The full license text is included in the <code>Lisence.txt</code> file in the package root.</p>
+
+    <h3>Regular License</h3>
+    <ul>
+        <li>Permits use in <strong>one end product</strong> that is free for end users (personal website, client project, educational project).</li>
+        <li>You may customise and modify the code for your own use or on behalf of a client.</li>
+        <li>The end product may not charge end users for access.</li>
+    </ul>
+
+    <h3>Extended License</h3>
+    <ul>
+        <li>Permits use in <strong>one end product</strong> that charges end users for access or generates direct revenue (SaaS, commercial platform, subscription service, paid app).</li>
+        <li>You may modify, integrate, and use the game as part of a commercial product.</li>
+    </ul>
+
+    <h3>Not Permitted Under Any License</h3>
+    <ul>
+        <li>Reselling or publicly distributing the source code, whether original or modified.</li>
+        <li>Using one purchased license for more than one project. Each project requires its own license purchase.</li>
+        <li>Claiming authorship of the original source code.</li>
+    </ul>
+
+    <p>For full license terms, refer to the official Envato CodeCanyon license page: <a href="https://codecanyon.net/licenses" target="_blank">https://codecanyon.net/licenses</a></p>
+</div>
+
+<!-- ═══════════════════════════════════════════ 14. SUPPORT ══ -->
+<div class="section">
+    <span class="sec-num">14</span>
+    <h2>Support Information</h2>
+
+    <p>Support is provided through the CodeCanyon item comments section or directly via the contact email listed below. Before submitting a support request, please review the Troubleshooting section of this documentation, as most common issues are addressed there.</p>
+
+    <h3>How to Submit a Support Request</h3>
+    <p>When contacting support, include the following information to ensure a prompt and accurate response:</p>
+    <ul>
+        <li>Your CodeCanyon purchase code or order number.</li>
+        <li>The browser name and version you are using (e.g., Chrome 124).</li>
+        <li>The operating system and device type (e.g., Windows 11, desktop).</li>
+        <li>A clear description of the issue, including any steps to reproduce it.</li>
+        <li>The full text of any JavaScript error messages shown in the browser console (press F12 to open developer tools).</li>
+    </ul>
+
+    <h3>Contact</h3>
+    <p>Email: <a href="mailto:khondokarragib@gmail.com">khondokarragib@gmail.com</a></p>
+
+    <h3>Support Policy</h3>
+    <ul>
+        <li>Support covers installation assistance, bug reports related to the original code, and clarification of documented features.</li>
+        <li>Support does not cover custom development, feature additions, integration with third-party systems, or issues caused by modifications to the original code made by the buyer.</li>
+        <li>Responses are typically provided within 1&ndash;3 business days.</li>
+    </ul>
+
+    <div class="note">
+        <strong>Custom Development:</strong> If you require modifications beyond the scope of the purchased package (such as back-end integration, custom difficulty modes, or branding changes), custom development services may be available. Contact the author directly to discuss requirements and pricing.
+    </div>
+</div>
+
+<!-- ── Footer ── -->
+<div class="doc-footer">
+    <p>Chicken Road &mdash; HTML5 Casino Game &nbsp;|&nbsp; Copyright &copy; 2026 ImpressDev &nbsp;|&nbsp; Distributed via <a href="https://codecanyon.net" target="_blank">CodeCanyon</a></p>
+</div>
+
+</div><!-- /.doc-wrap -->
+</body>
+</html>

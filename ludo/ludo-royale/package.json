@@ -1,0 +1,25 @@
+{
+  "name": "ludo-royale",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ludo Royale — Live-Ops Ludo Platform (white-label). Monorepo: shared rules engine, Phaser client, Colyseus server, admin UI.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "shared",
+    "client",
+    "server",
+    "admin-ui"
+  ],
+  "scripts": {
+    "test": "npm run test:shared && npm run test:server",
+    "test:shared": "npm run test --workspace @ludo/shared",
+    "test:server": "npm run test --workspace @ludo/server",
+    "build:shared": "npm run build --workspace @ludo/shared",
+    "build:server": "npm run build:shared && npm run build --workspace @ludo/server",
+    "dev:server": "npm run dev --workspace @ludo/server",
+    "dev:client": "npm run dev --workspace @ludo/client"
+  }
+}

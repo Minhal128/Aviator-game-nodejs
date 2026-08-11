@@ -617,6 +617,11 @@
                 <h3 id="auto_increment_number" class="text-center text-white">1.00x</h3>
             </div> -->
                 <div class="stage-board">
+                    <div class="tl-stage-bar" title="Staging controls">
+                        <button type="button" id="stg_pause" title="Pause">⏸</button>
+                        <button type="button" id="stg_play" class="is-active" title="Play">▶</button>
+                        <button type="button" id="stg_restart" title="Restart">↻</button>
+                    </div>
                     <div class="counter-num text-center" id="auto_increment_number_div" style="display: none;">
                         <div class="secondary-font f-40 flew_away_section" style="display: none;">FLEW AWAY!</div>
                         <div id="auto_increment_number">1.00<span>X</span></div>
@@ -634,9 +639,9 @@
                                 </g>
                             </svg>
                             <div class="secondary-font f-40 mt-2 waiting-text"> WAITING FOR NEXT ROUND</div>
-                            <div class="secondary-font f-50 mt-1 text-white" id="round_countdown">8</div>
+                            <div class="secondary-font f-50 mt-1 text-white" id="round_countdown">25</div>
                             <div class="line-loader mt-2">
-                                <div class="fill-line"></div>
+                                <div class="fill-line" id="round_fill_line"></div>
                             </div>
                         </div>
                         <div class="bottom-left-plane">

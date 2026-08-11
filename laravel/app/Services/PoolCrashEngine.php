@@ -44,11 +44,17 @@ class PoolCrashEngine
     public function startFlight(int $gameId): array
     {
         $existing = $this->get($gameId);
-        if ($existing && in_array($existing['phase'] ?? '', ['flying', 'crashed'], true)) {
+
+        if ($existing && ($existing['phase'] ?? '') === 'flying') {
+            $this->syncPoolFromBets($gameId, $existing);
+            $this->put($gameId, $existing);
+            return $existing;
+        }
+        if ($existing && ($existing['phase'] ?? '') === 'crashed') {
             return $existing;
         }
 
-        $total = (float) Userbit::where('gameid', $gameId)->sum('amount');
+        $total = (float) Userbit::where('gameid', (string) $gameId)->sum('amount');
         $pool = round($total * (100.0 - self::HOUSE_PCT) / 100.0, 2);
 
         $state = [
@@ -89,7 +95,7 @@ class PoolCrashEngine
     /** @return float|null min active bet amount */
     public function minActiveBet(int $gameId): ?float
     {
-        $min = Userbit::where('gameid', $gameId)->where('status', 0)->min('amount');
+        $min = Userbit::where('gameid', (string) $gameId)->where('status', '0')->min('amount');
         return $min === null ? null : (float) $min;
     }
 
@@ -141,6 +147,8 @@ class PoolCrashEngine
                 ];
             }
 
+            $this->syncPoolFromBets($gameId, $state);
+
             $mult = $this->liveMultiplier($state);
             $state['multiplier'] = $mult;
 
@@ -166,30 +174,62 @@ class PoolCrashEngine
         });
     }
 
-    /**
-     * Cash out using server multiplier. Returns result array.
-     */
-    public function cashout(int $gameId, int $betId, int $userId): array
+    /** Keep pool in sync if more bets joined after flight start. */
+    private function syncPoolFromBets(int $gameId, array &$state): void
     {
-        return Cache::lock("pool_crash_lock:{$gameId}", 5)->block(3, function () use ($gameId, $betId, $userId) {
+        $total = (float) Userbit::where('gameid', (string) $gameId)->sum('amount');
+        if ($total <= 0) {
+            return;
+        }
+        $state['mode'] = 'pool';
+        $state['total_bets'] = $total;
+        $state['pool'] = round($total * (100.0 - self::HOUSE_PCT) / 100.0, 2);
+        $state['crash_at'] = null;
+    }
+
+    /**
+     * Cash out using multiplier at click (capped by server clock).
+     * @param float $clientMult multiplier shown when user clicked cashout
+     */
+    public function cashout(int $gameId, int $betId, int $userId, float $clientMult = 0): array
+    {
+        return Cache::lock("pool_crash_lock:{$gameId}", 5)->block(3, function () use ($gameId, $betId, $userId, $clientMult) {
             $state = $this->get($gameId);
-            if (!$state || $state['phase'] !== 'flying') {
+            if (!$state || ($state['phase'] ?? '') !== 'flying') {
                 return ['ok' => false, 'message' => 'Round not flying', 'crashed' => ($state['phase'] ?? '') === 'crashed'];
             }
 
-            $bet = Userbit::where('id', $betId)->where('userid', $userId)->where('gameid', $gameId)->first();
+            $this->syncPoolFromBets($gameId, $state);
+            $this->put($gameId, $state);
+
+            $bet = Userbit::where('id', $betId)
+                ->where('userid', (string) $userId)
+                ->where('gameid', (string) $gameId)
+                ->first();
             if (!$bet || (string) $bet->status !== '0') {
                 return ['ok' => false, 'message' => 'Bet not available', 'crashed' => false];
             }
 
-            $mult = $this->liveMultiplier($state);
+            $serverMult = $this->liveMultiplier($state);
+            // ponytail: pay at clicked mult if not ahead of server (UI lag safe)
+            $mult = $serverMult;
+            if ($clientMult >= 1.0 && $clientMult <= $serverMult + 0.05) {
+                $mult = round(min($clientMult, $serverMult), 2);
+            }
+
             $payout = round((float) $bet->amount * $mult, 2);
             $remaining = $this->remainingPool($state);
 
             if ($payout > $remaining) {
-                // cannot pay — crash now
+                // this bet can't be paid — fly away, no error toast needed
                 $this->settleCrash($gameId, $state, $mult);
-                return ['ok' => false, 'message' => 'Pool exhausted', 'crashed' => true, 'multiplier' => $mult];
+                return [
+                    'ok' => false,
+                    'message' => '',
+                    'crashed' => true,
+                    'multiplier' => $mult,
+                    'silent' => true,
+                ];
             }
 
             addwallet($userId, $payout);
@@ -270,7 +310,7 @@ class PoolCrashEngine
             $gr->result = number_format($mult, 2, '.', '');
             $gr->save();
 
-            Userbit::where('gameid', $gameId)->where('status', 0)->update(['status' => 1]);
+            Userbit::where('gameid', (string) $gameId)->where('status', '0')->update(['status' => 1]);
 
             // ponytail: admin = money not paid to winners (house cut + leftover pool)
             $adminCredit = round(max(0, (float) $state['total_bets'] - (float) $state['paid']), 2);

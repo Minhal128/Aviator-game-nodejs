@@ -1,0 +1,32 @@
+Chicken Road - HTML5 Casino Game 
+Copyright ©2026 ImpressDev
+
+This project is licensed to the buyer under the terms of the CodeCanyon license they purchased:
+
+---
+
+Regular License:
+- Can be used in **one end product** (personal, client, or educational) that is **free for end users**.
+- You may customize and modify the game for your own use or client use.
+- You may not sell or distribute the source code as-is or modified.
+- You may not use this in paid apps, SaaS products, or subscription services.
+
+Extended License:
+- Can be used in **one end product** (app, website, SaaS, or commercial platform) that **charges users** for access or monetizes it directly.
+- You may modify, integrate, and use the game in a commercial product.
+- You may not resell or redistribute the source code as-is or with modifications.
+
+---
+
+NOT Allowed (under any license):
+- Reselling or sharing the source code publicly or privately.
+- Using the source code in multiple projects (one license = one project).
+- Claiming authorship of the original code.
+
+For more details, refer to the official Envato CodeCanyon license terms:
+https://codecanyon.net/licenses
+
+---
+
+Need support or a custom version?
+Contact: khondokarragib@gmail.com

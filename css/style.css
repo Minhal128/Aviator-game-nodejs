@@ -231,6 +231,73 @@ a, a:hover {
     margin-left: 6px;
 }
 
+/* Clean header wordmark (replaces busy jpeg) */
+.tl-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    text-decoration: none !important;
+    line-height: 1;
+    padding: 0.15rem 0;
+}
+.tl-brand-mark {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+}
+.tl-brand-text {
+    display: flex;
+    flex-direction: column;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    letter-spacing: 0.06em;
+}
+.tl-brand-text b {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #e50539;
+    letter-spacing: 0.14em;
+}
+.tl-brand-text span {
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: #c8cdd6;
+    letter-spacing: 0.28em;
+    margin-top: 2px;
+}
+.header-bottom .tl-brand-mark { width: 22px; height: 22px; }
+.header-bottom .tl-brand-text b { font-size: 0.78rem; }
+.header-bottom .tl-brand-text span { font-size: 0.52rem; }
+
+/* Staging controls */
+.tl-stage-bar {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 20;
+    display: flex;
+    gap: 6px;
+    background: rgba(16, 16, 17, 0.85);
+    border: 1px solid #2a2b2e;
+    border-radius: 10px;
+    padding: 4px;
+}
+.tl-stage-bar button {
+    border: 0;
+    background: #262830;
+    color: #fff;
+    width: 36px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+.tl-stage-bar button:hover { background: #e50539; }
+.tl-stage-bar button.is-active { background: #e50539; }
+.stage-board { position: relative; }
+
 .login-btn, .register-btn, .deposite-btn {
     color: #fff;
     text-transform: uppercase;
@@ -402,6 +469,10 @@ a, a:hover {
     .logo1 {
         width: 100px;
     }
+
+    .tl-brand-mark { width: 22px; height: 22px; }
+    .tl-brand-text b { font-size: 0.78rem; }
+    .tl-brand-text span { font-size: 0.5rem; letter-spacing: 0.18em; }
 
     .login-btn, .register-btn, .deposite-btn {
         font-size: 12px;
@@ -3494,7 +3565,11 @@ element.style {
     width: 100%;
     height: 7px;
     background: #E50539;
-    animation: line-fill 5s linear;
+    animation: line-fill 25s linear;
+    animation-play-state: running;
+}
+.fill-line.is-paused {
+    animation-play-state: paused;
 }
 
 @keyframes line-fill{
@@ -3644,6 +3719,23 @@ width: 100%;
     background-color: #09519e;
     overflow: hidden;
     transition: all .15s;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+.game-list-boxs > .position-relative {
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    background: #063a73;
+}
+.game-list-boxs > .position-relative img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.game-list-boxs > .px-3 {
+    margin-top: auto !important;
 }
 .game-list-boxs p {
     color: #87bcf5;
