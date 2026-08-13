@@ -1,0 +1,1175 @@
+/* Turbo Legends UI refresh — loaded AFTER style.css, overrides only the
+   lobby, header, footer and auth modals. Game pages (crash, chicken-road,
+   ludo, slots) do not load this file, so their layout is untouched. */
+
+:root {
+    --tl-bg: #070b14;
+    --tl-bg-2: #0e1626;
+    --tl-surface: #131c2e;
+    --tl-surface-2: #1a2540;
+    --tl-line: rgba(255, 255, 255, .09);
+    --tl-text: #e9eefb;
+    --tl-muted: #8ea3c6;
+    --tl-red: #e50539;
+    --tl-red-2: #ff2d55;
+    --tl-gold: #ffb020;
+    --tl-green: #14c46a;
+    --tl-radius: 16px;
+}
+
+html {
+    background: var(--tl-bg);
+}
+
+/* background only - inheriting a light text colour here would wash out the
+   white panels on profile/withdraw/history */
+body.dark-bg-main {
+    background: radial-gradient(1200px 600px at 50% -200px, #1b2a4a 0%, var(--tl-bg-2) 45%, var(--tl-bg) 100%) fixed;
+}
+
+/* ---------- header ---------- */
+.header-top {
+    background: rgba(9, 14, 24, .88);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--tl-line);
+    box-shadow: none;
+}
+
+.register-btn,
+.login-btn,
+.deposite-btn {
+    height: 38px;
+    padding: 0 20px;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: .04em;
+    border: 1px solid transparent;
+    transition: transform .15s, box-shadow .15s, background .15s;
+}
+
+.register-btn {
+    background: linear-gradient(180deg, var(--tl-red-2), var(--tl-red));
+    box-shadow: 0 8px 22px rgba(229, 5, 57, .35);
+    color: #fff;
+}
+
+.login-btn,
+.deposite-btn {
+    background: rgba(255, 255, 255, .06);
+    border-color: var(--tl-line);
+    color: var(--tl-text);
+}
+
+.register-btn:hover,
+.login-btn:hover,
+.deposite-btn:hover {
+    transform: translateY(-1px);
+    color: #fff;
+}
+
+/* ---------- lobby ---------- */
+.tl-lobby {
+    color: var(--tl-text);
+    max-width: 1200px;
+    margin: 0 auto;
+    /* .header-top is position:fixed and 60px tall */
+    padding: 84px 16px 56px;
+}
+
+.tl-slider-wrap {
+    position: relative;
+    border: 1px solid var(--tl-line);
+    border-radius: 20px;
+    overflow: hidden;
+    background: #0b1120;
+}
+
+.tl-slide {
+    display: block;
+    aspect-ratio: 1600 / 740;
+}
+
+.tl-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* every banner has an arrow painted on each edge; these invisible strips are what
+   actually drives the carousel, so the painted arrows are not decoration */
+.tl-slide-nav {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 9%;
+    min-width: 54px;
+    z-index: 3;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.tl-slide-prev {
+    left: 0;
+}
+
+.tl-slide-next {
+    right: 0;
+}
+
+.tl-slide-nav:hover {
+    background: linear-gradient(90deg, rgba(0, 0, 0, .35), transparent);
+}
+
+.tl-slide-next:hover {
+    background: linear-gradient(270deg, rgba(0, 0, 0, .35), transparent);
+}
+
+.tl-slider .owl-dots {
+    /* below the artwork, not on top of it - every banner has a busy bottom strip */
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 0;
+}
+
+.tl-slider .owl-dot span {
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .45);
+    box-shadow: 0 0 4px rgba(0, 0, 0, .6);
+}
+
+.tl-slider .owl-dot.active span {
+    width: 22px;
+    border-radius: 999px;
+    background: var(--tl-red-2);
+}
+
+.tl-hero-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 16px;
+    padding: 18px 22px;
+    border: 1px solid var(--tl-line);
+    border-radius: var(--tl-radius);
+    background: linear-gradient(160deg, #16203a, #0b1120);
+}
+
+.tl-hero-bar p {
+    color: var(--tl-muted);
+    font-size: 14px;
+    max-width: 520px;
+    margin: 10px 0 0;
+}
+
+.tl-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 176, 32, .35);
+    background: rgba(255, 176, 32, .10);
+    color: var(--tl-gold);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.tl-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+.tl-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 46px;
+    padding: 0 26px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: .06em;
+    color: #fff;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s, background .15s;
+}
+
+.tl-btn:hover {
+    transform: translateY(-2px);
+    color: #fff;
+}
+
+.tl-btn-primary {
+    background: linear-gradient(180deg, var(--tl-red-2), var(--tl-red));
+    box-shadow: 0 10px 26px rgba(229, 5, 57, .38);
+}
+
+.tl-btn-ghost {
+    background: rgba(255, 255, 255, .06);
+    border-color: var(--tl-line);
+}
+
+.tl-btn-block {
+    width: 100%;
+}
+
+.tl-balance {
+    margin-left: 4px;
+    color: var(--tl-muted);
+    font-size: 14px;
+}
+
+.tl-balance b {
+    color: var(--tl-green);
+    font-size: 18px;
+}
+
+/* ---------- game grid ---------- */
+.tl-section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin: 48px 4px 18px;
+}
+
+.tl-section-head h2 {
+    font-size: 24px;
+    font-weight: 800;
+    margin: 0;
+}
+
+.tl-section-head span {
+    color: var(--tl-muted);
+    font-size: 14px;
+}
+
+.tl-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(216px, 1fr));
+    gap: 20px;
+}
+
+.tl-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--tl-line);
+    border-radius: var(--tl-radius);
+    background: linear-gradient(180deg, var(--tl-surface-2), var(--tl-surface));
+    transition: transform .18s, box-shadow .18s, border-color .18s;
+}
+
+.tl-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(229, 5, 57, .45);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, .55);
+}
+
+.tl-card-media {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: #0b1120;
+}
+
+/* absolute so a tall source image cannot stretch the card */
+.tl-card-media img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.tl-tag {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(7, 11, 20, .78);
+    border: 1px solid var(--tl-line);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--tl-gold);
+}
+
+/* sits on the other corner: these games play for fun coins, not the wallet */
+.tl-tag-demo {
+    left: auto;
+    right: 12px;
+    color: var(--tl-text);
+    border-color: rgba(255, 255, 255, .28);
+}
+
+.tl-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px 16px 18px;
+    flex: 1;
+}
+
+.tl-card-body h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.tl-card-body p {
+    color: var(--tl-muted);
+    font-size: 13px;
+    line-height: 1.45;
+    margin: 0 0 14px;
+    flex: 1;
+}
+
+/* ---------- auth modals ---------- */
+.l-modal .modal-content {
+    background: linear-gradient(180deg, #16203a, #0d1424);
+    border: 1px solid var(--tl-line);
+    border-radius: 20px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, .65);
+    color: var(--tl-text);
+    overflow: hidden;
+}
+
+.l-modal .login-header {
+    background: transparent;
+    border-bottom: 1px solid var(--tl-line);
+    padding: 20px 24px;
+    color: var(--tl-text);
+}
+
+.l-modal .login-header .modal-title {
+    font-weight: 800;
+    letter-spacing: .06em;
+    color: var(--tl-text);
+}
+
+.l-modal .login-header .material-symbols-outlined {
+    color: var(--tl-red-2);
+}
+
+.l-modal .modal-body {
+    padding: 22px 24px 8px;
+}
+
+.l-modal .login-controls {
+    background-image: none;
+    background: rgba(255, 255, 255, .04);
+    border: 1px solid var(--tl-line);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    transition: border-color .15s, background .15s;
+}
+
+.l-modal .login-controls:focus-within {
+    border-color: var(--tl-red-2);
+    background: rgba(255, 255, 255, .07);
+}
+
+.l-modal .login-controls label {
+    border: none;
+    padding: 4px 6px;
+}
+
+.l-modal .login-controls label input {
+    color: var(--tl-text);
+}
+
+.l-modal .login-controls label input::placeholder {
+    color: #6d81a4;
+}
+
+.l-modal .checkforlogin {
+    color: var(--tl-muted);
+}
+
+.l-modal .form-control,
+.register-modal-popup .form-control,
+.register-modal-popup .form-select {
+    background: transparent;
+    border: none;
+    color: var(--tl-text);
+    box-shadow: none;
+}
+
+.l-modal .form-control::placeholder,
+.register-modal-popup .form-control::placeholder {
+    color: #6d81a4;
+}
+
+.l-modal .input-ico {
+    color: var(--tl-muted);
+}
+
+.l-modal .link-text {
+    color: var(--tl-muted);
+}
+
+.l-modal .link-text:hover {
+    color: var(--tl-red-2);
+}
+
+.l-modal .login-footer {
+    background: rgba(255, 255, 255, .03);
+    border-top: 1px solid var(--tl-line);
+    padding: 16px 24px 20px;
+}
+
+.l-modal .login-footer h4 {
+    color: var(--tl-muted);
+}
+
+.green-btn,
+.orange-btn {
+    border: none;
+    border-radius: 999px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    color: #fff;
+    transition: transform .15s, box-shadow .15s;
+}
+
+.green-btn {
+    background: linear-gradient(180deg, #19d979, #0fa456);
+    box-shadow: 0 10px 24px rgba(20, 196, 106, .32);
+}
+
+.orange-btn {
+    background: linear-gradient(180deg, var(--tl-red-2), var(--tl-red));
+    box-shadow: 0 10px 24px rgba(229, 5, 57, .34);
+}
+
+.green-btn:hover,
+.orange-btn:hover {
+    transform: translateY(-2px);
+    color: #fff;
+}
+
+/* register popup: drop the floating dice/chip/ball props and the lone tab */
+.register-modal-popup .modal-ico {
+    display: none;
+}
+
+.register-modal-popup .modal-content {
+    background: linear-gradient(180deg, #16203a, #0d1424);
+}
+
+.register-modal-popup .custom-header {
+    background: transparent;
+    border-bottom: 1px solid var(--tl-line);
+}
+
+.register-modal-popup .register-title {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: .08em;
+}
+
+.register-modal-popup .nav-tabs {
+    border: none;
+}
+
+.register-modal-popup .nav-tabs .nav-link {
+    color: var(--tl-muted);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+}
+
+.register-modal-popup .nav-tabs .nav-link.active {
+    color: var(--tl-gold);
+    background: transparent;
+    border-bottom-color: var(--tl-gold);
+}
+
+.register-modal-popup .input-group {
+    background: rgba(255, 255, 255, .04);
+    border: 1px solid var(--tl-line);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.register-modal-popup .input-group:focus-within {
+    border-color: var(--tl-red-2);
+}
+
+.register-modal-popup .input-group-text {
+    background: transparent;
+    border: none;
+    color: var(--tl-muted);
+}
+
+.register-modal-popup .checks-bg {
+    background: rgba(255, 255, 255, .04);
+    border: 1px solid var(--tl-line);
+    border-radius: 12px;
+}
+
+@media (max-width: 767px) {
+    .tl-hero-bar {
+        padding: 14px 16px;
+    }
+
+    .tl-slide-nav {
+        width: 14%;
+    }
+
+    .tl-lobby {
+        padding: 76px 12px 40px;
+    }
+
+    .tl-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
+    }
+
+    .tl-card-body {
+        padding: 12px;
+    }
+
+    .tl-card-body p {
+        display: none;
+    }
+}
+
+/* register popup: flatten the leftover blue panels + drop the single-tab bar */
+.register-modal-popup .modal-body,
+.register-modal-popup .register-tabs,
+.register-modal-popup .tab-content,
+.register-modal-popup .register-form {
+    background: transparent;
+}
+
+.register-modal-popup .custom-header .register-tabs {
+    display: none;
+}
+
+.register-modal-popup .pa-40 {
+    padding: 32px 32px 24px;
+}
+
+.register-form .input-group {
+    border: 1px solid var(--tl-line);
+}
+
+.register-form .input-group.promocode input::placeholder,
+.register-form .input-group input::placeholder {
+    color: #6d81a4;
+    font-weight: 500;
+}
+
+.register-form .input-group input,
+.register-form .input-group select {
+    color: var(--tl-text) !important;
+}
+
+.register-modal-popup .checks-bg label,
+.register-modal-popup .checks-bg a {
+    color: var(--tl-muted);
+}
+
+/* ---------- login / register: one size for every auth dialog ---------- */
+.l-modal .modal-dialog {
+    max-width: 440px;
+}
+
+.l-modal .modal-content {
+    /* keeps LOGIN, FORGOT, RESET and REGISTER the same box instead of jumping
+       from a 320px card to a 700px one */
+    min-height: min(630px, 88vh);
+    max-height: 92vh;
+}
+
+.l-modal .modal-body {
+    /* the short forms get centred in the shared box instead of leaving a hole */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow-y: auto;
+}
+
+.l-modal .login-footer {
+    margin-top: auto;
+}
+
+/* chrome paints autofilled fields white, which is unreadable on the dark form */
+.l-modal input:-webkit-autofill,
+.l-modal input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--tl-text);
+    -webkit-box-shadow: inset 0 0 0 1000px var(--tl-surface-2);
+    caret-color: var(--tl-text);
+}
+
+/* ---------- info pages ---------- */
+.tl-crumb {
+    font-size: 13px;
+    color: var(--tl-muted);
+    margin-bottom: 14px;
+}
+
+.tl-crumb a {
+    color: var(--tl-muted);
+    text-decoration: none;
+}
+
+.tl-crumb a:hover {
+    color: var(--tl-text);
+}
+
+.tl-crumb span {
+    margin: 0 6px;
+    opacity: .5;
+}
+
+.tl-doc h1 {
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    margin: 0 0 10px;
+}
+
+.tl-doc-lead {
+    color: var(--tl-muted);
+    font-size: 17px;
+    max-width: 680px;
+    margin: 0 0 28px;
+}
+
+.tl-doc-body {
+    display: block;
+    max-width: 780px;
+    padding: 28px 30px;
+    border: 1px solid var(--tl-line);
+    border-radius: var(--tl-radius);
+    background: var(--tl-surface);
+}
+
+.tl-doc-body h3 {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--tl-gold);
+    margin: 28px 0 10px;
+}
+
+.tl-doc-body h3:first-child {
+    margin-top: 0;
+}
+
+.tl-doc-body p,
+.tl-doc-body li {
+    color: #c3d0e8;
+    font-size: 15px;
+    line-height: 1.65;
+}
+
+.tl-doc-body ul {
+    padding-left: 20px;
+    margin-bottom: 0;
+}
+
+.tl-doc-body li {
+    margin-bottom: 6px;
+}
+
+.tl-doc-body a {
+    color: var(--tl-red-2);
+}
+
+/* FAQ uses <details>, no accordion script needed */
+.tl-doc-body details {
+    border-bottom: 1px solid var(--tl-line);
+    padding: 14px 0;
+}
+
+.tl-doc-body details:last-of-type {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+
+.tl-doc-body summary {
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--tl-text);
+    list-style: none;
+}
+
+.tl-doc-body summary::-webkit-details-marker {
+    display: none;
+}
+
+.tl-doc-body summary::after {
+    content: "+";
+    float: right;
+    color: var(--tl-red-2);
+    font-size: 20px;
+    line-height: 1;
+}
+
+.tl-doc-body details[open] summary::after {
+    content: "\2013";
+}
+
+.tl-doc-body details p {
+    margin: 10px 0 0;
+}
+
+.tl-doc-more {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 26px;
+}
+
+.tl-doc-more a {
+    padding: 8px 16px;
+    border: 1px solid var(--tl-line);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .04);
+    color: var(--tl-muted);
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.tl-doc-more a:hover {
+    color: var(--tl-text);
+    border-color: var(--tl-red-2);
+}
+
+@media (max-width: 767px) {
+    .tl-doc h1 {
+        font-size: 27px;
+    }
+
+    .tl-doc-body {
+        padding: 18px 16px;
+    }
+}
+
+/* ================= footer =================
+   The vendor footer stacked three space-between rows, so on a wide screen the
+   logo and the socials sat in one corner with a hole beside them. One grid, and
+   the brand block gets a neighbour: the games and company columns. */
+.tl-footer {
+    display: block;
+    position: relative;
+    background: linear-gradient(180deg, #0a1020, #070b14);
+    border-top: 1px solid var(--tl-line);
+    color: var(--tl-text);
+}
+
+/* hairline that ties the footer back to the header accent */
+.tl-footer::before {
+    content: "";
+    position: absolute;
+    inset: -1px 0 auto;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--tl-red), var(--tl-gold), transparent);
+    opacity: .5;
+}
+
+.tl-foot-main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 16px 32px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 48px;
+    align-items: start;
+}
+
+.tl-footer .footer-logo {
+    display: inline-block;
+}
+
+.tl-footer .footer-logo .logo1 {
+    width: auto;
+    max-width: none;
+    height: 44px;
+    border-radius: 10px;
+}
+
+.tl-foot-tag {
+    margin: 14px 0 18px;
+    max-width: 42ch;
+    color: var(--tl-muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* --- socials: one round button each, monochrome until hovered --- */
+.tl-socials {
+    display: flex;
+    gap: 10px;
+}
+
+.tl-footer .footer-icon_monocolor {
+    /* solid, not translucent: youtube's glyph needs a colour to punch out of */
+    --tl-social-bg: #171f31;
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--tl-social-bg);
+    border: 1px solid var(--tl-line);
+    color: var(--tl-muted);
+    transition: color .18s, background .18s, border-color .18s, transform .18s;
+}
+
+.tl-footer .footer-icon_monocolor svg {
+    width: 17px;
+    height: 17px;
+}
+
+/* the vendor SVGs hardcode brand blues as fill attributes; a CSS property
+   outranks a presentation attribute, so one rule greys the whole row */
+.tl-footer .footer-icon_monocolor svg path,
+.tl-footer .footer-icon_monocolor svg path[fill="#1183d3"] {
+    fill: currentColor;
+}
+
+/* youtube is the one two-path glyph: the play arrow is drawn over the body,
+   so it has to be painted in the button colour to read as a cut-out */
+.tl-footer .footer-icon_monocolor svg path[fill="#04386e"] {
+    fill: var(--tl-social-bg);
+}
+
+.tl-footer .footer-icon_monocolor:hover {
+    --tl-social-bg: #3a1220;
+    color: #fff;
+    border-color: rgba(229, 5, 57, .55);
+    transform: translateY(-2px);
+}
+
+/* --- link columns --- */
+.tl-foot-cols {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 40px;
+}
+
+.tl-foot-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.tl-foot-col h6 {
+    margin: 0 0 4px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--tl-gold);
+}
+
+.tl-foot-col a {
+    width: fit-content;
+    color: var(--tl-muted);
+    font-size: 14px;
+    font-weight: 500;
+    transition: color .15s, transform .15s;
+}
+
+.tl-foot-col a:hover {
+    color: var(--tl-text);
+    transform: translateX(3px);
+}
+
+/* --- payment strip --- */
+.footer-highlight.providers {
+    margin: 0;
+    padding: 18px 16px;
+    background: rgba(255, 255, 255, .025) !important;
+    border-top: 1px solid var(--tl-line);
+    border-bottom: 1px solid var(--tl-line);
+    border-radius: 0;
+}
+
+.tl-footer .providers-icons {
+    max-width: 760px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+.tl-footer .providers .footer-icon {
+    flex: 0 1 auto;
+    height: 24px;
+    opacity: .8;
+    transition: opacity .18s, transform .18s;
+}
+
+.tl-footer .providers .footer-icon:hover {
+    opacity: 1;
+    transform: translateY(-1px);
+}
+
+/* --- legal line --- */
+.tl-foot-legal {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 18px 16px 28px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    color: var(--tl-muted);
+    font-size: 12.5px;
+}
+
+.tl-age-badge {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(229, 5, 57, .6);
+    color: var(--tl-red-2);
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.tl-foot-copy {
+    margin-left: auto;
+}
+
+@media (max-width: 767px) {
+    .tl-foot-main {
+        grid-template-columns: 1fr;
+        gap: 26px;
+        padding: 30px 16px 24px;
+    }
+
+    .tl-footer .providers-icons {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 18px 28px;
+    }
+
+    .tl-foot-copy {
+        margin-left: 0;
+    }
+}
+
+/* ================= account menu (hamburger) ================= */
+.tl-burger {
+    width: 42px;
+    height: 38px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid var(--tl-line);
+    transition: background .15s, border-color .15s;
+}
+
+.tl-burger:hover,
+.tl-burger.show {
+    background: rgba(229, 5, 57, .18);
+    border-color: rgba(229, 5, 57, .5);
+}
+
+.tl-burger .menu-icon {
+    color: var(--tl-text);
+    transition: transform .2s;
+}
+
+.tl-burger.show .menu-icon {
+    transform: rotate(90deg);
+}
+
+.profile-dropdown {
+    min-width: 288px;
+    margin-top: 10px;
+    padding: 8px 0 !important;
+    background: linear-gradient(180deg, var(--tl-surface-2), var(--tl-surface));
+    border: 1px solid var(--tl-line);
+    border-radius: var(--tl-radius);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .6);
+    /* a 13-row menu on a short phone has to scroll inside itself */
+    max-height: min(78vh, 620px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.profile-dropdown::-webkit-scrollbar {
+    width: 6px;
+}
+
+.profile-dropdown::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, .14);
+    border-radius: 999px;
+}
+
+/* the vendor sheet drew a divider on every row; the sections carry the rhythm */
+.profile-dropdown li {
+    border-top: 0;
+}
+
+.profile-dropdown li.profile-head,
+.profile-dropdown li.profile-head:hover {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: -8px 0 8px;
+    padding: 16px 16px 14px;
+    background: linear-gradient(135deg, rgba(229, 5, 57, .22), rgba(255, 176, 32, .1)) !important;
+    border-bottom: 1px solid var(--tl-line);
+}
+
+.profile-head .avtar-ico {
+    margin: 0;
+    border: 2px solid rgba(255, 255, 255, .25);
+}
+
+.tl-profile-meta {
+    min-width: 0;
+}
+
+.profile-head .profile-name {
+    font-size: 13.5px;
+    line-height: 1.3;
+    /* emails run long and the panel is 288px wide */
+    max-width: 190px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tl-profile-id {
+    margin-top: 3px;
+    font-size: 11.5px;
+    letter-spacing: .06em;
+    color: rgba(255, 255, 255, .6);
+}
+
+.tl-profile-id span {
+    color: var(--tl-gold);
+    font-weight: 600;
+}
+
+.tl-menu-wallet {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 12px 6px;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, .3);
+    border: 1px solid var(--tl-line);
+    border-radius: 12px;
+}
+
+.tl-menu-wallet-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--tl-muted);
+}
+
+.tl-menu-wallet-amt {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--tl-green);
+}
+
+.tl-menu-topup {
+    margin-left: auto;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, var(--tl-red-2), var(--tl-red));
+    color: #fff !important;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .04em;
+}
+
+.tl-menu-topup:hover {
+    filter: brightness(1.1);
+}
+
+.tl-menu-sec {
+    padding: 12px 16px 6px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--tl-muted);
+}
+
+.profile-dropdown li a.tl-mi {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 2px 8px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    color: var(--tl-text);
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: background .14s, color .14s;
+}
+
+.tl-mi .ico {
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+    margin: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, .06);
+    color: var(--tl-muted);
+    font-size: 18px;
+    transition: background .14s, color .14s;
+}
+
+.profile-dropdown li a.tl-mi:hover {
+    background: rgba(255, 255, 255, .07);
+    color: #fff;
+}
+
+.profile-dropdown li a.tl-mi:hover .ico {
+    background: rgba(229, 5, 57, .22);
+    color: var(--tl-red-2);
+}
+
+.tl-mi.tl-mi-danger {
+    margin-top: 8px;
+    color: #ff8a97;
+}
+
+.tl-mi.tl-mi-danger .ico {
+    background: rgba(229, 5, 57, .14);
+    color: #ff8a97;
+}
+
+/* the vendor rule painted the whole li on hover, including the header row */
+.profile-dropdown li:hover,
+.tl-menu-sec:hover {
+    background: transparent;
+}

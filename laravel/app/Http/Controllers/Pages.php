@@ -87,9 +87,45 @@ class Pages extends Controller
         if ($rel === 'index.html') {
             $html = file_get_contents($file);
             if ($html !== false && !str_contains($html, '<base ')) {
-                $html = preg_replace('/<head>/i', '<head><base href="/' . $game . '/">', $html, 1);
+                // the wallet block lets a game post to /game/road/* with the session's CSRF token
+                $head = '<head><base href="/' . $game . '/">'
+                    . '<script>window.TL_WALLET=' . json_encode([
+                        'token' => csrf_token(),
+                        'balance' => (float) wallet(user('id'), 'num'),
+                        'currency' => user('currency') ?: 'Rs',
+                        'userId' => (int) user('id'),
+                    ]) . ';</script>';
+                if (request()->boolean('mute')) {
+                    // must land before the engine builds its audio graph
+                    $head .= '<script src="/js/tl-mute.js"></script>';
+                }
+                $html = preg_replace('/<head>/i', $head, $html, 1);
+                if ($game === 'gold-egypt') {
+                    // after slotGame.js, so window.spinReels exists to be wrapped
+                    $html = str_replace('</body>', '<script src="/js/tl-gold-egypt.js"></script></body>', $html);
+                }
+                if ($game === 'slot-glamour') {
+                    // after main.js so runOnStartup() exists; both are modules, so order holds
+                    $html = str_replace('</body>', '<script type="module" src="/js/tl-c3-slot.js"></script></body>', $html);
+                }
             }
             return response($html, 200)->header('Content-Type', 'text/html; charset=UTF-8');
+        }
+        // Glamour Spins ships with useWorker:true, which hides the C3 runtime (and its
+        // global variables: balance, betAmount, bonusbalance) inside a Web Worker where
+        // the page cannot reach it. The flag is the vendor's own switch, so flip it at
+        // serve time instead of editing the bundle - survives re-extracting html5.zip.
+        if ($game === 'slot-glamour' && $rel === 'scripts/main.js') {
+            $js = str_replace(
+                'const e=true;window["c3_runtimeInterface"]',
+                'const e=false;window["c3_runtimeInterface"]',
+                (string) file_get_contents($file)
+            );
+            // a cached copy of the original brings the worker back and the wallet
+            // bridge silently stops working, so this one file is never cacheable
+            return response($js, 200)
+                ->header('Content-Type', 'application/javascript; charset=UTF-8')
+                ->header('Cache-Control', 'no-store, must-revalidate');
         }
         // Windows mime_content_type often returns text/plain for .css → browser ignores stylesheet
         $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));

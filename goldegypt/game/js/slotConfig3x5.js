@@ -497,137 +497,137 @@ var slotConfig3x5 = {
     payLines:[
         {
             line: ['Wick', 'Wick', 'Wick', 'Wick', 'Wick'],
-            pay: 3,
-            freeSpins: 0
-        },
-        {
-            line: ['Wick', 'Wick', 'Wick', 'Wick', 'any'],
-            pay: 2,
-            freeSpins: 0
-        },
-        {
-            line: ['Wick', 'Wick', 'Wick', 'any', 'any'],
-            pay: 1,
-            freeSpins: 0
-        },
-        {
-            line: ['Shen', 'Shen', 'Shen', 'Shen', 'Shen'],
-            pay: 5,
-            freeSpins: 0
-        },
-        {
-            line: ['Shen', 'Shen', 'Shen', 'Shen', 'any'],
-            pay: 3,
-            freeSpins: 0
-        },
-        {
-            line: ['Shen', 'Shen', 'Shen', 'any', 'any'],
-            pay: 1,
-            freeSpins: 0
-        },
-        {
-            line: ['Eye', 'Eye', 'Eye', 'Eye', 'Eye'],
-            pay: 6,
-            freeSpins: 0
-        },
-        {
-            line: ['Eye', 'Eye', 'Eye', 'Eye', 'any'],
-            pay: 3,
-            freeSpins: 0
-        },
-        {
-            line: ['Eye', 'Eye', 'Eye', 'any', 'any'],
-            pay: 2,
-            freeSpins: 0
-        },
-        {
-            line: ['Ankh', 'Ankh', 'Ankh', 'Ankh', 'Ankh'],
             pay: 7,
             freeSpins: 0
         },
         {
-            line: ['Ankh', 'Ankh', 'Ankh', 'Ankh', 'any'],
-            pay: 3,
+            line: ['Wick', 'Wick', 'Wick', 'Wick', 'any'],
+            pay: 5,
             freeSpins: 0
         },
         {
-            line: ['Ankh', 'Ankh', 'Ankh', 'any', 'any'],
+            line: ['Wick', 'Wick', 'Wick', 'any', 'any'],
             pay: 2,
             freeSpins: 0
         },
         {
-            line: ['Lotus', 'Lotus', 'Lotus', 'Lotus', 'Lotus'],
-            pay: 8,
+            line: ['Shen', 'Shen', 'Shen', 'Shen', 'Shen'],
+            pay: 12,
             freeSpins: 0
         },
         {
-            line: ['Lotus', 'Lotus', 'Lotus', 'Lotus', 'any'],
-            pay: 3,
+            line: ['Shen', 'Shen', 'Shen', 'Shen', 'any'],
+            pay: 7,
             freeSpins: 0
         },
         {
-            line: ['Lotus', 'Lotus', 'Lotus', 'any', 'any'],
+            line: ['Shen', 'Shen', 'Shen', 'any', 'any'],
             pay: 2,
             freeSpins: 0
         },
         {
-            line: ['J', 'J', 'J', 'J', 'J'],
-            pay: 17,
-            freeSpins: 0
-        },
-        {
-            line: ['J', 'J', 'J', 'J', 'any'],
-            pay: 13,
-            freeSpins: 0
-        },
-        {
-            line: ['J', 'J', 'J', 'any', 'any'],
-            pay: 11,
-            freeSpins: 0
-        },
-        {
-            line: ['Q', 'Q', 'Q', 'Q', 'Q'],
-            pay: 19,
-            freeSpins: 0
-        },
-        {
-            line: ['Q', 'Q', 'Q', 'Q', 'any'],
-            pay: 13,
-            freeSpins: 0
-        },
-        {
-            line: ['Q', 'Q', 'Q', 'any', 'any'],
-            pay: 11,
-            freeSpins: 0
-        },
-        {
-            line: ['K', 'K', 'K', 'K', 'K'],
-            pay: 20,
-            freeSpins: 0
-        },
-        {
-            line: ['K', 'K', 'K', 'K', 'any'],
+            line: ['Eye', 'Eye', 'Eye', 'Eye', 'Eye'],
             pay: 14,
             freeSpins: 0
         },
         {
+            line: ['Eye', 'Eye', 'Eye', 'Eye', 'any'],
+            pay: 7,
+            freeSpins: 0
+        },
+        {
+            line: ['Eye', 'Eye', 'Eye', 'any', 'any'],
+            pay: 5,
+            freeSpins: 0
+        },
+        {
+            line: ['Ankh', 'Ankh', 'Ankh', 'Ankh', 'Ankh'],
+            pay: 17,
+            freeSpins: 0
+        },
+        {
+            line: ['Ankh', 'Ankh', 'Ankh', 'Ankh', 'any'],
+            pay: 7,
+            freeSpins: 0
+        },
+        {
+            line: ['Ankh', 'Ankh', 'Ankh', 'any', 'any'],
+            pay: 5,
+            freeSpins: 0
+        },
+        {
+            line: ['Lotus', 'Lotus', 'Lotus', 'Lotus', 'Lotus'],
+            pay: 19,
+            freeSpins: 0
+        },
+        {
+            line: ['Lotus', 'Lotus', 'Lotus', 'Lotus', 'any'],
+            pay: 7,
+            freeSpins: 0
+        },
+        {
+            line: ['Lotus', 'Lotus', 'Lotus', 'any', 'any'],
+            pay: 5,
+            freeSpins: 0
+        },
+        {
+            line: ['J', 'J', 'J', 'J', 'J'],
+            pay: 40,
+            freeSpins: 0
+        },
+        {
+            line: ['J', 'J', 'J', 'J', 'any'],
+            pay: 31,
+            freeSpins: 0
+        },
+        {
+            line: ['J', 'J', 'J', 'any', 'any'],
+            pay: 26,
+            freeSpins: 0
+        },
+        {
+            line: ['Q', 'Q', 'Q', 'Q', 'Q'],
+            pay: 44,
+            freeSpins: 0
+        },
+        {
+            line: ['Q', 'Q', 'Q', 'Q', 'any'],
+            pay: 31,
+            freeSpins: 0
+        },
+        {
+            line: ['Q', 'Q', 'Q', 'any', 'any'],
+            pay: 26,
+            freeSpins: 0
+        },
+        {
+            line: ['K', 'K', 'K', 'K', 'K'],
+            pay: 47,
+            freeSpins: 0
+        },
+        {
+            line: ['K', 'K', 'K', 'K', 'any'],
+            pay: 34,
+            freeSpins: 0
+        },
+        {
             line: ['K', 'K', 'K', 'any', 'any'],
-            pay: 11,
+            pay: 26,
             freeSpins: 0
         },
         {
             line: ['A', 'A', 'A', 'A', 'A'],
-            pay: 25,
+            pay: 59,
             freeSpins: 0
         },
         {
             line: ['A', 'A', 'A', 'A', 'any'],
-            pay: 15,
+            pay: 36,
             freeSpins: 0
         },
         {
             line: ['A', 'A', 'A', 'any', 'any'],
-            pay: 11,
+            pay: 26,
             freeSpins: 0
         },
     ],
@@ -646,7 +646,7 @@ var slotConfig3x5 = {
             symbolName: 'Jackpot',
             symbolsCount: 6,
             defaultAmount: 1000,        // coins amout at start
-            increaseValue: 1,           // jackpot increment after spin
+            increaseValue: 0,           // frozen: a growing pot has no funding, and it would make RTP depend on time since the last hit
         },
 
     createSlotGraphic: function(scene){

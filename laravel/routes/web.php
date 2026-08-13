@@ -3,7 +3,11 @@
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\Authentication;
 use App\Http\Controllers\Gamesetting;
+use App\Http\Controllers\GlamourSpins;
 use App\Http\Controllers\Pages;
+use App\Http\Controllers\GoldEgypt;
+use App\Http\Controllers\RoadGame;
+use App\Http\Controllers\SlotApi;
 use App\Http\Controllers\Userdetail;
 use App\Http\Controllers\Adminapi;
 use Illuminate\Support\Facades\Route;
@@ -40,6 +44,10 @@ Route::get('/dashboard', function () {
 Route::get('/register', function () {
     return view('register');
 });
+// footer info pages (public)
+Route::get('/{slug}', function (string $slug) {
+    return view('page', ['slug' => $slug]);
+})->where('slug', 'about|rules|contacts|affiliate|faq');
 // Auth Login
 Route::post('/auth/login', [Authentication::class, "login"]);
 Route::post('/auth/register', [Authentication::class, "register"]);
@@ -124,6 +132,20 @@ Route::group(['middleware' => ['isUser']], function () {
     Route::post('/game/add_bet', [Gamesetting::class, "betNow"]);
 	Route::get('/cash_out', [Gamesetting::class, "cashout"]);
     Route::post('/game/currentlybet', [Gamesetting::class, "currentlybet"]);
+    // Chicken Road on the real wallet - crash lane and multiplier decided server side
+    Route::post('/game/road/bet', [RoadGame::class, 'bet']);
+    Route::post('/game/road/step', [RoadGame::class, 'step']);
+    Route::post('/game/road/cashout', [RoadGame::class, 'cashout']);
+    // Gold of Egypt on the real wallet - reel stops drawn and settled server side
+    Route::get('/game/gold/state', [GoldEgypt::class, 'state']);
+    Route::post('/game/gold/spin', [GoldEgypt::class, 'spin']);
+    // Glamour Spins on the real wallet - the server settles first and only then
+    // tells the client which measured spin to replay
+    Route::get('/game/glamour/state', [GlamourSpins::class, 'state']);
+    Route::post('/game/glamour/spin', [GlamourSpins::class, 'spin']);
+    Route::post('/game/glamour/report', [GlamourSpins::class, 'report']);
+    // Glamour Spins' own casino-API callback, repointed here by js/tl-c3-slot.js
+    Route::any('/game/slot-api', [SlotApi::class, 'capture']);
     Route::post('/game/my_bets_history', [Gamesetting::class, "my_bets_history"]);
     Route::get('/payment_gateway_details', [Adminapi::class, "payment_gateway"]);
     Route::post('/insert/withdrawal', [Adminapi::class, "withdrawal_query"]);

@@ -2,10 +2,18 @@
 <nav class="navbar default-layout-navbar col-lg-12 col-12 p-0 fixed-top d-flex flex-row">
     <div class="text-center navbar-brand-wrapper d-flex align-items-center justify-content-center">
       <a class="navbar-brand brand-logo" href="/admin/dashboard">
-        <img class="tl-brand-logo" src="/images/logo.jpeg" alt="Turbo Legends" />
+        <span class="tl-brand" aria-label="Turbo Legends">
+        <svg class="tl-brand-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M4 18 L28 10 L22 18 L28 22 L4 18 Z" fill="#e50539"/>
+          <path d="M8 18 L14 16.5" stroke="#fff" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+        </svg>
+        <span class="tl-brand-text"><b>TURBO</b><span>LEGENDS</span></span>
+      </span>
       </a>
       <a class="navbar-brand brand-logo-mini" href="/admin/dashboard">
-        <img class="tl-brand-logo" src="/images/logo.jpeg" alt="Turbo Legends" />
+        <svg class="tl-brand-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Turbo Legends">
+          <path d="M4 18 L28 10 L22 18 L28 22 L4 18 Z" fill="#e50539"/>
+        </svg>
       </a>
     </div>
     <div class="navbar-menu-wrapper d-flex align-items-stretch">

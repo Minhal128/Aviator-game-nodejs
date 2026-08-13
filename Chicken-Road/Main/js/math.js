@@ -1,9 +1,13 @@
 // math.js
+// House keeps 30% (same rule as Aviator PoolCrashEngine::HOUSE_PCT).
+// rtp 0.70 + volatility 0 + baseSurvival 0.70 => expected return is exactly
+// 0.70 at every cash-out depth, and step 1 pays 1.00x (no sub-1x multipliers).
+// Modes now differ by how fast the road gets deadly (decay) and how long it is.
 export const GAME_MODES = {
-    easy:     { rtp: 0.97,  baseSurvival: 0.96, maxSteps: 40, volatility: 0.15, decay: 0.005 },
-    medium:   { rtp: 0.96,  baseSurvival: 0.92, maxSteps: 30, volatility: 0.25, decay: 0.010 },
-    hard:     { rtp: 0.955, baseSurvival: 0.85, maxSteps: 20, volatility: 0.40, decay: 0.018 },
-    hardcore: { rtp: 0.94,  baseSurvival: 0.75, maxSteps: 15, volatility: 0.65, decay: 0.025 }
+    easy:     { rtp: 0.70,  baseSurvival: 0.70, maxSteps: 40, volatility: 0, decay: 0.005 },
+    medium:   { rtp: 0.70,  baseSurvival: 0.70, maxSteps: 30, volatility: 0, decay: 0.010 },
+    hard:     { rtp: 0.70,  baseSurvival: 0.70, maxSteps: 20, volatility: 0, decay: 0.018 },
+    hardcore: { rtp: 0.70,  baseSurvival: 0.70, maxSteps: 15, volatility: 0, decay: 0.025 }
 };
 
 function cyrb128(str) {

@@ -1,130 +1,85 @@
 @extends('Layout.usergame')
 @section('content')
-<div class="main-container" style=" background-color: rgb(0, 35, 71);">
-    <div class="collection-page d-none">
-        <!--====== Slider Start ======-->
-        <div class="owl-carousel owl-theme">
-            <div class="item"><img src="images/011.gif" class="w-100" /></div>
-            <div class="item"><img src="images/02.jpg" class="w-100" /></div>
-            <div class="item"><img src="images/03.jpg" class="w-100" /></div>
+@php
+    $loggedIn = session()->has('userlogin');
+    // name, tag, tile, hero banner, route, blurb, demo (fun coins, not the wallet)
+    $games = [
+        ['Aviator', 'Crash', 'images/tile-aviator.jpg', 'images/slider2.jpg', '/crash', 'Cash out before the plane flies away.', false],
+        ['Chicken Road', 'Arcade', 'images/tile-chicken-road.jpg', 'images/slider5.jpg', '/chicken-road/', 'Cross the traffic, bank your multiplier.', false],
+        ['Ludo Royale', 'Multiplayer', 'images/tile-ludo.jpg', 'images/slider4.jpg', '/ludo/', 'Real players, real money boards.', false],
+        ['Gold of Egypt', 'Slot', 'images/tile-gold-egypt.jpg', 'images/slider3.jpg', '/gold-egypt/', '243 ways to win, wilds, free spins.', false],
+        ['Glamour Spins', 'Slot', 'images/tile-slot-glamour.jpg', 'images/slider1.jpg', '/slot-glamour/', 'Cascading match-3 reels, free spins.', false],
+    ];
+@endphp
+<div class="tl-lobby">
+    <section class="tl-slider-wrap">
+        {{-- owl is already loaded and js/main.js inits every .owl-carousel (loop + autoplay + lazyLoad) --}}
+        <div class="owl-carousel tl-slider">
+            @foreach ($games as [$name, $tag, $tile, $banner, $href, $desc, $demo])
+                <a class="tl-slide"
+                    @if ($loggedIn) href="{{ $href }}"
+                    @else href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#login-modal" @endif>
+                    <img class="owl-lazy" data-src="{{ $banner }}" alt="{{ $name }}">
+                </a>
+            @endforeach
         </div>
-        <!--====== Slider End ======-->
-        <!--====== Game List Start ======-->
-        <div class="container">
-            <div class="title-bg1">
-                <h2 class="fw-bold">
-                    Our Games
-                </h2>
-            </div>
-            <div class="row">
-                <div class="col-md-4 col-12 mb-4">
-                    <div class="game-list-boxs">
-                        <div class="position-relative">
-                            <img src="images/aviator-img.png" class="w-100" alt="Aviator" />
-                        </div>
-                        <div class="px-3 mt-4 pb-2 text-center">
-                            <h4 class=" mb-2">
-                                @if (session()->has('userlogin'))
-                                    <a href="/crash" class="btn demo-btns">
-                                        PLAY NOW
-                                    </a>
-                                @else
-                                    <a href="#" class="btn demo-btns" data-bs-toggle="modal"
-                                        data-bs-target="#login-modal" id="login">
-                                        LOGIN
-                                    </a>
-                                @endif
-                            </h4>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 col-12 mb-4">
-                    <div class="game-list-boxs">
-                        <div class="position-relative">
-                            <img src="images/chicken-road-img.png" class="w-100" alt="Chicken Road" />
-                        </div>
-                        <div class="px-3 mt-4 pb-2 text-center">
-                            <h4 class=" mb-2">
-                                @if (session()->has('userlogin'))
-                                    <a href="/chicken-road/" class="btn demo-btns">
-                                        PLAY NOW
-                                    </a>
-                                @else
-                                    <a href="#" class="btn demo-btns" data-bs-toggle="modal"
-                                        data-bs-target="#login-modal">
-                                        LOGIN
-                                    </a>
-                                @endif
-                            </h4>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 col-12 mb-4">
-                    <div class="game-list-boxs">
-                        <div class="position-relative">
-                            <img src="images/ludo-img.jpg" class="w-100" alt="Ludo Royale" />
-                        </div>
-                        <div class="px-3 mt-4 pb-2 text-center">
-                            <h4 class=" mb-2">
-                                @if (session()->has('userlogin'))
-                                    <a href="/ludo/" class="btn demo-btns">
-                                        PLAY NOW
-                                    </a>
-                                @else
-                                    <a href="#" class="btn demo-btns" data-bs-toggle="modal"
-                                        data-bs-target="#login-modal">
-                                        LOGIN
-                                    </a>
-                                @endif
-                            </h4>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 col-12 mb-4">
-                    <div class="game-list-boxs">
-                        <div class="position-relative">
-                            <img src="images/goldegypt-img.png" class="w-100" alt="Gold of Egypt" />
-                        </div>
-                        <div class="px-3 mt-4 pb-2 text-center">
-                            <h4 class=" mb-2">
-                                @if (session()->has('userlogin'))
-                                    <a href="/gold-egypt/" class="btn demo-btns">
-                                        PLAY NOW
-                                    </a>
-                                @else
-                                    <a href="#" class="btn demo-btns" data-bs-toggle="modal"
-                                        data-bs-target="#login-modal">
-                                        LOGIN
-                                    </a>
-                                @endif
-                            </h4>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 col-12 mb-4">
-                    <div class="game-list-boxs">
-                        <div class="position-relative">
-                            <img src="images/slotglamor-img.png" class="w-100" alt="Glamour Spins" />
-                        </div>
-                        <div class="px-3 mt-4 pb-2 text-center">
-                            <h4 class=" mb-2">
-                                @if (session()->has('userlogin'))
-                                    <a href="/slot-glamour/" class="btn demo-btns">
-                                        PLAY NOW
-                                    </a>
-                                @else
-                                    <a href="#" class="btn demo-btns" data-bs-toggle="modal"
-                                        data-bs-target="#login-modal">
-                                        LOGIN
-                                    </a>
-                                @endif
-                            </h4>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        {{-- the artwork already paints an arrow on each edge, these strips just make them work --}}
+        <button type="button" class="tl-slide-nav tl-slide-prev" aria-label="Previous game"></button>
+        <button type="button" class="tl-slide-nav tl-slide-next" aria-label="Next game"></button>
+    </section>
+
+    <section class="tl-hero-bar">
+        <div>
+            <span class="tl-kicker">5 games &middot; one wallet</span>
+            <p>Aviator, Chicken Road, Ludo Royale and two slots — all on a single Turbo Legends balance.</p>
         </div>
-        <!--====== Game List End ======-->
+        <div class="tl-cta">
+            @if ($loggedIn)
+                <a href="/crash" class="tl-btn tl-btn-primary">PLAY AVIATOR</a>
+                <a href="/deposit" class="tl-btn tl-btn-ghost">DEPOSIT</a>
+                <span class="tl-balance">Balance <b>&#8377;{{ wallet(user('id')) }}</b></span>
+            @else
+                <button class="tl-btn tl-btn-primary" data-bs-toggle="modal" data-bs-target="#register-modal">CREATE ACCOUNT</button>
+                <button class="tl-btn tl-btn-ghost" data-bs-toggle="modal" data-bs-target="#login-modal">LOGIN</button>
+            @endif
+        </div>
+    </section>
+
+    <div class="tl-section-head">
+        <h2>Our games</h2>
+        <span>{{ $loggedIn ? 'Pick a table' : 'Login to play' }}</span>
+    </div>
+    <div class="tl-grid">
+        @foreach ($games as [$name, $tag, $tile, $banner, $href, $desc, $demo])
+            <article class="tl-card">
+                <div class="tl-card-media">
+                    <img src="{{ $tile }}" alt="{{ $name }}" loading="lazy">
+                    <span class="tl-tag">{{ $tag }}</span>
+                    @if ($demo)
+                        {{-- these two still run on their own fun coins, the wallet is not wired --}}
+                        <span class="tl-tag tl-tag-demo">DEMO</span>
+                    @endif
+                </div>
+                <div class="tl-card-body">
+                    <h3>{{ $name }}</h3>
+                    <p>{{ $desc }}</p>
+                    @if ($loggedIn)
+                        <a href="{{ $href }}" class="tl-btn {{ $demo ? 'tl-btn-ghost' : 'tl-btn-primary' }} tl-btn-block">{{ $demo ? 'PLAY DEMO' : 'PLAY NOW' }}</a>
+                    @else
+                        <button class="tl-btn tl-btn-ghost tl-btn-block" data-bs-toggle="modal" data-bs-target="#login-modal">LOGIN TO PLAY</button>
+                    @endif
+                </div>
+            </article>
+        @endforeach
     </div>
 </div>
+@endsection
+@section('js')
+<script>
+    // owl is set up with nav:false in js/main.js, so drive it from the edge strips
+    $(function () {
+        $('.tl-slide-prev').on('click', function () { $('.tl-slider').trigger('prev.owl.carousel'); });
+        $('.tl-slide-next').on('click', function () { $('.tl-slider').trigger('next.owl.carousel'); });
+    });
+</script>
 @endsection

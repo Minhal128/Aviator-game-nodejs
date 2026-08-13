@@ -13,5 +13,7 @@ class VerifyCsrfToken extends Middleware
      */
     protected $except = [
         'game/server/tick',
+        // Glamour Spins posts from inside the C3 runtime, it has no CSRF token
+        'game/slot-api',
     ];
 }

@@ -22,147 +22,104 @@
                 </a>
                 <div class="btn-group">
                     <button type="button"
-                        class="btn btn-transparent dropdown-toggle p-0 d-flex align-items-center justify-content-center caret-none"
+                        class="btn btn-transparent dropdown-toggle p-0 d-flex align-items-center justify-content-center caret-none tl-burger"
                         data-bs-toggle="dropdown" aria-expanded="false">
                         <span class="material-symbols-outlined f-24 menu-icon text-white">
                             menu
                         </span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark profile-dropdown p-0">
-                        <li class="profile-head d-flex justify-content-between align-items-center">
-                            <div class="d-flex align-items-center">
-                                <img src="images/avtar/av-1.png" class="avtar-ico" id="avatar_img">
-                                <div>
-                                    <div class="profile-name mb-1">{{ user('email') }} </div>
-                                    <div class="profile-name" id="username">{{ user('id') }}</div>
-                                </div>
-
+                        <li class="profile-head">
+                            <img src="images/avtar/av-1.png" class="avtar-ico" id="avatar_img">
+                            <div class="tl-profile-meta">
+                                <div class="profile-name" title="{{ user('email') }}">{{ user('email') }}</div>
+                                <div class="tl-profile-id">ID <span id="username">{{ user('id') }}</span></div>
                             </div>
                         </li>
-
-
+                        <li class="tl-menu-wallet">
+                            <span class="tl-menu-wallet-label">Balance</span>
+                            <span class="tl-menu-wallet-amt">₹{{ wallet(user('id')) }}</span>
+                            <a href="/deposit" class="tl-menu-topup">Top up</a>
+                        </li>
+                        <li class="tl-menu-sec">Games</li>
                         <li>
-                            <a href="/crash" class="f-12 justify-content-between">
-                                <div class="d-flex align-items-center">
-                                    <span class="material-symbols-outlined ico f-20">
-                                        flight_takeoff
-                                    </span>
-                                    <img src="/images/logo.jpeg" class="side_logo" alt="Turbo Legends">
-                                </div>
+                            <a href="/crash" class="tl-mi">
+                                <span class="material-symbols-outlined ico">flight_takeoff</span>
+                                <span class="tl-mi-label">Aviator</span>
                             </a>
                         </li>
                         <li>
-                            <a href="/chicken-road/" class="f-12 justify-content-between">
-                                <div class="d-flex align-items-center">
-                                    <span class="material-symbols-outlined ico f-20">pets</span>
-                                    CHICKEN ROAD
-                                </div>
+                            <a href="/chicken-road/" class="tl-mi">
+                                <span class="material-symbols-outlined ico">pets</span>
+                                <span class="tl-mi-label">Chicken Road</span>
                             </a>
                         </li>
                         <li>
-                            <a href="/ludo/" class="f-12 justify-content-between">
-                                <div class="d-flex align-items-center">
-                                    <span class="material-symbols-outlined ico f-20">casino</span>
-                                    LUDO
-                                </div>
+                            <a href="/ludo/" class="tl-mi">
+                                <span class="material-symbols-outlined ico">casino</span>
+                                <span class="tl-mi-label">Ludo</span>
                             </a>
                         </li>
                         <li>
-                            <a href="/gold-egypt/" class="f-12 justify-content-between">
-                                <div class="d-flex align-items-center">
-                                    <span class="material-symbols-outlined ico f-20">diamond</span>
-                                    GOLD OF EGYPT
-                                </div>
+                            <a href="/gold-egypt/" class="tl-mi">
+                                <span class="material-symbols-outlined ico">diamond</span>
+                                <span class="tl-mi-label">Gold of Egypt</span>
                             </a>
                         </li>
                         <li>
-                            <a href="/slot-glamour/" class="f-12 justify-content-between">
-                                <div class="d-flex align-items-center">
-                                    <span class="material-symbols-outlined ico f-20">stars</span>
-                                    GLAMOUR SPINS
-                                </div>
+                            <a href="/slot-glamour/" class="tl-mi">
+                                <span class="material-symbols-outlined ico">stars</span>
+                                <span class="tl-mi-label">Glamour Spins</span>
                             </a>
                         </li>
-
+                        <li class="tl-menu-sec">Wallet</li>
                         <li>
-                            <a href="/deposit" class="f-12 justify-content-between">
-                                <div class="d-flex align-items-center">
-                                    <span class="material-symbols-outlined ico f-20">
-                                        payments
-                                    </span>DEPOSIT FUNDS
-                                </div>
+                            <a href="/deposit" class="tl-mi">
+                                <span class="material-symbols-outlined ico">account_balance_wallet</span>
+                                <span class="tl-mi-label">Deposit funds</span>
                             </a>
                         </li>
                         <li>
-                            <a href="/withdraw" class="f-12 justify-content-between">
-                                <div class="d-flex align-items-center">
-                                    <span class="material-symbols-outlined ico f-20">
-                                        payments
-                                    </span>WITHDRAW FUNDS FROM THE ACCOUNT
-                                </div>
+                            <a href="/withdraw" class="tl-mi">
+                                <span class="material-symbols-outlined ico">payments</span>
+                                <span class="tl-mi-label">Withdraw funds</span>
                             </a>
                         </li>
                         <li>
-                            <a href="/amount-transfer" class="f-12 justify-content-between">
-                                <div class="d-flex align-items-center">
-                                    <span class="material-symbols-outlined ico f-20">
-                                        payments
-                                    </span>AMOUNT TRANSFER
-                                </div>
+                            <a href="/amount-transfer" class="tl-mi">
+                                <span class="material-symbols-outlined ico">swap_horiz</span>
+                                <span class="tl-mi-label">Amount transfer</span>
                             </a>
                         </li>
                         <li>
-                            <a href="/profile" class="f-12 justify-content-between">
-                                <div class="d-flex align-items-center">
-                                    <span class="material-symbols-outlined ico f-20">
-                                        account_circle
-                                    </span>PERSONAL DETAILS
-                                </div>
+                            <a href="/deposit_withdrawals" class="tl-mi">
+                                <span class="material-symbols-outlined ico">receipt_long</span>
+                                <span class="tl-mi-label">Transaction history</span>
                             </a>
                         </li>
-                        {{-- <li>
-                            <a href="#" class="f-12 justify-content-between">
-                                <div class="d-flex align-items-center">
-                                    <span class="material-symbols-outlined ico f-20">
-                                        payments
-                                    </span>TRANSFER FUNDS
-                                </div>
-                            </a>
-                        </li> --}}
+                        <li class="tl-menu-sec">Account</li>
                         <li>
-                            <a href="/deposit_withdrawals" class="f-12 justify-content-between">
-                                <div class="d-flex align-items-center">
-                                    <span class="material-symbols-outlined ico f-20">
-                                        payments
-                                    </span>TRANSACTION HISTORY
-                                </div>
+                            <a href="/profile" class="tl-mi">
+                                <span class="material-symbols-outlined ico">account_circle</span>
+                                <span class="tl-mi-label">Personal details</span>
                             </a>
                         </li>
                         <li>
-                            <a href="/level-management" class="f-12 justify-content-between">
-                                <div class="d-flex align-items-center">
-                                    <span class="material-symbols-outlined ico f-20">
-                                        payments
-                                    </span>LEVEL MANAGEMENT
-                                </div>
+                            <a href="/level-management" class="tl-mi">
+                                <span class="material-symbols-outlined ico">military_tech</span>
+                                <span class="tl-mi-label">Level management</span>
                             </a>
                         </li>
                         <li>
-                            <a href="/referal" class="f-12 justify-content-between">
-                                <div class="d-flex align-items-center">
-                                    <span class="material-symbols-outlined ico f-20">
-                                        payments
-                                    </span>REFERRAL
-                                </div>
+                            <a href="/referal" class="tl-mi">
+                                <span class="material-symbols-outlined ico">group_add</span>
+                                <span class="tl-mi-label">Referral</span>
                             </a>
                         </li>
                         <li>
-                            <a href="/logout" class="f-12 justify-content-between">
-                                <div class="d-flex align-items-center">
-                                    <span class="material-symbols-outlined ico f-20">
-                                        payments
-                                    </span>SIGN OUT
-                                </div>
+                            <a href="/logout" class="tl-mi tl-mi-danger">
+                                <span class="material-symbols-outlined ico">logout</span>
+                                <span class="tl-mi-label">Sign out</span>
                             </a>
                         </li>
                     </ul>

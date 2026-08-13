@@ -1,0 +1,445 @@
+{
+ "generatedBy": "tools/gold-egypt-rtp.mjs --json",
+ "rtp": 0.6999,
+ "symbols": [
+  {
+   "name": "Wick",
+   "useWildSubstitute": true
+  },
+  {
+   "name": "Shen",
+   "useWildSubstitute": true
+  },
+  {
+   "name": "Eye",
+   "useWildSubstitute": true
+  },
+  {
+   "name": "10",
+   "useWildSubstitute": true
+  },
+  {
+   "name": "A",
+   "useWildSubstitute": true
+  },
+  {
+   "name": "Lotus",
+   "useWildSubstitute": true
+  },
+  {
+   "name": "Ankh",
+   "useWildSubstitute": true
+  },
+  {
+   "name": "J",
+   "useWildSubstitute": true
+  },
+  {
+   "name": "K",
+   "useWildSubstitute": true
+  },
+  {
+   "name": "Q",
+   "useWildSubstitute": true
+  },
+  {
+   "name": "Wild",
+   "useWildSubstitute": false
+  },
+  {
+   "name": "Scatter",
+   "useWildSubstitute": false
+  },
+  {
+   "name": "Jackpot",
+   "useWildSubstitute": false
+  }
+ ],
+ "wild": "Wild",
+ "useWild": true,
+ "useWildInFirstPosition": false,
+ "useLineBetMultiplier": true,
+ "lineBetMaxValue": 20,
+ "payLines": [
+  {
+   "line": [
+    "Wick",
+    "Wick",
+    "Wick",
+    "Wick",
+    "Wick"
+   ],
+   "pay": 7
+  },
+  {
+   "line": [
+    "Wick",
+    "Wick",
+    "Wick",
+    "Wick",
+    "any"
+   ],
+   "pay": 5
+  },
+  {
+   "line": [
+    "Wick",
+    "Wick",
+    "Wick",
+    "any",
+    "any"
+   ],
+   "pay": 2
+  },
+  {
+   "line": [
+    "Shen",
+    "Shen",
+    "Shen",
+    "Shen",
+    "Shen"
+   ],
+   "pay": 12
+  },
+  {
+   "line": [
+    "Shen",
+    "Shen",
+    "Shen",
+    "Shen",
+    "any"
+   ],
+   "pay": 7
+  },
+  {
+   "line": [
+    "Shen",
+    "Shen",
+    "Shen",
+    "any",
+    "any"
+   ],
+   "pay": 2
+  },
+  {
+   "line": [
+    "Eye",
+    "Eye",
+    "Eye",
+    "Eye",
+    "Eye"
+   ],
+   "pay": 14
+  },
+  {
+   "line": [
+    "Eye",
+    "Eye",
+    "Eye",
+    "Eye",
+    "any"
+   ],
+   "pay": 7
+  },
+  {
+   "line": [
+    "Eye",
+    "Eye",
+    "Eye",
+    "any",
+    "any"
+   ],
+   "pay": 5
+  },
+  {
+   "line": [
+    "Ankh",
+    "Ankh",
+    "Ankh",
+    "Ankh",
+    "Ankh"
+   ],
+   "pay": 17
+  },
+  {
+   "line": [
+    "Ankh",
+    "Ankh",
+    "Ankh",
+    "Ankh",
+    "any"
+   ],
+   "pay": 7
+  },
+  {
+   "line": [
+    "Ankh",
+    "Ankh",
+    "Ankh",
+    "any",
+    "any"
+   ],
+   "pay": 5
+  },
+  {
+   "line": [
+    "Lotus",
+    "Lotus",
+    "Lotus",
+    "Lotus",
+    "Lotus"
+   ],
+   "pay": 19
+  },
+  {
+   "line": [
+    "Lotus",
+    "Lotus",
+    "Lotus",
+    "Lotus",
+    "any"
+   ],
+   "pay": 7
+  },
+  {
+   "line": [
+    "Lotus",
+    "Lotus",
+    "Lotus",
+    "any",
+    "any"
+   ],
+   "pay": 5
+  },
+  {
+   "line": [
+    "J",
+    "J",
+    "J",
+    "J",
+    "J"
+   ],
+   "pay": 40
+  },
+  {
+   "line": [
+    "J",
+    "J",
+    "J",
+    "J",
+    "any"
+   ],
+   "pay": 31
+  },
+  {
+   "line": [
+    "J",
+    "J",
+    "J",
+    "any",
+    "any"
+   ],
+   "pay": 26
+  },
+  {
+   "line": [
+    "Q",
+    "Q",
+    "Q",
+    "Q",
+    "Q"
+   ],
+   "pay": 44
+  },
+  {
+   "line": [
+    "Q",
+    "Q",
+    "Q",
+    "Q",
+    "any"
+   ],
+   "pay": 31
+  },
+  {
+   "line": [
+    "Q",
+    "Q",
+    "Q",
+    "any",
+    "any"
+   ],
+   "pay": 26
+  },
+  {
+   "line": [
+    "K",
+    "K",
+    "K",
+    "K",
+    "K"
+   ],
+   "pay": 47
+  },
+  {
+   "line": [
+    "K",
+    "K",
+    "K",
+    "K",
+    "any"
+   ],
+   "pay": 34
+  },
+  {
+   "line": [
+    "K",
+    "K",
+    "K",
+    "any",
+    "any"
+   ],
+   "pay": 26
+  },
+  {
+   "line": [
+    "A",
+    "A",
+    "A",
+    "A",
+    "A"
+   ],
+   "pay": 59
+  },
+  {
+   "line": [
+    "A",
+    "A",
+    "A",
+    "A",
+    "any"
+   ],
+   "pay": 36
+  },
+  {
+   "line": [
+    "A",
+    "A",
+    "A",
+    "any",
+    "any"
+   ],
+   "pay": 26
+  }
+ ],
+ "reels": [
+  {
+   "symbolImages": [
+    "Eye",
+    "Ankh",
+    "J",
+    "Eye",
+    "Q",
+    "Wick",
+    "Lotus",
+    "K",
+    "A",
+    "Wick"
+   ],
+   "windowsCount": 3
+  },
+  {
+   "symbolImages": [
+    "Ankh",
+    "Wick",
+    "Wild",
+    "Eye",
+    "Q",
+    "Ankh",
+    "J",
+    "Wick",
+    "K",
+    "A",
+    "Lotus",
+    "Wick"
+   ],
+   "windowsCount": 3
+  },
+  {
+   "symbolImages": [
+    "Ankh",
+    "Wild",
+    "K",
+    "Eye",
+    "Q",
+    "Wick",
+    "Ankh",
+    "J",
+    "Wild",
+    "Scatter",
+    "A",
+    "Wild",
+    "Jackpot",
+    "Lotus",
+    "Jackpot"
+   ],
+   "windowsCount": 3
+  },
+  {
+   "symbolImages": [
+    "Eye",
+    "Ankh",
+    "Wild",
+    "J",
+    "Q",
+    "Ankh",
+    "Wild",
+    "K",
+    "A",
+    "Wild",
+    "Scatter",
+    "Wick",
+    "Scatter",
+    "Jackpot",
+    "Lotus",
+    "Jackpot"
+   ],
+   "windowsCount": 3
+  },
+  {
+   "symbolImages": [
+    "Wick",
+    "Wild",
+    "Ankh",
+    "Eye",
+    "Ankh",
+    "J",
+    "Wild",
+    "Q",
+    "A",
+    "Wild",
+    "Scatter",
+    "K",
+    "Scatter",
+    "Jackpot",
+    "Lotus",
+    "Jackpot"
+   ],
+   "windowsCount": 3
+  }
+ ],
+ "scatter": "Scatter",
+ "scatterPayTable": [
+  {
+   "scattersCount": 5,
+   "pay": 0,
+   "freeSpins": 5
+  }
+ ],
+ "jackpot": {
+  "symbolName": "Jackpot",
+  "symbolsCount": 6,
+  "defaultAmount": 1000,
+  "increaseValue": 0
+ }
+}

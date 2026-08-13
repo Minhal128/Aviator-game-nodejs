@@ -44,7 +44,10 @@ let animationFrameId = null;
 
 // --- ECONOMY & SEED STATE ---
 let currentBetAmount = 3;
-let currentWalletBalance = 100.00;
+// the real balance is injected by Pages::gameStatic(); standalone opens stay on demo coins
+const wallet = window.TL_WALLET || null;
+const CURRENCY = wallet ? wallet.currency : '$';
+let currentWalletBalance = wallet ? wallet.balance : 100.00;
 const MIN_BET = 1;
 const MAX_BET = 50;
 
@@ -66,10 +69,40 @@ let activeCharacterImg = spriteImages.idle;
 let activeFramesSource = idleFrames;
 
 // --- HELPERS ---
+function showBalance() {
+    walletBalanceText.innerText = `${CURRENCY}${currentWalletBalance.toFixed(2)}`;
+}
+
+/**
+ * The server owns the money and the crash lane (RoadGame.php). Without
+ * TL_WALLET the game is a standalone demo and keeps its old local behaviour.
+ */
+async function serverCall(action, body) {
+    if (!wallet) return null;
+    const res = await fetch(`/game/road/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': wallet.token, 'Accept': 'application/json' },
+        body: JSON.stringify(body || {})
+    });
+    const json = await res.json();
+    if (json.data && typeof json.data.balance === 'number') {
+        currentWalletBalance = json.data.balance;
+        showBalance();
+    }
+    return json;
+}
+
+function flashPlayButton(text) {
+    const old = playActionButton.innerText;
+    playActionButton.innerText = text;
+    setTimeout(() => { playActionButton.innerText = old; }, 1200);
+}
+
 function getMultiplierVal(absoluteLaneIdx) {
     return calculateMultiplierForIndex(absoluteLaneIdx, difficultyDropdown.value);
 }
 
+// demo mode only: on the real wallet the crash lane comes from /game/road/step
 function checkIsCrashLane(domLaneIdx, targetAbsIdx) {
     if (safeLaneMap[domLaneIdx] !== undefined) return !safeLaneMap[domLaneIdx];
     
@@ -96,8 +129,12 @@ window.toggleSidebarMenu = function(openState) {
 
 window.refillWalletBalance = function() {
     playSound(sndButton);
+    if (wallet) {
+        flashPlayButton('Deposit on site');   // minting coins into a real wallet is not a thing
+        return;
+    }
     currentWalletBalance += 100.00;
-    walletBalanceText.innerText = `$${currentWalletBalance.toFixed(2)}`;
+    showBalance();
 };
 
 window.setMinBet = function() {
@@ -135,21 +172,27 @@ window.handleDifficultyChange = function() {
     }
 };
 
-window.triggerBetMatchStart = function() {
+window.triggerBetMatchStart = async function() {
     if (isGameSessionActive) return;
     playSound(sndButton);
 
     if (sndBgm.volume > 0 && sndBgm.paused) sndBgm.play().catch(e => {});
     
     if (currentWalletBalance < currentBetAmount) {
-        const oldVal = playActionButton.innerText;
-        playActionButton.innerText = "Insufficient Funds";
-        setTimeout(() => playActionButton.innerText = oldVal, 1200);
+        flashPlayButton("Insufficient Funds");
         return;
     }
 
-    currentWalletBalance -= currentBetAmount;
-    walletBalanceText.innerText = `$${currentWalletBalance.toFixed(2)}`;
+    if (wallet) {
+        const res = await serverCall('bet', { bet: currentBetAmount, mode: difficultyDropdown.value });
+        if (!res || !res.isSuccess) {
+            flashPlayButton(res && res.message ? res.message : 'Bet failed');
+            return;
+        }
+    } else {
+        currentWalletBalance -= currentBetAmount;
+        showBalance();
+    }
     
     gameNonce++;
     initPRNG(serverSeed, clientSeed, gameNonce);
@@ -168,7 +211,7 @@ window.triggerBetMatchStart = function() {
     resetGameEnvironment();
 };
 
-window.cashoutGame = function() {
+window.cashoutGame = async function() {
     if (!isGameSessionActive || isGameOver || isVisualCrashHappening || isJumping) return;
     isGameOver = true; 
     playSound(sndCashout);
@@ -181,11 +224,14 @@ window.cashoutGame = function() {
     goActionButton.style.cursor = "not-allowed";
 
     let multStr = getMultiplierVal(absoluteLaneIndex);
-    let numMult = parseFloat(multStr);
-    let winAmount = currentBetAmount * numMult;
 
-    currentWalletBalance += winAmount;
-    walletBalanceText.innerText = `$${currentWalletBalance.toFixed(2)}`;
+    if (wallet) {
+        const res = await serverCall('cashout', {});
+        if (res && res.isSuccess) multStr = `${res.data.multiplier.toFixed(2)}x`;
+    } else {
+        currentWalletBalance += currentBetAmount * parseFloat(multStr);
+        showBalance();
+    }
 
     toastMultiplierText.innerText = multStr;
     winToastNotification.classList.add('show');
@@ -194,7 +240,7 @@ window.cashoutGame = function() {
     setTimeout(() => { resetGameToDashboard(); }, 1200);
 };
 
-window.performJump = function() {
+window.performJump = async function() {
     if (!isGameSessionActive || isGameOver || isVisualCrashHappening || isJumping) return;
     isJumping = true;
     playSound(sndGo);
@@ -215,7 +261,8 @@ window.performJump = function() {
     currentLaneIndex++;
     absoluteLaneIndex++;
 
-    const isTrapLane = checkIsCrashLane(currentLaneIndex, absoluteLaneIndex);
+    // fire the step now, read it when the hop lands: the round trip hides behind the animation
+    const stepPromise = wallet ? serverCall('step', {}) : null;
     const targetBallLeft = (currentLaneIndex * LANE_WIDTH) - 9;
     playerRig.style.left = `${targetBallLeft}px`;
 
@@ -227,8 +274,19 @@ window.performJump = function() {
     playerRig.classList.add('jumping');
     setTimeout(() => { playerRig.classList.remove('jumping'); }, 150);
 
-    setTimeout(() => {
+    setTimeout(async () => {
         if (isGameOver) return;
+
+        let isTrapLane;
+        if (stepPromise) {
+            const res = await stepPromise;
+            if (!res || !res.isSuccess) { isJumping = false; return; }
+            isTrapLane = res.data.crashed;
+            safeLaneMap[currentLaneIndex] = !isTrapLane;
+        } else {
+            isTrapLane = checkIsCrashLane(currentLaneIndex, absoluteLaneIndex);
+        }
+
         const gridElements = roadContainer.children;
         badgeText.innerText = getMultiplierVal(absoluteLaneIndex);
 
@@ -398,7 +456,9 @@ function generateLaneTraffic(laneElement, domLaneIdx, targetAbsIdx) {
     manholeNode.innerText = getMultiplierVal(targetAbsIdx);
     laneElement.appendChild(manholeNode);
 
-    const isSafeLane = !checkIsCrashLane(domLaneIdx, targetAbsIdx);
+    // on the real wallet the lane's fate is not known yet, so traffic is cosmetic.
+    // in demo mode it still previews the lane, the way the standalone game did.
+    const isSafeLane = wallet ? getRNG() < 0.5 : !checkIsCrashLane(domLaneIdx, targetAbsIdx);
     const direction = getRNG() < 0.5 ? 'incoming' : 'outgoing';
     laneDirectionMap[domLaneIdx] = direction;
 
@@ -594,6 +654,7 @@ function resetGameToDashboard() {
 }
 
 // --- INITIALIZATION ---
+showBalance();   // the markup ships a hardcoded $100.00 placeholder
 initPRNG(serverSeed, clientSeed, gameNonce);
 buildInitialHighwayLayout();
 requestAnimationFrame(updateGameLoop);

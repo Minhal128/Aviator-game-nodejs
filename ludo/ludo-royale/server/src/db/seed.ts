@@ -169,7 +169,9 @@ const TIERS = [
   ...t,
   mode: 'classic' as const,
   // §7.2 example: winner-heavy split, 2nd place paid in 3P/4P.
-  prizeTable: { '2': [1.8, 0], '3': [2.4, 0.6, 0], '4': [2.8, 1.2, 0, 0] },
+  // House keeps 30% of the pot (same rule as Aviator PoolCrashEngine::HOUSE_PCT):
+  // the multipliers of each row sum to 0.70 x playerCount.
+  prizeTable: { '2': [1.4, 0], '3': [1.68, 0.42, 0], '4': [1.96, 0.84, 0, 0] },
   isActive: true,
 }));
 

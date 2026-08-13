@@ -26,18 +26,20 @@
                  <i class="mdi mdi-account-multiple menu-icon"></i>
              </a>
          </li>
+         <li class="nav-section">Money</li>
          <li class="nav-item">
              <a class="nav-link" href="recharge-history">
                  <span class="menu-title">Recharges</span>
-                 <i class="mdi mdi-cash-plus menu-icon"></i>
+                 <i class="mdi mdi-cash-multiple menu-icon"></i>
              </a>
          </li>
          <li class="nav-item">
              <a class="nav-link" href="withdrawal-history">
                  <span class="menu-title">Withdrawals</span>
-                 <i class="mdi mdi-cash-minus menu-icon"></i>
+                 <i class="mdi mdi-cash-refund menu-icon"></i>
              </a>
          </li>
+         <li class="nav-section">Settings</li>
          <li class="nav-item">
              <a class="nav-link" href="amount-setup">
                  <span class="menu-title">Limits &amp; setup</span>

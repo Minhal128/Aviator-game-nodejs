@@ -36,7 +36,7 @@ describeDb('MatchService (§6.2/§7.3)', () => {
     return header.insertId;
   }
 
-  /** Seeded Beginner tier: fee 500, prize_table 2P [1.8, 0]. */
+  /** Seeded Beginner tier: fee 500, prize_table 2P [1.4, 0] (30% house). */
   async function beginnerTierId(): Promise<number> {
     const rows = await suite.db()
       .select({ id: lrRoomTiers.id })
@@ -149,14 +149,14 @@ describeDb('MatchService (§6.2/§7.3)', () => {
       seedHash: 'a'.repeat(64),
     });
 
-    // Reward lines: winner nets 1.8×500 − 500 = +400; loser −500.
+    // Reward lines: winner nets 1.4×500 − 500 = +200; loser −500.
     expect(lines).toEqual([
-      { seat: 0, coinsDelta: 400, xpEarned: 100 },
+      { seat: 0, coinsDelta: 200, xpEarned: 100 },
       { seat: 1, coinsDelta: -500, xpEarned: 60 },
     ]);
 
-    // Wallets: winner 4500 + 900 prize + 200 level-2 reward (100 XP levels up).
-    expect((await services.wallet.getBalances(winner)).coins).toBe(5600);
+    // Wallets: winner 4500 + 700 prize + 200 level-2 reward (100 XP levels up).
+    expect((await services.wallet.getBalances(winner)).coins).toBe(5400);
     expect((await services.wallet.getBalances(loser)).coins).toBe(4500);
 
     // Match row closed with winner + audit fields.
@@ -176,7 +176,7 @@ describeDb('MatchService (§6.2/§7.3)', () => {
     expect(p0.place).toBe(1);
     expect(p0.captures).toBe(3);
     expect(p0.sixes).toBe(5);
-    expect(p0.coinsDelta).toBe(400);
+    expect(p0.coinsDelta).toBe(200);
     expect(p0.xpEarned).toBe(100);
 
     // Profile stats + streaks.

@@ -39,6 +39,8 @@ body {
     var(--tl-ink) !important;
   color: var(--tl-text);
   font-family: var(--tl-font);
+  /* the user list scrolls sideways and the native bar was drawing white */
+  color-scheme: dark;
 }
 
 .container-scroller,
@@ -561,4 +563,286 @@ select.form-control {
   .card .card-body { padding: 1rem; }
   .page-title { font-size: 1.1rem; }
   .stretch-card .card h2 { font-size: 1.5rem; }
+}
+
+/* ===================================================================
+   Same-theme pass: the admin used its own near-miss palette (#e11d2e vs the
+   site's #e50539, mint green vs the site's #14c46a). Nothing structural below,
+   it re-points the tokens at css/tl-ui.css values and finishes the sidebar,
+   the brand lockup and the tables.
+   =================================================================== */
+:root {
+  --tl-ink: #070b14;
+  --tl-void: #0e1626;
+  --tl-panel: #131c2e;
+  --tl-panel-2: #1a2540;
+  --tl-border: rgba(255, 255, 255, .09);
+  --tl-text: #e9eefb;
+  --tl-muted: #8ea3c6;
+  --tl-crimson: #e50539;
+  --tl-crimson-deep: #9a0426;
+  --tl-amber: #ffb020;
+  --tl-signal: #14c46a;
+  --tl-red-bright: #ff2d55;
+  --tl-silver: #c8cddb;
+}
+
+/* --- brand lockup, shared with the player header --- */
+.navbar .navbar-brand-wrapper .navbar-brand {
+  display: flex;
+  align-items: center;
+}
+
+.tl-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  line-height: 1;
+  text-decoration: none !important;
+}
+
+.tl-brand-mark {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.tl-brand-text {
+  display: flex;
+  flex-direction: column;
+  letter-spacing: .06em;
+}
+
+.tl-brand-text b {
+  font-family: var(--tl-display);
+  font-size: .95rem;
+  font-weight: 800;
+  color: var(--tl-crimson);
+  letter-spacing: .14em;
+}
+
+.tl-brand-text span {
+  margin-top: 2px;
+  font-size: .62rem;
+  font-weight: 600;
+  color: var(--tl-silver);
+  letter-spacing: .28em;
+}
+
+/* --- sidebar: the vendor sheet pushed each glyph to the far right with
+       margin-left:auto, which left the labels floating alone. Icon first, in a
+       chip, so it reads like the player-side account menu. --- */
+.sidebar .nav {
+  padding: .5rem 0 1.5rem;
+}
+
+.sidebar .nav .nav-item {
+  padding: 0 .75rem;
+}
+
+.sidebar .nav .nav-item .nav-link {
+  padding: .6rem .7rem;
+  gap: .75rem;
+  margin: .1rem 0;
+}
+
+.sidebar .nav .nav-item .nav-link i.menu-icon {
+  order: -1;
+  margin: 0 !important;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .06);
+  color: var(--tl-muted) !important;
+  font-size: 1.05rem;
+  transition: background .15s, color .15s;
+}
+
+.sidebar .nav .nav-item .nav-link .menu-title {
+  font-size: .875rem;
+  font-weight: 500;
+}
+
+.sidebar .nav .nav-item.active > .nav-link i.menu-icon,
+.sidebar .nav .nav-item:hover > .nav-link i.menu-icon {
+  background: rgba(229, 5, 57, .22);
+  color: var(--tl-red-bright) !important;
+}
+
+/* the active page also gets a rail, so it is findable without reading */
+.sidebar .nav .nav-item.active > .nav-link {
+  position: relative;
+}
+
+.sidebar .nav .nav-item.active > .nav-link::before {
+  content: "";
+  position: absolute;
+  left: -.75rem;
+  top: 20%;
+  bottom: 20%;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--tl-crimson);
+}
+
+.sidebar .nav .nav-section {
+  padding: 1.1rem 1.45rem .35rem;
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--tl-muted);
+}
+
+.sidebar .nav .nav-item.nav-profile .nav-profile-image img {
+  border: 2px solid rgba(255, 255, 255, .2);
+}
+
+/* --- stat cards: lift on hover so the grid feels alive --- */
+.tl-stat {
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+
+.tl-stat:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, .18) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .45);
+}
+
+/* --- tables: zebra + row hover, long lists are the main admin screen --- */
+.table tbody tr:nth-child(odd) > * {
+  background: rgba(255, 255, 255, .018);
+}
+
+.table tbody tr:hover > * {
+  background: rgba(229, 5, 57, .08);
+}
+
+.table td {
+  vertical-align: middle;
+}
+
+/* status words carry colour instead of being grey like everything else */
+.badge-success,
+.badge-gradient-success {
+  background: rgba(20, 196, 106, .16) !important;
+  color: var(--tl-signal) !important;
+}
+
+.badge-danger,
+.badge-gradient-danger {
+  background: rgba(229, 5, 57, .16) !important;
+  color: var(--tl-red-bright) !important;
+}
+
+.badge-warning,
+.badge-gradient-warning {
+  background: rgba(255, 176, 32, .16) !important;
+  color: var(--tl-amber) !important;
+}
+
+/* --- footer: the vendor credit was a gold underlined link, louder than the
+       page title --- */
+.footer a {
+  color: var(--tl-muted);
+  text-decoration: none;
+}
+
+.footer a:hover {
+  color: var(--tl-text);
+}
+
+/* --- pagination / dataTables chrome the vendor left light --- */
+.page-link,
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  background: var(--tl-panel) !important;
+  border-color: var(--tl-border) !important;
+  color: var(--tl-muted) !important;
+}
+
+.page-item.active .page-link,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+  background: var(--tl-crimson) !important;
+  border-color: var(--tl-crimson) !important;
+  color: #fff !important;
+}
+
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter {
+  color: var(--tl-muted) !important;
+}
+
+/* btn-block is a Bootstrap 4 class and this bundle is Bootstrap 5, so the login
+   submit was narrower than the two inputs above it */
+.auth-form-btn {
+  width: 100%;
+}
+
+/* the logo art ships on a black plate; round it so it sits in the panel */
+.auth .brand-logo img {
+  border-radius: 12px;
+}
+
+/* something in the vendor bundle puts webkit into legacy-scrollbar mode, so the
+   sideways-scrolling tables drew a white Windows bar. Style it rather than fight
+   over which sheet did it. */
+.table-responsive::-webkit-scrollbar,
+.sidebar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track,
+.sidebar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, .35);
+}
+
+.table-responsive::-webkit-scrollbar-thumb,
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, .16);
+  border-radius: 999px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover,
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, .28);
+}
+
+.table-responsive::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* approve / cancel on the money screens used the vendor's mint and pink; these
+   two buttons move real balances, so they get the theme's own green and red */
+.btn-success {
+  background: linear-gradient(135deg, #17d477, var(--tl-signal)) !important;
+  border-color: var(--tl-signal) !important;
+  color: #04240f !important;
+  font-weight: 700;
+  border-radius: 8px !important;
+}
+
+.btn-danger {
+  background: var(--tl-grad-primary) !important;
+  border-color: var(--tl-crimson) !important;
+  color: #fff !important;
+  font-weight: 700;
+  border-radius: 8px !important;
+}
+
+.btn-success:hover,
+.btn-danger:hover {
+  filter: brightness(1.08);
+}
+
+/* the status pill is a <button>, so it inherits button padding; keep it flat */
+.btn-warning {
+  background: rgba(255, 176, 32, .16) !important;
+  border-color: rgba(255, 176, 32, .45) !important;
+  color: var(--tl-amber) !important;
+  border-radius: 8px !important;
 }
