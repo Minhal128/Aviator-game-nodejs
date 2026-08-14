@@ -15,7 +15,9 @@
 //     not the scatter or jackpot pays; at one line the jackpot alone is worth
 //     about a quarter of turnover.
 //   * TOTAL BET / YOUR WIN / BALANCE boxes show ₹ (coins/100). Tap TOTAL BET to type
-//     a stake; +/- steps ~₹10. lineBet = round(₹ × 100 / 243).
+//     a stake; +/- steps ₹100. lineBet = round(₹ × 100 / 243).
+//   * the bet buttons bind their handler at scene-create time, so overriding the
+//     SlotControls prototype is too late - their clickEvent is replaced instead.
 //
 // ponytail: no round table. A refresh mid free-spin keeps the server's count (it
 // lives in the session) but loses the on-screen counter. Add a table if free-spin
@@ -158,23 +160,55 @@
         setTimeout(() => TL.message(''), 1200);
     }
 
-    function stepLineBet(dir) {
-        setStakeInr(TL.stakeInr + dir * 10);
+    function stepStake(dir) {
+        setStakeInr(TL.stakeInr + dir * 100);
+        const s = scene();
+        if (s && s.soundController) s.soundController.playClip('button_click');
     }
 
+    /** WebView wrappers often swallow window.prompt → own overlay. */
     function editTotalBet() {
-        const cur = inrText(TL.stakeInr);
-        const raw = window.prompt(
-            'TOTAL BET (₹) — min ' + minInr() + ', max ' + maxInr().toFixed(2) + ' (wallet)',
-            cur,
-        );
-        if (raw === null) return;
-        setStakeInr(raw);
+        if (document.getElementById('tl-gold-stake')) return;
+        const btn = 'flex:1;padding:10px;border:0;border-radius:8px;font:600 14px Roboto,system-ui,sans-serif';
+        const wrap = document.createElement('div');
+        wrap.id = 'tl-gold-stake';
+        wrap.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;'
+            + 'justify-content:center;background:rgba(0,0,0,.65)';
+        wrap.innerHTML = '<div style="background:#1c1b24;color:#fff;padding:18px;border-radius:14px;width:250px;'
+            + 'text-align:center;font:600 14px Roboto,system-ui,sans-serif">'
+            + '<div style="margin-bottom:10px">TOTAL BET (₹)</div>'
+            + '<input type="number" inputmode="decimal" step="100" style="width:100%;box-sizing:border-box;'
+            + 'padding:10px;border:0;border-radius:8px;font-size:20px;text-align:center">'
+            + '<div style="margin:8px 0 12px;opacity:.65;font-size:12px">min ' + minInr()
+            + ' · max ' + inrText(maxInr()) + '</div>'
+            + '<div style="display:flex;gap:8px">'
+            + '<button data-no style="' + btn + ';background:#3a3946;color:#fff">CANCEL</button>'
+            + '<button data-ok style="' + btn + ';background:#e50539;color:#fff">OK</button>'
+            + '</div></div>';
+        document.body.appendChild(wrap);
+
+        const input = wrap.querySelector('input');
+        input.value = inrText(TL.stakeInr);
+        input.focus();
+        input.select();
+        const close = () => wrap.remove();
+        const apply = () => { setStakeInr(input.value); close(); };
+        wrap.querySelector('[data-ok]').onclick = apply;
+        wrap.querySelector('[data-no]').onclick = close;
+        wrap.onclick = (e) => { if (e.target === wrap) close(); };
+        input.onkeydown = (e) => { if (e.key === 'Enter') apply(); };
+    }
+
+    /** Buttons captured their handler at create time → replace on the instance. */
+    function rebindClick(button, handler) {
+        if (!button) return;
+        button.clickEvent.events = [];
+        button.addClickEvent(handler, null);
     }
 
     function takeOverMoney() {
         const s = scene();
-        if (!s || !s.slotControls) return false;
+        if (!s || !s.slotControls || !s.slotControls.totalBetPlusButton) return false;
         const player = Object.getPrototypeOf(s.slotPlayer);
         const controls = Object.getPrototypeOf(s.slotControls);
         if (player.__tlOwned) return true;
@@ -188,19 +222,13 @@
             return origLines.call(this, this.linesController ? this.linesController.lines.length : count, burn);
         };
 
-        controls.lineBetPlus_Click = function () {
-            stepLineBet(1);
-            this.scene.soundController.playClip('button_click');
-        };
-        controls.lineBetMinus_Click = function () {
-            stepLineBet(-1);
-            this.scene.soundController.playClip('button_click');
-        };
-        controls.maxBet_Click = function () {
-            this.linesController.selectAllLines(true);
+        rebindClick(s.slotControls.totalBetPlusButton, () => stepStake(1));
+        rebindClick(s.slotControls.totalBetMinusButton, () => stepStake(-1));
+        rebindClick(s.slotControls.slotMaxBetButton, () => {
+            s.slotControls.linesController.selectAllLines(true);
             setStakeInr(maxInr());
-            this.scene.soundController.playClip('button_click');
-        };
+            if (s.soundController) s.soundController.playClip('button_click');
+        });
 
         // Idle money check must use exact stake, not 243×lineBet
         s.slotControls.getTotalBet = function () {
@@ -252,12 +280,13 @@
             paintBet(this);
         };
 
-        // Tap TOTAL BET value (or label) → type stake
-        [betSum, s.slotControls.totalBetText].forEach((txt) => {
-            if (!txt || txt.__tlEdit) return;
-            txt.__tlEdit = true;
-            txt.setInteractive(new Phaser.Geom.Rectangle(-90, -28, 180, 56), Phaser.Geom.Rectangle.Contains);
-            txt.on('pointerdown', editTotalBet);
+        // Tap TOTAL BET value (or label) → type stake. ponytail: text only — the
+        // panel sprite sits under the +/- buttons and would swallow their clicks.
+        [betSum, s.slotControls.totalBetText].forEach((o) => {
+            if (!o || o.__tlEdit) return;
+            o.__tlEdit = true;
+            o.setInteractive({ useHandCursor: true });
+            o.on('pointerdown', editTotalBet);
         });
 
         paintBet(s.slotControls);
