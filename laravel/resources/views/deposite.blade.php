@@ -1,13 +1,14 @@
 @extends('Layout.usergame')
 @section('content')
-    <div class="deposite-container">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-6">
-                    <div class="pay-tabs">
-                        <a href="#" class="custom-tabs-link active">DEPOSIT</a>
-                        <a href="/withdraw" class="custom-tabs-link">WITHDRAW</a>
-                    </div>
+    <div class="deposite-container tl-wallet">
+        <div class="tl-wallet-head">
+            <h1>Cashier</h1>
+            <div class="tl-wallet-bal">Wallet balance <b>{{wallet(user('id'))}}</b></div>
+        </div>
+        <div class="pay-tabs">
+            <a href="#" class="custom-tabs-link active">DEPOSIT</a>
+            <a href="/withdraw" class="custom-tabs-link">WITHDRAW</a>
+        </div>
 
                     <input type="hidden" name="username" id="username" value="">
                     <input type="hidden" name="password" id="password" value="">
@@ -17,14 +18,14 @@
                             <div class="grid-view">
                                 <div class="grid-list" onclick="paymentGatewayDetails('6')">
                                     <button class="btn payment-btn" data-tab="netbanking">
-                                        <img src="images/app-logo/interkassa_net_banking.svg" />
-                                        <div class="PaymentCard_limit">Min {{setting('min_recharge')}}</div>
+                                        <img src="images/app-logo/netbankinglogo.png" alt="Net Banking" />
+                                        <div class="PaymentCard_limit">Net Banking &middot; Min {{setting('min_recharge')}}</div>
                                     </button>
                                 </div>
                                 <div class="grid-list" onclick="paymentGatewayDetails('3')">
                                     <button class="btn payment-btn" data-tab="upi">
-                                        <img src="images/app-logo/upiMt.svg" />
-                                        <div class="PaymentCard_limit">Min {{setting('min_recharge')}}</div>
+                                        <img src="images/app-logo/upiMt.svg" alt="UPI" />
+                                        <div class="PaymentCard_limit">UPI &middot; Min {{setting('min_recharge')}}</div>
                                     </button>
                                 </div>
                             </div>
@@ -147,7 +148,8 @@
                             BACK
                         </div>
                         <div class="white-box mt-3 text-center">
-                            <img src="images/barcode.png" class="barcode-img" id="barcode"/>
+                            <div id="payment_rails_list"></div>
+                            <img src="" class="barcode-img d-none" id="barcode" alt=""/>
                             <a href="#" class="d-block link-text">How to make deposit?</a>
                             <p class="text-dark">To confirm the deposit, make a transfer to the banking details:</p>
                             <div id="account_number_tag">
@@ -203,17 +205,19 @@
                             <h5 class="text-muted f-14 fw-bold">TO BE CREDITED</h5>
                             <div class="d-flex align-items-center justify-content-between">
                                 <div class="dopsite-vlue fw-bold f-20">
-                                    <div>₹ <span id="select_amount"></span></div>
+                                    <div id="select_amount_view">₹ <span id="select_amount"></span></div>
+                                    <input type="number" id="select_amount_edit" class="form-control d-none" min="1" step="1" inputmode="numeric" style="max-width:9rem;font-weight:700;">
                                 </div>
-                                <button class="btn btn-transparent p-0">
+                                <button type="button" class="btn btn-transparent p-0" id="edit_credited_amount" title="Edit amount" aria-label="Edit amount">
                                     <span class="material-symbols-outlined bold-icon">
                                         edit
                                     </span>
                                 </button>
                             </div>
+                            <label id="select_amount_edit-error" class="error" style="display:none;"></label>
                         </div>
                         <div class="white-box mt-3">
-                            <form action="/depositNow" method="post" id="deposit_form">
+                            <form action="/depositNow" method="post" id="deposit_form" enctype="multipart/form-data">
                                 @csrf
                                 <input type="hidden" name="amount" id="deposit_amount" value="300">
                                 <input type="hidden" name="payment_gateway_type" id="payment_gateway_type">
@@ -270,7 +274,7 @@
                                             </label>
                                         </div>
                                     </div>
-                                    <label id="email-error" class="error" for="email"></label>
+                                    <label id="trn-error" class="error" for="trn"></label>
                                 </div>
                                 <div class="mb-3 row" id="cwallet_div">
                                     <label for="staticEmail" class="col-sm-4 col-5 col-form-label text-muted fw-bold"
@@ -366,9 +370,18 @@
                                     </div>
                                     <label id="upi_id-error" class="error" for="upi_id"></label>
                                 </div>
+                                <div class="mb-3 row" id="proof_div">
+                                    <label for="proof" class="col-sm-4 col-5 col-form-label text-muted fw-bold">Payment screenshot</label>
+                                    <div class="col-sm-8 col-7">
+                                        <input type="file" class="form-control tl-proof-input" id="proof" name="proof"
+                                            accept="image/png,image/jpeg,image/webp" required>
+                                        <div class="tl-proof-hint">JPG, PNG or WEBP, up to 5&nbsp;MB. An admin checks this before your balance moves.</div>
+                                    </div>
+                                    <label id="proof-error" class="error" for="proof"></label>
+                                </div>
                                 <button
                                     class="register-btn rounded-pill d-flex align-items-center w-100 mt-3 orange-shadow">
-                                    DEPOSIT
+                                    SUBMIT DEPOSIT REQUEST
                                 </button>
                             </form>
 
@@ -376,19 +389,25 @@
                         <!-- <div class="blues-box mt-3 text-center mb-4">
                         <iframe src='https://player.vimeo.com/video/740300187?h=7da6a3e555' height="300" width="440" frameborder='0' webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
                     </div> -->
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
-    
+
 @endsection
 @section('js')
     <script src="{{ url('user/deposit.js') }}"></script>
     @isset($_GET['msg'])
-    @if ($_GET['msg'] == 'Success')
+    @php
+        $notice = [
+            'Success' => ['success', 'Request sent. Your balance updates once an admin approves it.'],
+            'proof'   => ['error', 'Attach a screenshot of the payment (JPG, PNG or WEBP).'],
+            'big'     => ['error', 'That screenshot is over 5 MB.'],
+            'min'     => ['error', 'Minimum deposit is ' . setting('min_recharge') . '.'],
+            'error'   => ['error', 'Something went wrong, please try again.'],
+        ][$_GET['msg']] ?? null;
+    @endphp
+    @if ($notice)
         <script>
-            toastr.success("Request send successfully!")
+            toastr.{{ $notice[0] }}({{ Illuminate\Support\Js::from($notice[1]) }});
         </script>
     @endif
     @endisset

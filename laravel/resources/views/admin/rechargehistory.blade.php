@@ -1,4 +1,4 @@
-@extends('Layout.admindashboard')
+@extends('Layout.tower')
 @section('css')
 @endsection
 @section('content')
@@ -7,14 +7,14 @@
             <h3 class="page-title">
                 <span class="page-title-icon bg-gradient-primary text-white me-2">
                     <i class="mdi mdi-home"></i>
-                </span> Recharge History
+                </span> Deposits
             </h3>
         </div>
         <div class="row">
             <div class="col-lg-12 grid-margin stretch-card">
                 <div class="card">
                     <div class="card-body">
-                        <h4 class="card-title">Recharge List</h4>
+                        <h4 class="card-title">Deposit requests</h4>
                         <div class="table-responsive">
                         <table class="table table-bordered">
                             <thead>
@@ -24,6 +24,7 @@
                                     <th>Name</th>
                                     <th>Transaction No.</th>
                                     <th>Amount</th>
+                                    <th>Proof</th>
                                     <th>Status</th>
                                     <th>Created</th>
                                     <th>Action</th>
@@ -38,6 +39,17 @@
                                             <td>{{ appvalidate(userdetail($history->userid, 'name')) }}</td>
                                             <td>{{ appvalidate($history->transactionno) }}</td>
                                             <td>₹{{ appvalidate(number_format($history->amount, 2)) }}</td>
+                                            <td>
+                                                @if ($history->proof)
+                                                    <button type="button" class="btn btn-sm btn-outline-light tl-view-btn"
+                                                        data-img="{{ url('admin/proof/' . $history->id) }}"
+                                                        data-title="Deposit {{ $history->id }} &middot; {{ appvalidate(userdetail($history->userid, 'name')) }} &middot; &#8377;{{ number_format($history->amount, 2) }}">
+                                                        <i class="mdi mdi-image-search-outline"></i> View
+                                                    </button>
+                                                @else
+                                                    <span class="text-muted">none</span>
+                                                @endif
+                                            </td>
                                             <td><label
                                                     class="badge badge-{{ status($history->status, 'recharge')['color'] }}">{{ status($history->status, 'recharge')['name'] }}</label>
                                             </td>
@@ -57,7 +69,7 @@
                                     @endforeach
                                 @else
                                     <tr>
-                                        <td colspan="13" class="text-center"> No Withdrawal history found!!</td>
+                                        <td colspan="13" class="text-center"> No deposit requests yet.</td>
                                     </tr>
                                 @endif
                             </tbody>
@@ -69,6 +81,7 @@
         </div>
     </div>
     <!-- content-wrapper ends -->
+@include('include.admin.viewer')
 @endsection
 
 @section('js')
@@ -79,7 +92,7 @@
             form.append('userid', userid);
             form.append('amount', amount);
             form.append('_token', '{{ csrf_token() }}');
-            apex("POST", "{{ url('admin/api/recharge/success') }}", form, '', "/admin/recharge-history", "#");
+            apex("POST", "{{ url('admin/api/recharge/success') }}", form, '', "/admin/deposits", "#");
         }
 
         function rechargecancel(userid,id,amount,thisc) {
@@ -88,7 +101,7 @@
             form.append('userid', userid);
             form.append('amount', amount);
             form.append('_token', '{{ csrf_token() }}');
-            apex("POST", "{{ url('admin/api/recharge/cancel') }}", form, '', "/admin/recharge-history", "#");
+            apex("POST", "{{ url('admin/api/recharge/cancel') }}", form, '', "/admin/deposits", "#");
         }
     </script>
 @endsection

@@ -198,6 +198,10 @@ function deposit(id) {
        
     }
 
+    // payment_rails_list already shows every rail; hide the old single-row tags
+    hide_field(['account_number_tag', 'mobile_number_tag', 'name_tag', 'bank_name_tag']);
+    $("#barcode").addClass('d-none');
+
     $("#min_deposit_amount").val(min_amount)
     $("#max_deposit_amount").val(max_amount)
     if (parseFloat(amount) < parseFloat(min_amount)) {
@@ -512,27 +516,116 @@ function paymentGatewayDetails(id) {
             'id' : id,
         },
         success : function(response) {
-            if (response.isSuccess) {
-                $("#barcode").attr('src',response.data.barcode);
-                $("#owner_name").text(response.data.user_name);
-                $("#name_hide").val(response.data.user_name);
-
-                if (id == 1 || id == 2) {
-                    $("#owner_mobile_no").text(response.data.mobile_no);
-                    $("#mobile_no_hide").val(response.data.mobile_no);
-                } else if (id == 3) {
-                    $("#owner_mobile_no").text(response.data.upi_id);
-                    $("#mobile_no_hide").val(response.data.upi_id);
-                } else if (id == 6 || id == 9) {
-                    $("#owner_account_number").text(response.data.account_number);
-                    $("#owner_mobile_no").text(response.data.ifsc_code);
-                    $("#owner_bank_name").text(response.data.bank_name);
-
-                    $("#acc_no_hide").val(response.data.account_number)
-                    $("#mobile_no_hide").val(response.data.ifsc_code)
-                    $("#bank_name_hide").val(response.data.bank_name)
-                }
+            if (!response.isSuccess) {
+                $("#payment_rails_list").html('<p class="text-dark">No payment details available right now.</p>');
+                return;
             }
+            var list = (response.list && response.list.length) ? response.list : [response.data];
+            var html = '';
+            list.forEach(function (row, i) {
+                if (i > 0) html += '<hr class="my-2">';
+                if (row.barcode) {
+                    html += '<img src="' + row.barcode + '" class="barcode-img mb-2" alt="QR"/>';
+                }
+                if (id == 3) {
+                    html += '<div class="d-flex justify-content-between flex-wrap text-dark align-items-center my-1"><span class="text-muted">UPI ID</span><span>' + (row.upi_id || '') + '</span></div>';
+                    html += '<div class="d-flex justify-content-between flex-wrap text-dark align-items-center my-1"><span class="text-muted">NAME</span><span>' + (row.user_name || '') + '</span></div>';
+                    if (row.mobile_no) {
+                        html += '<div class="d-flex justify-content-between flex-wrap text-dark align-items-center my-1"><span class="text-muted">MOBILE</span><span>' + row.mobile_no + '</span></div>';
+                    }
+                } else if (id == 6 || id == 9) {
+                    html += '<div class="d-flex justify-content-between flex-wrap text-dark align-items-center my-1"><span class="text-muted">ACCOUNT</span><span>' + (row.account_number || '') + '</span></div>';
+                    html += '<div class="d-flex justify-content-between flex-wrap text-dark align-items-center my-1"><span class="text-muted">IFSC</span><span>' + (row.ifsc_code || '') + '</span></div>';
+                    html += '<div class="d-flex justify-content-between flex-wrap text-dark align-items-center my-1"><span class="text-muted">BANK</span><span>' + (row.bank_name || '') + '</span></div>';
+                    html += '<div class="d-flex justify-content-between flex-wrap text-dark align-items-center my-1"><span class="text-muted">NAME</span><span>' + (row.user_name || '') + '</span></div>';
+                } else {
+                    html += '<div class="d-flex justify-content-between flex-wrap text-dark align-items-center my-1"><span class="text-muted">NAME</span><span>' + (row.user_name || '') + '</span></div>';
+                    html += '<div class="d-flex justify-content-between flex-wrap text-dark align-items-center my-1"><span class="text-muted">MOBILE</span><span>' + (row.mobile_no || '') + '</span></div>';
+                }
+            });
+            $("#payment_rails_list").html(html);
+            // keep legacy single fields filled from the first rail (copy buttons / old markup)
+            var data = list[0] || response.data;
+            $("#barcode").attr('src', data.barcode || '').toggleClass('d-none', true);
+            $("#owner_name").text(data.user_name || '');
+            $("#name_hide").val(data.user_name || '');
+
+            if (id == 1 || id == 2) {
+                $("#owner_mobile_no").text(data.mobile_no || '');
+                $("#mobile_no_hide").val(data.mobile_no || '');
+            } else if (id == 3) {
+                $("#owner_mobile_no").text(data.upi_id || '');
+                $("#mobile_no_hide").val(data.upi_id || '');
+            } else if (id == 6 || id == 9) {
+                $("#owner_account_number").text(data.account_number || '');
+                $("#owner_mobile_no").text(data.ifsc_code || '');
+                $("#owner_bank_name").text(data.bank_name || '');
+                $("#acc_no_hide").val(data.account_number || '');
+                $("#mobile_no_hide").val(data.ifsc_code || '');
+                $("#bank_name_hide").val(data.bank_name || '');
+            }
+            // list already shows every rail; hide the old single-row tags to avoid duplicates
+            $("#account_number_tag, #mobile_number_tag, #name_tag, #bank_name_tag").addClass('d-none');
         }
     })
 }
+
+function applyCreditedAmount(raw) {
+    var min = parseFloat($("#min_deposit_amount").val()) || 1;
+    var maxRaw = $("#max_deposit_amount").val();
+    var max = maxRaw === '' || maxRaw == null ? null : parseFloat(maxRaw);
+    var n = parseFloat(String(raw).replace(/[^0-9.]/g, ''));
+    var $err = $("#select_amount_edit-error");
+    if (!(n >= min)) {
+        $err.text('Minimum ' + min.toFixed(2)).show();
+        return false;
+    }
+    if (max != null && !isNaN(max) && n > max) {
+        $err.text('Maximum ' + max.toFixed(2)).show();
+        return false;
+    }
+    $err.hide();
+    $("#deposit_amount").val(n);
+    $("#select_amount").text(n);
+    $(".amount").val(n);
+    return true;
+}
+
+$(document).on('click', '#edit_credited_amount', function () {
+    var $view = $("#select_amount_view");
+    var $inp = $("#select_amount_edit");
+    if (!$inp.hasClass('d-none')) {
+        if (!applyCreditedAmount($inp.val())) return;
+        $inp.addClass('d-none');
+        $view.removeClass('d-none');
+        return;
+    }
+    $inp.val($("#deposit_amount").val() || $("#select_amount").text()).removeClass('d-none').focus().select();
+    $view.addClass('d-none');
+});
+
+$(document).on('keydown', '#select_amount_edit', function (e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        $('#edit_credited_amount').click();
+    } else if (e.key === 'Escape') {
+        $("#select_amount_edit").addClass('d-none');
+        $("#select_amount_view").removeClass('d-none');
+        $("#select_amount_edit-error").hide();
+    }
+});
+
+$(document).on('blur', '#select_amount_edit', function () {
+    if ($(this).hasClass('d-none')) return;
+    // ponytail: brief delay so pencil click (save) wins over blur-cancel races
+    var el = this;
+    setTimeout(function () {
+        if ($(el).hasClass('d-none')) return;
+        if (!applyCreditedAmount($(el).val())) {
+            $(el).focus();
+            return;
+        }
+        $(el).addClass('d-none');
+        $("#select_amount_view").removeClass('d-none');
+    }, 120);
+});

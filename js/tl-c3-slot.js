@@ -36,11 +36,11 @@
 // replays it. If this file and that script ever disagree, the table describes a
 // game nobody is playing.
 //
-// The money is settled BEFORE the seed arrives. That is deliberate: a client that
+// The bet is settled BEFORE the seed arrives. That is deliberate: a client that
 // knew the seed first could replay it against its own copy of the game - it IS
 // the simulator - and only stake big on the good ones. So the spin button is
-// intercepted, the server takes the bet and pays the win, and only then does the
-// browser learn what to animate.
+// intercepted, the server takes the bet (wins stay held until CASHOUT), and only
+// then does the browser learn what to animate.
 (function () {
     const wallet = window.TL_WALLET;
     if (!wallet) return;                 // opened outside the site: leave the demo alone
@@ -58,11 +58,22 @@
 
     const TL = {
         spinning: false, armed: false, paid: null, ir: null, snap: null, ready: false,
-        serverBalance: 0, shown: 0, lastShown: null,
+        serverBalance: 0, shown: 0, lastShown: null, heldWin: 0,
+        minBet: 10, maxBet: 3000000,
         fresh: false,        // a reset has happened since the last spin
         resetting: false,
     };
     window.TL_C3 = TL;
+
+    function syncHud(n) {
+        wallet.balance = n;
+        if (typeof window.TL_setWallet === 'function') window.TL_setWallet(n);
+    }
+
+    function paintHeld() {
+        const el = document.getElementById('tl-g-held');
+        if (el) el.textContent = '₹' + Number(TL.heldWin || 0).toFixed(2);
+    }
 
     // ---- the deterministic stream ------------------------------------------
     // Seeded from crypto so the idle animations are not identical for every
@@ -118,18 +129,116 @@
     // stake the table never measured, and autoplay would start spins without
     // going through the interception below.
     const BLOCKED = [
-        { x1: 0.00, y1: 0.00, x2: 0.40, y2: 0.17 },             // BUY FREE SPIN
+        { x1: 0.00, y1: 0.00, x2: 0.40, y2: 0.16 },             // BUY FREE SPIN (covered by CASHOUT)
         { x1: 0.33, y1: 0.93, x2: 0.67, y2: 1.00 },             // AUTOPLAY
     ];
-
-
+    // Exact canvas box of BUY FREE SPIN — yellow CASHOUT fills this entirely
+    const CASHOUT_BOX = { x1: 0.008, y1: 0.008, x2: 0.355, y2: 0.145 };
+    // Coin / bet row → type stake
+    const BET_ZONE = { x1: 0.00, y1: 0.895, x2: 0.28, y2: 0.975 };
 
     const banner = document.createElement('div');
     banner.style.cssText = 'position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:9999;'
         + 'padding:10px 18px;border-radius:999px;background:rgba(229,5,57,.92);color:#fff;'
         + 'font:600 14px/1 Roboto,system-ui,sans-serif;opacity:0;transition:opacity .2s;pointer-events:none';
     const say = (text) => { banner.textContent = text; banner.style.opacity = text ? '1' : '0'; };
-    document.addEventListener('DOMContentLoaded', () => document.body.appendChild(banner));
+
+    // Covers BUY FREE SPIN — shiny gold pill only (no maroon frame)
+    const cashBtn = document.createElement('button');
+    cashBtn.id = 'tl-g-cash';
+    cashBtn.type = 'button';
+    cashBtn.innerHTML = 'CASHOUT <span id="tl-g-held">₹0.00</span>';
+
+    function placeCashBtn() {
+        const c = document.querySelector('canvas');
+        if (!c || !cashBtn.isConnected) return;
+        const r = c.getBoundingClientRect();
+        if (!r.width || !r.height) return;
+        const b = CASHOUT_BOX;
+        const left = r.left + r.width * b.x1;
+        const top = r.top + r.height * b.y1;
+        const w = r.width * (b.x2 - b.x1);
+        const h = r.height * (b.y2 - b.y1);
+        cashBtn.style.cssText = 'position:fixed;left:' + left + 'px;top:' + top + 'px;width:' + w + 'px;height:' + h + 'px;'
+            + 'z-index:2147483000;display:flex;align-items:center;justify-content:center;gap:8px;'
+            + 'padding:0 12px;border-radius:14px;border:2px solid #a86b00;cursor:pointer;'
+            + 'background:linear-gradient(180deg,#ffe08a 0%,#ffba00 45%,#e69800 100%);'
+            + 'color:#1a1200;font:800 18px/1 Roboto,system-ui,sans-serif;'
+            + 'box-shadow:0 2px 8px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.55);pointer-events:auto;'
+            + 'box-sizing:border-box';
+    }
+
+    function editBet() {
+        if (TL.spinning || !TL.ir) return;
+        const g = TL.ir.globalVars;
+        const max = Math.max(TL.minBet, Math.min(TL.maxBet, Number(wallet.balance) || TL.minBet));
+        const raw = window.prompt(
+            'Bet (₹) — min ' + TL.minBet + ', max ' + max.toFixed(2),
+            String(g.betAmount || TL.minBet),
+        );
+        if (raw === null) return;
+        let n = Number(String(raw).replace(/[^\d.]/g, ''));
+        if (!Number.isFinite(n)) return;
+        n = Math.round(n * 100) / 100;
+        n = Math.max(TL.minBet, Math.min(max, n));
+        g.betAmount = n;
+        if (TL.snap) TL.snap.betAmount = n;
+        say('Bet ₹' + n.toFixed(2));
+        setTimeout(() => say(''), 1200);
+    }
+
+    function doCashout() {
+        // Prefer live label if TL.heldWin lagged after a stuck spin
+        const fromLabel = cashBtn.querySelector('#tl-g-held');
+        const labeled = fromLabel ? Number(String(fromLabel.textContent).replace(/[^\d.]/g, '')) : 0;
+        const held = Math.max(Number(TL.heldWin) || 0, Number.isFinite(labeled) ? labeled : 0);
+        if (held <= 0) {
+            say('Nothing to cash out.');
+            setTimeout(() => say(''), 1200);
+            return;
+        }
+        if (cashBtn.disabled) return;
+        cashBtn.disabled = true;
+        post('/game/glamour/cashout').then((res) => {
+            if (!res || !res.isSuccess) {
+                say((res && res.message) || 'Nothing to cash out.');
+                setTimeout(() => say(''), 1500);
+                return;
+            }
+            TL.heldWin = 0;
+            TL.spinning = false;
+            TL.armed = false;
+            TL.paid = null;
+            TL.serverBalance = res.data.balance;
+            syncHud(res.data.balance);
+            if (TL.ir) TL.ir.globalVars.balance = res.data.balance;
+            paintHeld();
+            say('+₹' + Number(res.data.cashed).toFixed(2) + ' → wallet ₹' + Number(res.data.balance).toFixed(2));
+            setTimeout(() => say(''), 1800);
+            if (!TL.fresh && !TL.resetting) hardReset();
+        }).catch(() => say('Connection lost.')).finally(() => { cashBtn.disabled = false; });
+    }
+
+    function mountUi() {
+        document.body.appendChild(banner);
+        document.body.appendChild(cashBtn);
+        // pointerdown — click alone was eaten by the canvas capture blocker
+        cashBtn.addEventListener('pointerdown', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            doCashout();
+        });
+        cashBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+        paintHeld();
+        placeCashBtn();
+        window.addEventListener('resize', placeCashBtn);
+        setInterval(placeCashBtn, 400);
+    }
+    if (document.body) mountUi();
+    else document.addEventListener('DOMContentLoaded', mountUi);
 
     const post = (url, body) => fetch(url, {
         method: 'POST',
@@ -201,6 +310,7 @@
 
     const inSpin = (f) => Math.pow((f.fx - SPIN.cx) / SPIN.rx, 2) + Math.pow((f.fy - SPIN.cy) / SPIN.ry, 2) <= 1;
     const inBlocked = (f) => BLOCKED.some((b) => f.fx >= b.x1 && f.fx <= b.x2 && f.fy >= b.y1 && f.fy <= b.y2);
+    const inZone = (f, z) => f.fx >= z.x1 && f.fx <= z.x2 && f.fy >= z.y1 && f.fy <= z.y2;
 
     let replaying = false;
     function dispatchTap() {
@@ -261,25 +371,42 @@
         say('');
         TL.fresh = false;
         TL.serverBalance = res.data.balance;
-        // the game debits the bet and credits the win itself, with the same numbers
-        // the server just used, so start it from the pre-spin balance
-        g.balance = res.data.balance + res.data.bet - res.data.win;
+        TL.heldWin = typeof res.data.heldWin === 'number' ? res.data.heldWin : TL.heldWin;
+        syncHud(res.data.balance);
+        paintHeld();
+        // Hold model: wallet has only lost the bet. Start the game at post-debit
+        // balance so its own credit animation lands on balance+win, then we snap
+        // back to the wallet (win stays in HELD until CASHOUT).
+        g.balance = res.data.balance;
         TL.paid = res.data;
         TL.shown = 0;
         arm(res.data.seed);
         TL.armed = true;
         if (!(await tapSpinButton())) {
-            // the money is already settled and the balance already says so; all that
-            // is lost is the animation, and the report below will record it
-            say('The reels did not start - your balance is already up to date.');
+            // Bet already taken, win already held — unlock cashout / next spin.
+            say('Reels stuck — win is held. Tap CASHOUT.');
+            TL.spinning = false;
+            TL.armed = false;
+            TL.paid = null;
+            hardReset();
         }
     }
 
     function onPointer(e) {
         if (replaying || !TL.ready) return;
+        // HTML CASHOUT / toast — never steal their events (BLOCKED box sits under the button)
+        if (e.target && (e.target === cashBtn || cashBtn.contains(e.target) || e.target === banner || banner.contains(e.target))) {
+            return;
+        }
         const f = frac(e);
         if (!f) return;
         if (inBlocked(f)) { e.stopImmediatePropagation(); e.preventDefault(); return; }
+        if (inZone(f, BET_ZONE)) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            if (e.type === 'pointerdown' || e.type === 'touchstart' || e.type === 'mousedown') editBet();
+            return;
+        }
         if (!inSpin(f)) return;                       // bet +/-, sound, settings: the game's own
         const g = TL.ir.globalVars;
         // during a free-spin round the same button advances it, and that round was
@@ -343,6 +470,7 @@
                 TL.paid = null;                        // stops the frame-rate peak capture
                 g.balance = TL.serverBalance;
                 last = g.balance;
+                syncHud(TL.serverBalance);
                 hardReset();                           // ready for the next press
                 return;
             }
@@ -360,7 +488,10 @@
             if (!TL.armed && !TL.resetting) {
                 say('That spin did not count.');
                 fetch('/game/glamour/state').then((r) => r.json()).then((res) => {
-                    if (res.isSuccess) TL.serverBalance = res.data.balance;
+                    if (res.isSuccess) {
+                        TL.serverBalance = res.data.balance;
+                        syncHud(res.data.balance);
+                    }
                 }).catch(() => null);
             }
         }, 100);
@@ -398,9 +529,28 @@
         const s = await fetch('/game/glamour/state').then((r) => r.json()).catch(() => null);
         if (!s || !s.isSuccess) { say('Wallet unavailable.'); return; }
         TL.serverBalance = s.data.balance;
+        TL.heldWin = Number(s.data.heldWin) || 0;
+        TL.minBet = Number(s.data.minBet) || 10;
+        TL.maxBet = Number(s.data.maxBet) || 3000000;
         g.balance = s.data.balance;
+        // keep the +/- ladder on the same amounts the server will accept
+        const bets = Array.isArray(s.data.bets) ? s.data.bets : null;
+        if (bets && bets.length >= 5) {
+            g.betlimits1 = bets[0]; g.betlimits2 = bets[1]; g.betlimits3 = bets[2];
+            g.betlimits4 = bets[3]; g.betlimits5 = bets[4];
+            g.betAmount = bets.includes(g.betAmount) ? g.betAmount : bets[0];
+            TL.snap.betlimits1 = bets[0]; TL.snap.betlimits2 = bets[1]; TL.snap.betlimits3 = bets[2];
+            TL.snap.betlimits4 = bets[3]; TL.snap.betlimits5 = bets[4];
+            TL.snap.betAmount = g.betAmount;
+        }
+        syncHud(s.data.balance);
+        paintHeld();
         await hardReset();                            // the first spin needs one too
         g.balance = s.data.balance;
+        // betAmount is in KEEP, so a layout restart can leave the demo stake; pin it
+        if (bets && bets.length >= 5) {
+            g.betAmount = (TL.snap && TL.snap.betAmount) || (bets.includes(g.betAmount) ? g.betAmount : bets[0]);
+        }
         TL.ready = true;
         watch();
 
@@ -413,6 +563,6 @@
             if (g.comprourodadas) g.comprourodadas = 0;
         }, 200);
 
-        console.log('[tl] glamour spins on the wallet, balance', s.data.balance, 'rtp', s.data.rtp);
+        console.log('[tl] glamour spins on the wallet, balance', s.data.balance, 'rtp', s.data.rtp, 'house', s.data.housePct);
     })();
 })();

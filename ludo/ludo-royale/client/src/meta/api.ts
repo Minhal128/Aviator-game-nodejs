@@ -57,6 +57,14 @@ export interface ProfileResponse {
   xp: { current: number; level: number; nextLevelAt: number | null };
 }
 
+/** GET /matches/tiers */
+export interface StakeTier {
+  id: number;
+  name: string;
+  entryFee: number;
+  minLevel: number;
+}
+
 /** GET /daily-bonus (DailyBonusService.getState) */
 export interface DailyBonusDay {
   day: number;
@@ -397,6 +405,18 @@ export const api = {
   },
 
   getProfile: () => request<ProfileResponse>('/profile'),
+  /** Public stake tables — no auth (Play Online must not wait on guest login). */
+  getTiers: async (): Promise<{ tiers: StakeTier[] }> => {
+    let res: Response;
+    try {
+      res = await fetch(`${BASE}/matches/tiers`);
+    } catch {
+      throw new MetaApiError(0, 'ERR_NETWORK');
+    }
+    const json: unknown = await res.json().catch(() => null);
+    if (!res.ok) throw toApiError(res.status, json);
+    return json as { tiers: StakeTier[] };
+  },
 
   getDailyBonus: () => request<DailyBonusState>('/daily-bonus'),
   claimDaily: () => request<DailyClaimResult>('/daily-bonus/claim', { method: 'POST', body: {} }),

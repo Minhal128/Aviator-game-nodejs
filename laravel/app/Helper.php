@@ -53,8 +53,10 @@ function user($parameter,$id=null)
 }
 function userdetail($id, $parameter)
 {
+    // the return was commented out, so both admin history tables showed every
+    // player as "Not found!" - the admin has to know whose request they approve
     $data = User::where('id', $id)->first();
-    //return $data->{$parameter};
+    return $data ? $data->{$parameter} : null;
 }
 function admin($parameter)
 {
@@ -62,16 +64,27 @@ function admin($parameter)
 }
 function wallet($userid, $type = "string")
 {
-    $amount = Wallet::where('userid', $userid)->first();
-    if ($amount->amount > 0) {
-        if ($type == "num") {
-            return $amount->amount;
-        } else {
-            return number_format($amount->amount);
-        }
-    } else {
-        return 0;
+    $row = ensure_wallet($userid);
+    $amt = (float) $row->amount;
+    if ($type == "num") {
+        return $amt;
     }
+    return number_format($amt, 2);
+}
+
+/** One wallet row per user id — create empty if missing. */
+function ensure_wallet($userid)
+{
+    $userid = (string) $userid;
+    $row = Wallet::where('userid', $userid)->first();
+    if ($row) {
+        return $row;
+    }
+    $row = new Wallet;
+    $row->userid = $userid;
+    $row->amount = 0;
+    $row->save();
+    return $row;
 }
 function setting($parameter)
 {
@@ -114,22 +127,18 @@ function userbetdetail($id,$parameter)
 }
 function addwallet($id, $amount, $symbol = "+")
 {
-    $wallet = wallet::where('userid', $id)->first();
-    if ($wallet) {
-        if ($symbol == "+") {
-
-            wallet::where('userid', $id)->update([
-                "amount" => wallet($id, 'num') + $amount,
-            ]);
-            return wallet($id, 'num') + $amount;
-        } elseif ($symbol == "-") {
-            wallet::where('userid', $id)->update([
-                "amount" => wallet($id, "num") - $amount,
-            ]);
-            return wallet($id, "num") - $amount;
-        }
-        return wallet($id);
+    $wallet = ensure_wallet($id);
+    $cur = (float) $wallet->amount;
+    if ($symbol == "+") {
+        $new = $cur + (float) $amount;
+    } elseif ($symbol == "-") {
+        $new = $cur - (float) $amount;
+    } else {
+        return $cur;
     }
+    Wallet::where('userid', (string) $id)->update(["amount" => $new]);
+    // ponytail: old return was wallet()+amount AFTER update → lied by +$amount to every caller
+    return $new;
 }
 function appvalidate($input)
 {

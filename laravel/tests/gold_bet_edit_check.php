@@ -1,0 +1,24 @@
+<?php
+declare(strict_types=1);
+$js = file_get_contents(dirname(__DIR__, 2) . '/js/tl-gold-egypt.js');
+assert(is_string($js));
+assert(!str_contains($js, 'tl-gold-bet'), 'no separate stake bar');
+assert(str_contains($js, 'editTotalBet'), 'TOTAL BET box editable');
+assert(str_contains($js, 'return 100'), 'min stake ₹100');
+assert(str_contains($js, 'wallet.balance'), 'max stake = wallet');
+$php = file_get_contents(dirname(__DIR__) . '/app/Http/Controllers/GoldEgypt.php');
+assert(str_contains($php, 'Minimum bet is ₹100'));
+assert(str_contains($js, 'changeTotalBetEvent.events = []'), 'rebinds bet display events');
+assert(str_contains($js, 'useReadableMoneyText'), 'money uses readable text for decimal');
+assert(str_contains($js, 'toFixed(2)'), 'INR shows two decimals');
+assert(str_contains($js, 'stakeInr'), 'exact stake in ₹');
+assert(str_contains($js, 'betAmount'), 'spin sends betAmount');
+assert(str_contains($php, 'betAmount'), 'server accepts betAmount');
+assert(str_contains($js, "setText('CASHOUT')"), 'CASHOUT beside TOTAL BET');
+assert(str_contains($js, 'doCashout'), 'client cashout handler');
+assert(str_contains($js, '/game/gold/cashout'), 'posts cashout');
+assert(str_contains($php, 'gold_held_win'), 'holds win until cashout');
+assert(str_contains($php, 'function cashout'), 'cashout endpoint');
+$routes = file_get_contents(dirname(__DIR__) . '/routes/web.php');
+assert(str_contains($routes, '/game/gold/cashout'), 'cashout route');
+echo "OK gold hold-win cashout\n";

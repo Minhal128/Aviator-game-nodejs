@@ -1,4 +1,4 @@
-@extends('Layout.admindashboard')
+@extends('Layout.tower')
 @section('css')
 @endsection
 
@@ -54,7 +54,7 @@
     <div class="col-12 col-sm-6 col-lg-3 stretch-card grid-margin">
       <div class="card tl-stat tl-stat-amber">
         <div class="card-body">
-          <div class="tl-stat-label">Recharges</div>
+          <div class="tl-stat-label">Deposits</div>
           <p class="tl-stat-value">{{ count($recharge) }}</p>
         </div>
       </div>
@@ -78,12 +78,49 @@
   </div>
 
   <div class="row">
+    <div class="col-12 col-xl-7 grid-margin stretch-card">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+            <div>
+              <h4 class="card-title mb-1">Cashier, last 14 days</h4>
+              <span class="text-muted" style="font-size:.8rem;">Approved deposits against approved withdrawals</span>
+            </div>
+            <div class="text-end">
+              <div class="tl-chart-fig" id="fig_dep">—</div>
+              <div class="tl-chart-cap">in &middot; <span id="fig_wd">—</span> out</div>
+            </div>
+          </div>
+          <div class="tl-chart-wrap"><canvas id="chart_cashier" height="220"></canvas><p class="tl-chart-empty" id="chart_cashier_empty" hidden></p></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-xl-5 grid-margin stretch-card">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+            <div>
+              <h4 class="card-title mb-1">Play, last 14 days</h4>
+              <span class="text-muted" style="font-size:.8rem;">Staked against paid out, all five games</span>
+            </div>
+            <div class="text-end">
+              <div class="tl-chart-fig" id="fig_house">—</div>
+              <div class="tl-chart-cap">house kept</div>
+            </div>
+          </div>
+          <div class="tl-chart-wrap"><canvas id="chart_play" height="220"></canvas><p class="tl-chart-empty" id="chart_play_empty" hidden></p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
     <div class="col-12 grid-margin stretch-card">
       <div class="card tl-bets-panel">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="card-title mb-0">Round bets</h4>
-            <span class="text-muted" style="font-size:.8rem;">Updates every 400ms</span>
+            <span class="text-muted" style="font-size:.8rem;" id="hud_bets_label">Updates every 400ms</span>
           </div>
           <div class="table-responsive">
             <table class="table mb-0">
@@ -165,6 +202,12 @@
 
     var bets = data.bets || [];
     var tb = document.getElementById('hud_bets');
+    var lbl = document.getElementById('hud_bets_label');
+    if (lbl) {
+      lbl.textContent = data.bets_is_prev
+        ? ('Last round #' + (data.bets_game_id || '—'))
+        : 'Updates every 400ms';
+    }
     if (!bets.length) {
       tb.innerHTML = '<tr><td colspan="5" class="tl-empty">No bets this round</td></tr>';
     } else {
@@ -213,6 +256,105 @@
 
   fetchLive();
   pollTimer = setInterval(fetchLive, 400);
+
+  // ---- charts: every point comes from /admin/api/stats, which is all SQL ----
+  var css = getComputedStyle(document.body);
+  var pick = function (name, fallback) {
+    var v = (css.getPropertyValue(name) || '').trim();
+    return v || fallback;
+  };
+  var CRIMSON = pick('--tl-crimson', '#e50539');
+  var AMBER = pick('--tl-amber', '#ffb020');
+  var GREEN = pick('--tl-green', '#14c46a');
+  var MUTED = pick('--tl-muted', '#8ea3c6');
+  var GRID = 'rgba(255,255,255,.07)';
+
+  var base = {
+    maintainAspectRatio: false,
+    legend: { labels: { fontColor: MUTED, boxWidth: 12, fontSize: 11 } },
+    tooltips: { mode: 'index', intersect: false },
+    scales: {
+      xAxes: [{ gridLines: { color: GRID, zeroLineColor: GRID }, ticks: { fontColor: MUTED, fontSize: 10, maxRotation: 0, autoSkipPadding: 12 } }],
+      yAxes: [{ gridLines: { color: GRID, zeroLineColor: GRID }, ticks: { fontColor: MUTED, fontSize: 10, beginAtZero: true } }]
+    }
+  };
+  var cashierChart = null;
+  var playChart = null;
+
+  function fill(ctx, color) {
+    var g = ctx.createLinearGradient(0, 0, 0, 220);
+    g.addColorStop(0, color.replace('rgb', 'rgba').replace(')', ',.35)'));
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    return g;
+  }
+
+  function drawCharts(d) {
+    document.getElementById('fig_dep').textContent = '₹' + money(d.totals.deposits);
+    document.getElementById('fig_wd').textContent = '₹' + money(d.totals.withdrawals);
+    document.getElementById('fig_house').textContent =
+      d.totals.house_pct === null ? 'no play yet' : d.totals.house_pct + '%';
+
+    if (!window.Chart) return;
+
+    // an all-zero window draws a bare grid, which reads as broken rather than quiet
+    var sum = function (a) { return (a || []).reduce(function (t, v) { return t + (Number(v) || 0); }, 0); };
+    function emptyState(id, empty, note) {
+      document.getElementById(id).style.visibility = empty ? 'hidden' : 'visible';
+      var el = document.getElementById(id + '_empty');
+      el.textContent = note;
+      el.hidden = !empty;
+    }
+    emptyState('chart_cashier', sum(d.deposits) + sum(d.withdrawals) === 0,
+      'Nothing approved in the last 14 days. ' + d.totals.pending_deposits + ' deposit and ' +
+      d.totals.pending_withdrawals + ' withdrawal requests are waiting.');
+    emptyState('chart_play', sum(d.staked) === 0, 'No bets placed in the last 14 days.');
+
+    if (cashierChart) {
+      cashierChart.data.labels = d.labels;
+      cashierChart.data.datasets[0].data = d.deposits;
+      cashierChart.data.datasets[1].data = d.withdrawals;
+      cashierChart.update();
+    } else {
+      cashierChart = new Chart(document.getElementById('chart_cashier').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: d.labels,
+          datasets: [
+            { label: 'Deposits in', data: d.deposits, backgroundColor: GREEN, borderWidth: 0, barPercentage: .7, categoryPercentage: .7 },
+            { label: 'Withdrawals out', data: d.withdrawals, backgroundColor: CRIMSON, borderWidth: 0, barPercentage: .7, categoryPercentage: .7 }
+          ]
+        },
+        options: base
+      });
+    }
+
+    if (playChart) {
+      playChart.data.labels = d.labels;
+      playChart.data.datasets[0].data = d.staked;
+      playChart.data.datasets[1].data = d.paid;
+      playChart.update();
+    } else {
+      var ctx = document.getElementById('chart_play').getContext('2d');
+      playChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: d.labels,
+          datasets: [
+            { label: 'Staked', data: d.staked, borderColor: AMBER, backgroundColor: fill(ctx, 'rgb(255,176,32)'), borderWidth: 2, pointRadius: 2, pointBackgroundColor: AMBER, lineTension: .3 },
+            { label: 'Paid out', data: d.paid, borderColor: CRIMSON, backgroundColor: 'rgba(0,0,0,0)', borderWidth: 2, pointRadius: 2, pointBackgroundColor: CRIMSON, lineTension: .3 }
+          ]
+        },
+        options: base
+      });
+    }
+  }
+
+  function fetchStats() {
+    $.getJSON('/admin/api/stats').done(drawCharts).fail(function () { /* keep last frame */ });
+  }
+  fetchStats();
+  // aggregates move when someone deposits or plays, not every frame
+  setInterval(fetchStats, 15000);
 })();
 </script>
 @endsection

@@ -11,6 +11,7 @@ use App\Http\Controllers\SlotApi;
 use App\Http\Controllers\Userdetail;
 use App\Http\Controllers\Adminapi;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,6 +23,21 @@ use Illuminate\Support\Facades\Route;
 | contains the "web" middleware group. Now create something great!
 |
  */
+/**
+ * Uploaded files. In production /storagelink symlinks <root>/storage at the
+ * public disk and server.php serves it straight off disk, so this route never
+ * runs; without the symlink it is the only way an uploaded barcode resolves.
+ * Deposit proofs are deliberately NOT here - they are bank screenshots, so they
+ * live on the local disk and only /admin/proof/{id} can read them.
+ */
+Route::get('/storage/{path}', function (string $path) {
+    // Flysystem throws on a path that climbs out of the disk root, which surfaces
+    // as a 500; a request for a file outside the disk is simply not found
+    abort_if(str_contains($path, '..'), 404);
+    abort_unless(Storage::disk('public')->exists($path), 404);
+    return response()->file(Storage::disk('public')->path($path));
+})->where('path', '.*');
+
 Route::get('/storagelink', function () {
 	$target = '/home/u558340823/domains/thixpro.in/public_html/aviator/laravel/storage/app/public/';
    $shortcut = '/home/u558340823/domains/thixpro.in/public_html/aviator/storage/';
@@ -64,10 +80,13 @@ Route::group(['prefix' => 'admin/', 'middleware' => ['isAdmin']], function () {
     Route::get('/user-list', [Admin::class, "userlist"]);
     Route::get('/change-password', [Admin::class, "chagepassword"]);
     Route::get('/user/edit/{id}', [Admin::class, "useredit"]);
-    Route::get('/recharge-history', [Admin::class, "rechargehistory"]);
-    Route::get('/withdrawal-history', [Admin::class, "withdrawalhistory"]);
-    Route::get('/amount-setup/{id?}', [Admin::class, "amountsetup"]);
+    // the DB category is still 'recharge'; only what the operator reads changed
+    Route::get('/deposits', [Admin::class, "rechargehistory"]);
+    Route::get('/withdrawals', [Admin::class, "withdrawalhistory"]);
     Route::get('/bank-detail', [Admin::class, "bankdetail"]);
+    Route::get('/referral', [Admin::class, "referral"]);
+    // the screenshot the player uploaded with a deposit request
+    Route::get('/proof/{id}', [Admin::class, "proof"]);
     
     Route::group(['prefix' => 'api/'], function () {
         Route::post('/changepassword', [Adminapi::class, "changepassword"]);
@@ -75,10 +94,13 @@ Route::group(['prefix' => 'admin/', 'middleware' => ['isAdmin']], function () {
         Route::post('/recharge/{event}', [Adminapi::class, "rechargeapproval"]);
         Route::post('/withdraw/{event}', [Adminapi::class, "withdrawalapproval"]);
         Route::post('/user/delete', [Adminapi::class, "userdelete"]);
-        Route::post('/editamountsetup', [Adminapi::class, "editamountsetup"]);
         Route::post('/bankdetail', [Adminapi::class, "editbankdetail"]);
+        Route::post('/bankdetail/delete', [Adminapi::class, "deletebankdetail"]);
+        Route::post('/limits', [Adminapi::class, "limits"]);
+        Route::post('/referral', [Adminapi::class, "referral"]);
         Route::post('/updatewallet', [Adminapi::class, "updatewallet"]);
         Route::get('/live-round', [Adminapi::class, "liveRound"]);
+        Route::get('/stats', [Adminapi::class, "stats"]);
     });
 
     Route::get('/logout', [Admin::class, "logout"]);
@@ -139,10 +161,12 @@ Route::group(['middleware' => ['isUser']], function () {
     // Gold of Egypt on the real wallet - reel stops drawn and settled server side
     Route::get('/game/gold/state', [GoldEgypt::class, 'state']);
     Route::post('/game/gold/spin', [GoldEgypt::class, 'spin']);
+    Route::post('/game/gold/cashout', [GoldEgypt::class, 'cashout']);
     // Glamour Spins on the real wallet - the server settles first and only then
     // tells the client which measured spin to replay
     Route::get('/game/glamour/state', [GlamourSpins::class, 'state']);
     Route::post('/game/glamour/spin', [GlamourSpins::class, 'spin']);
+    Route::post('/game/glamour/cashout', [GlamourSpins::class, 'cashout']);
     Route::post('/game/glamour/report', [GlamourSpins::class, 'report']);
     // Glamour Spins' own casino-API callback, repointed here by js/tl-c3-slot.js
     Route::any('/game/slot-api', [SlotApi::class, 'capture']);

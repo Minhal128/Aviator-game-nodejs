@@ -2,6 +2,9 @@
  * Guest identity (Sprint 2, ARQUITECTURA §6.2 note): a stable per-device id
  * plus a display name chosen once — both in localStorage. Sprint 3 upgrades
  * this to real accounts (guest-first + JWT) without breaking either key.
+ *
+ * On Turbo Legends, TL_WALLET.userId forces deviceId `tl{id}` so the Ludo
+ * account is the same as the site wallet user (1 coin = ₹1).
  */
 
 const DEVICE_KEY = 'lr_device_id';
@@ -17,7 +20,18 @@ function fallbackId(): string {
   return `lr-${id}`;
 }
 
+function siteDeviceId(): string | null {
+  const w = (window as unknown as { TL_WALLET?: { userId?: number } }).TL_WALLET;
+  const uid = w && typeof w.userId === 'number' ? w.userId : 0;
+  return uid > 0 ? `tl${uid}` : null;
+}
+
 export function deviceId(): string {
+  const site = siteDeviceId();
+  if (site) {
+    localStorage.setItem(DEVICE_KEY, site);
+    return site;
+  }
   const existing = localStorage.getItem(DEVICE_KEY);
   if (existing) return existing;
   const fresh = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : fallbackId();

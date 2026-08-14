@@ -61,10 +61,54 @@ export function emit(event: MetaEvent): void {
   for (const fn of set) fn();
 }
 
+/** Seed HUD coins from the injected site wallet before /profile returns. */
+export function seedFromSiteWallet(): void {
+  const w = (window as unknown as { TL_WALLET?: { userId?: number; balance?: number } }).TL_WALLET;
+  if (!w || !w.userId) return;
+  const coins = Math.max(0, Math.floor(Number(w.balance) || 0));
+  if (metaState.profile) {
+    setBalances(coins, metaState.profile.wallet.gems);
+    return;
+  }
+  // minimal stub so buildHud's first paint is not stuck on 0
+  metaState.profile = {
+    user: {
+      id: 0,
+      username: 'Player',
+      isGuest: true,
+      email: null,
+      avatarKey: 'default',
+      frameKey: null,
+      country: null,
+      locale: 'en',
+      xp: 0,
+      level: 1,
+      coins,
+      gems: 0,
+      gamesPlayed: 0,
+      gamesWon: 0,
+      winStreak: 0,
+      referralCode: null,
+      createdAt: new Date().toISOString(),
+    },
+    wallet: { coins, gems: 0 },
+    xp: { current: 0, level: 1, nextLevelAt: null },
+  };
+  emit('profile');
+}
+
 /** Pull a fresh profile snapshot; resolves with the previous one (for diffs). */
 export async function refreshProfile(): Promise<ProfileResponse | null> {
   const previous = metaState.profile;
   metaState.profile = await api.getProfile();
+  // TL_WALLET is source of truth for site coins (proxy stamp may be missing)
+  const w = (window as unknown as { TL_WALLET?: { userId?: number; balance?: number } }).TL_WALLET;
+  if (w?.userId) {
+    const coins = Math.max(0, Math.floor(Number(w.balance) || 0));
+    metaState.profile.wallet.coins = coins;
+    metaState.profile.user.coins = coins;
+  }
+  syncSiteChip(metaState.profile.wallet.coins);
   emit('profile');
   return previous;
 }
@@ -97,6 +141,7 @@ export function setBalances(coins: number, gems: number): void {
   p.wallet.gems = gems;
   p.user.coins = coins;
   p.user.gems = gems;
+  syncSiteChip(coins);
   emit('profile');
 }
 
@@ -104,9 +149,27 @@ export function setBalances(coins: number, gems: number): void {
 export function bumpBalance(currency: 'coins' | 'gems', delta: number): void {
   const p = metaState.profile;
   if (!p) return;
+  // site wallet owns coins — don't invent a local bump that disagrees with Laravel
+  if (currency === 'coins' && siteLinked()) {
+    void refreshProfile();
+    return;
+  }
   p.wallet[currency] += delta;
   p.user[currency] += delta;
   emit('profile');
+}
+
+function siteLinked(): boolean {
+  const w = (window as unknown as { TL_WALLET?: { userId?: number } }).TL_WALLET;
+  return Boolean(w && w.userId);
+}
+
+function syncSiteChip(coins: number): void {
+  const w = (window as unknown as { TL_WALLET?: { balance: number }; TL_setWallet?: (n: number) => void }).TL_WALLET;
+  if (!w || !(window as unknown as { TL_WALLET?: { userId?: number } }).TL_WALLET?.userId) return;
+  w.balance = coins;
+  const set = (window as unknown as { TL_setWallet?: (n: number) => void }).TL_setWallet;
+  if (typeof set === 'function') set(coins);
 }
 
 export function setUnreadMail(n: number): void {

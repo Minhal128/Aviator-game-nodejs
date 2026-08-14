@@ -14,6 +14,7 @@ import { SceneBackdrop } from '../objects/SceneBackdrop';
 import { uiText } from '../ui/text';
 import { reducedMotion } from '../fx/Juice';
 import type { ResultsData } from '../matchTypes';
+import { refreshProfile } from '../../meta/store';
 
 const PLACE_COLORS: readonly number[] = [
   LR_COLORS.gold500,
@@ -71,6 +72,8 @@ export class ResultsScene extends Phaser.Scene {
     });
 
     if (won && !reducedMotion()) this.confettiLite();
+    // online prizes already hit Laravel; refresh HUD coins from site wallet
+    void refreshProfile().catch(() => undefined);
   }
 
   /** Champion HERO + medal rows + a motivating subtitle (Jose: impecable). */
@@ -178,6 +181,22 @@ export class ResultsScene extends Phaser.Scene {
           LR_COLORS.textFaint,
           '700',
         ),
+      );
+    }
+
+    const me =
+      this.results.humanSeat != null
+        ? this.results.rows.find((r) => r.seat === this.results.humanSeat)
+        : undefined;
+    const delta = me?.coinsDelta;
+    if (typeof delta === 'number' && delta !== 0) {
+      const abs = Math.abs(delta);
+      const line =
+        delta > 0
+          ? t('results.payout_win', { n: abs })
+          : t('results.payout_lose', { n: abs });
+      content.add(
+        uiText(this, 0, 95, line, 18, delta > 0 ? LR_COLORS.gold700 : LR_COLORS.textFaint, '800'),
       );
     }
   }

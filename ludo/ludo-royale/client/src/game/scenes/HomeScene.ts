@@ -33,9 +33,11 @@ import { SceneBackdrop } from '../objects/SceneBackdrop';
 import { gameText, uiText } from '../ui/text';
 import { reducedMotion, tweenP } from '../fx/Juice';
 import { api } from '../../meta/api';
+import type { StakeTier } from '../../meta/api';
 import { metaState, on as onMeta } from '../../meta/store';
 import { sfx } from '../../core/audio';
 import { ColyseusClient } from '../net/ColyseusClient';
+import { Toast } from '../ui/Toast';
 import type { MatchInit } from '../matchTypes';
 import type { WaitingParams } from './WaitingScene';
 
@@ -55,6 +57,12 @@ export class HomeScene extends Phaser.Scene {
   private levelSelected: AiLevel = 'easy';
   private playersSelected: 2 | 3 | 4 = 2;
   private mascot?: Phaser.GameObjects.Container;
+  /** Cash stake for online tables (1 coin = ₹1). */
+  private tiers: StakeTier[] = [];
+  private tierSelected: number | null = null;
+  private tiersFetched = false;
+  private step: HomeStep = 'root';
+  private toast?: Toast;
 
   constructor() {
     super('Home');
@@ -66,10 +74,15 @@ export class HomeScene extends Phaser.Scene {
     this.panel = undefined;
     this.sparkEmitter = undefined;
     this.connecting = false;
+    this.tiers = [];
+    this.tiersFetched = false;
+    this.step = 'root';
+    this.toast = new Toast(this, GAME_W / 2, 200);
     // A shutdown mid-entrance leaves input disabled (its unlock timer died
     // with the Clock) — every fresh visit must start unlocked.
     this.input.enabled = true;
     new SceneBackdrop(this, 'home');
+    void this.loadTiers();
 
     if (!reducedMotion()) {
       // Periodic loops fire from single timers with jitter — never update().
@@ -85,6 +98,7 @@ export class HomeScene extends Phaser.Scene {
   }
 
   private showStep(step: HomeStep): void {
+    this.step = step;
     this.panel?.destroy();
     this.cards = [];
     // The buddy only fronts the root menu — submenus need the space.
@@ -152,16 +166,24 @@ export class HomeScene extends Phaser.Scene {
           this.showStep(step);
         },
       );
+      this.setupSection(panel, -70, 176, t('home.select_stake'));
+      this.stakeRow(panel, 50, step);
       panel.add(
         new Button(
           this,
           0,
-          -20,
+          190,
           460,
           108,
           t('home.start'),
           'amber',
-          () => this.goOnline({ kind: 'quick', size: this.playersSelected, powerMode: this.powerSelected }),
+          () =>
+            this.goOnline({
+              kind: 'quick',
+              size: this.playersSelected,
+              powerMode: this.powerSelected,
+              tierId: this.tierSelected,
+            }),
           30,
         ),
       );
@@ -184,28 +206,36 @@ export class HomeScene extends Phaser.Scene {
         },
       );
       this.setupSection(panel, -304, 176, t('home.select_players'));
-      const sizes: (2 | 3 | 4)[] = [2, 3, 4];
+      const sizesCreate: (2 | 3 | 4)[] = [2, 3, 4];
       this.optionRow(
         panel,
         -184,
         [t('home.players_2'), t('home.players_3'), t('home.players_4')],
-        sizes.indexOf(this.playersSelected),
+        sizesCreate.indexOf(this.playersSelected),
         215,
         (i) => {
-          this.playersSelected = sizes[i] ?? 2;
+          this.playersSelected = sizesCreate[i] ?? 2;
           this.showStep(step);
         },
       );
+      this.setupSection(panel, -70, 176, t('home.select_stake'));
+      this.stakeRow(panel, 50, step);
       panel.add(
         new Button(
           this,
           0,
-          -20,
+          190,
           460,
           108,
           t('home.create_room'),
           'amber',
-          () => this.goOnline({ kind: 'create', size: this.playersSelected, powerMode: this.powerSelected }),
+          () =>
+            this.goOnline({
+              kind: 'create',
+              size: this.playersSelected,
+              powerMode: this.powerSelected,
+              tierId: this.tierSelected,
+            }),
           30,
         ),
       );
@@ -576,6 +606,12 @@ export class HomeScene extends Phaser.Scene {
   /** Online entry: make sure the player has a name, then hand to the lobby. */
   private goOnline(params: WaitingParams): void {
     if (this.connecting) return;
+    const fee = this.tiers.find((x) => x.id === params.tierId)?.entryFee ?? 0;
+    const bal = metaState.profile?.wallet.coins ?? 0;
+    if (fee > 0 && bal < fee) {
+      void this.toast?.show(t('home.stake_short', { fee, bal }), 2200);
+      return;
+    }
     this.connecting = true;
     void ensurePlayerName().then(() => {
       // If we cannot hand off (scene already stopped/replaced), release the
@@ -583,6 +619,49 @@ export class HomeScene extends Phaser.Scene {
       if (this.scene.isActive('Home')) this.scene.start('Waiting', params);
       else this.connecting = false;
     });
+  }
+
+  private async loadTiers(): Promise<void> {
+    try {
+      const { tiers } = await api.getTiers();
+      this.tiers = tiers;
+      if (this.tierSelected == null && tiers[0]) this.tierSelected = tiers[0].id;
+    } catch {
+      this.tiers = [];
+    }
+    this.tiersFetched = true;
+    // User often opens Play Online before the GET lands — redraw stake row.
+    if (this.scene.isActive('Home') && (this.step === 'online' || this.step === 'create')) {
+      this.showStep(this.step);
+    }
+  }
+
+  private stakeRow(panel: Phaser.GameObjects.Container, y: number, step: HomeStep): void {
+    if (this.tiers.length === 0) {
+      const msg = this.tiersFetched ? '—' : t('home.stake_loading');
+      panel.add(uiText(this, 0, y, msg, 18, LR_COLORS.textOnDark, '700').setOrigin(0.5));
+      return;
+    }
+    const labels = this.tiers.map((tier) => `₹${tier.entryFee}`);
+    const idx = Math.max(0, this.tiers.findIndex((tier) => tier.id === this.tierSelected));
+    this.optionRow(panel, y, labels, idx, 155, (i) => {
+      this.tierSelected = this.tiers[i]?.id ?? null;
+      this.showStep(step);
+    });
+    const picked = this.tiers[idx];
+    if (picked) {
+      panel.add(
+        uiText(
+          this,
+          0,
+          y + 70,
+          t('home.stake_hint', { name: picked.name, fee: picked.entryFee }),
+          16,
+          LR_COLORS.textOnDark,
+          '600',
+        ).setOrigin(0.5),
+      );
+    }
   }
 
   /** §6.6: silent resume attempt; jumps into the live match when it works. */

@@ -148,6 +148,46 @@ $pages = file_get_contents(__DIR__ . '/../laravel/app/Http/Controllers/Pages.php
 // a cached main.js brings the worker back and the bridge silently detaches
 check('rewritten main.js is served no-store', str_contains($pages, "'Cache-Control', 'no-store, must-revalidate'"));
 
+echo "== cashier (deposit / withdraw) ==
+";
+// both routes sit behind isUser, so the views may read the wallet
+session()->put('userlogin', App\Models\User::where('isadmin', null)->orderBy('id', 'desc')->first());
+// Both pages shipped in the vendor's light theme - white cards, #09519e ink -
+// against the dark site, and one <img> pointed at a file that was never there.
+foreach (['deposite' => '/deposit', 'withdraw' => '/withdraw'] as $view => $route) {
+    $src = file_get_contents(__DIR__ . "/../laravel/resources/views/$view.blade.php");
+    check("$view renders", (bool) view($view)->render());
+    check("$view is on the dark wallet layout", str_contains($src, 'deposite-container tl-wallet'));
+    // .tl-wallet owns the width now; the old container/row/col-md-6 would halve it
+    check("$view dropped the bootstrap column", !str_contains($src, 'col-md-6'));
+    // three nesting levels came out of these files and their bodies were left at
+    // the old indent, so an unbalanced div would be invisible on inspection
+    $dom = new DOMDocument();
+    @$dom->loadHTML('<?xml encoding="UTF-8">' . view($view)->render());
+    $xp = new DOMXPath($dom);
+    $depth = fn(string $cls) => ($n = $xp->query("//*[contains(@class,'$cls')]")->item(0))
+        ? $n->parentNode->getAttribute('class') : 'missing';
+    check("$view keeps .pay-options directly under the page (" . $depth('pay-options') . ')',
+        str_contains($depth('pay-options'), 'deposite-container'));
+    // images/barcode.png never existed: every hard-coded asset has to resolve
+    preg_match_all('/src="\/?(images\/[^"]+)"/', $src, $imgs);
+    foreach (array_unique($imgs[1]) as $img) {
+        check("$view asset $img exists", is_file(__DIR__ . '/../' . trim($img)));
+    }
+}
+// bankdetails.barcode is blank until an admin uploads one, and src="" refetches
+// the page and draws a broken image
+$djs = file_get_contents(__DIR__ . '/../user/deposit.js');
+check('the QR stays hidden with no barcode on file', str_contains($djs, "toggleClass('d-none', !response.data.barcode)"));
+// a short page used to stop mid-screen and leave bare background under the footer
+check('the footer sits at the bottom of a short page', str_contains($css, 'body.dark-bg-main > .tl-footer') && str_contains($css, 'top: 100vh'));
+foreach (['.payment-btn', '.deposite-box .d-box', '.white-box'] as $sel) {
+    // each of these is background:#fff in style.css; tl-ui.css loads after it
+    check("$sel is repainted dark", (bool) preg_match('/' . preg_quote($sel, '/') . ' \{[^}]*var\(--tl-surface\)/', $css));
+}
+// dark-on-dark labels made the withdraw form unreadable
+check('bootstrap ink utilities are re-inked inside the modal', str_contains($css, '.l-modal .text-dark'));
+
 echo "== admin chrome ==
 ";
 // mdi-cash-plus and mdi-cash-minus are not in this icon build and rendered as
@@ -165,6 +205,22 @@ foreach ($adminviews as $v) {
 }
 check('every admin mdi icon exists' . ($missing ? ' (' . implode(', ', $missing) . ')' : ''), $missing === []);
 $theme = file_get_contents(__DIR__ . '/../aviatoradmin/assets/css/turbo-theme.css');
+// the vendor sheet paints the sidebar <li> #ffffff on .active, so the theme's
+// translucent red tint came out pale pink with an unreadable label
+check('the active sidebar row is not left on the vendor white',
+    (bool) preg_match('/\.sidebar \.nav \.nav-item\.active,\s*\.sidebar \.nav \.nav-item:hover \{\s*background: transparent/', $theme));
+// misc.js matches the last path segment, and the profile links to the dashboard
+check('the profile row is not styled as a menu selection', str_contains($theme, '.nav-item.nav-profile.active > .nav-link'));
+$misc = file_get_contents(__DIR__ . '/../aviatoradmin/assets/js/misc.js');
+// $.cookie registers through AMD here, so this threw on every admin page load
+// the note left behind names both, so look for the calls, not the words
+check('the dead pro-banner block is gone from misc.js',
+    !str_contains($misc, '$.cookie(') && !str_contains($misc, "'#proBanner'"));
+$adminhead = file_get_contents(__DIR__ . '/../laravel/resources/views/include/admin/head.blade.php');
+preg_match_all("/asset\('([^']+)'\)/", $adminhead, $assets);
+foreach (array_unique($assets[1]) as $asset) {
+    check("admin head asset $asset exists", is_file(__DIR__ . '/../' . $asset));
+}
 // one palette across both surfaces, or they stop looking like one product
 foreach (['#e50539' => 'crimson', '#ffb020' => 'amber', '#14c46a' => 'green'] as $hex => $name) {
     check("admin shares the site $name ($hex)", str_contains($theme, $hex) && str_contains($css, $hex));

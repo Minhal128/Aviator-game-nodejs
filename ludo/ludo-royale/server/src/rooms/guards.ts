@@ -47,12 +47,16 @@ export function allowEmote(meta: ClientMeta, now: number): boolean {
 // ---------------------------------------------------------------------------
 
 const DEVICE_ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
+/** Site wallet bind: `tl` + Laravel user id (may be shorter than 8). */
+const SITE_DEVICE_ID_RE = /^tl\d{1,18}$/;
 const MAX_NAME_LENGTH = 14;
 /** ASCII symbols that could leak into markup or logs verbatim. */
 const NAME_BANNED_ASCII = '<>&"' + "'" + '`' + String.fromCharCode(92);
 
 export function readDeviceId(raw: unknown): string | null {
-  return typeof raw === 'string' && DEVICE_ID_RE.test(raw) ? raw : null;
+  if (typeof raw !== 'string') return null;
+  if (SITE_DEVICE_ID_RE.test(raw)) return raw;
+  return DEVICE_ID_RE.test(raw) ? raw : null;
 }
 
 /**

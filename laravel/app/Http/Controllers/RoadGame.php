@@ -22,8 +22,6 @@ class RoadGame extends Controller
 {
     private const HOUSE_PCT = 30.0;
     private const RTP = (100.0 - self::HOUSE_PCT) / 100.0;
-    private const MIN_BET = 1;
-    private const MAX_BET = 50;
 
     /** baseSurvival/decay/maxSteps per difficulty, mirroring GAME_MODES in math.js */
     public const MODES = [
@@ -90,8 +88,10 @@ class RoadGame extends Controller
             return response()->json(['isSuccess' => false, 'message' => 'Unknown difficulty']);
         }
         $bet = round((float) $r->bet, 2);
-        if ($bet < self::MIN_BET || $bet > self::MAX_BET) {
-            return response()->json(['isSuccess' => false, 'message' => 'Bet must be ' . self::MIN_BET . '-' . self::MAX_BET]);
+        $minBet = (float) setting('min_bet_amount');
+        $maxBet = (float) setting('max_bet_amount');
+        if ($bet < $minBet || $bet > $maxBet) {
+            return response()->json(['isSuccess' => false, 'message' => 'Bet must be ' . $minBet . '-' . $maxBet]);
         }
         $userId = (int) user('id');
         if (wallet($userId, 'num') < $bet) {

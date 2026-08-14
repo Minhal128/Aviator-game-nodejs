@@ -59,7 +59,7 @@
  "useWild": true,
  "useWildInFirstPosition": false,
  "useLineBetMultiplier": true,
- "lineBetMaxValue": 20,
+ "lineBetMaxValue": 124,
  "payLines": [
   {
    "line": [

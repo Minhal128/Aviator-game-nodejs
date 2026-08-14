@@ -1,14 +1,11 @@
 /**
- * /api/v1/matches - offline (vs CPU) progression. Local play has no server
- * match record (Sec 6.2 covers ONLINE only), so the client reports a finished
- * vs-CPU match here to credit coins + XP by placement - which is what levels
- * the player up. Pass&play (many humans on one device) earns nothing: there is
- * no single owner. Amounts are settings-driven (admin-editable) with sane
- * defaults; the /local-result bucket is rate-limited like the other claim
- * endpoints, and a match takes minutes to reach an end, so it self-throttles.
+ * /api/v1/matches - offline (vs CPU) progression + public stake tiers.
  */
 import { Router } from 'express';
+import { asc, eq } from 'drizzle-orm';
 import { z } from 'zod';
+import type { Db } from '../db/client.js';
+import { lrRoomTiers } from '../db/schema.js';
 import { authedUserId, requireAuth } from '../middleware/auth.js';
 import type { AuthService } from '../services/AuthService.js';
 import type { SettingsService } from '../services/SettingsService.js';
@@ -28,8 +25,32 @@ export function createMatchesRouter(
   settings: SettingsService,
   wallet: WalletService,
   xp: XpService,
+  db: Db,
 ): Router {
   const router = Router();
+
+  // Cash stakes for Play Online (1 coin = ₹1 on the Turbo Legends wallet).
+  router.get('/tiers', async (_req, res) => {
+    const rows = await db
+      .select({
+        id: lrRoomTiers.id,
+        name: lrRoomTiers.name,
+        entryFeeCoins: lrRoomTiers.entryFeeCoins,
+        minLevel: lrRoomTiers.minLevel,
+        sortOrder: lrRoomTiers.sortOrder,
+      })
+      .from(lrRoomTiers)
+      .where(eq(lrRoomTiers.isActive, true))
+      .orderBy(asc(lrRoomTiers.sortOrder));
+    res.json({
+      tiers: rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        entryFee: r.entryFeeCoins,
+        minLevel: r.minLevel,
+      })),
+    });
+  });
 
   router.post('/local-result', requireAuth(auth), async (req, res) => {
     const userId = authedUserId(req);

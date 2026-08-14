@@ -43,6 +43,7 @@ import type { MailService } from './MailService.js';
 import type { MissionService } from './MissionService.js';
 import { utcDayStart } from './period.js';
 import type { SettingsService } from './SettingsService.js';
+import { SiteWallet, siteUserIdFor, siteWalletEnabled } from './SiteWallet.js';
 import type { WalletService } from './WalletService.js';
 import type { XpService } from './XpService.js';
 
@@ -143,6 +144,64 @@ export class MatchService {
     }
     const fee = tier?.entryFeeCoins ?? 0;
     const payers = fee > 0 ? [...userBySeat.values()] : [];
+    const site = fee > 0 && siteWalletEnabled() ? SiteWallet.fromEnv() : null;
+
+    // Site wallet: open the match row, then debit Laravel (1 coin = ₹1).
+    // No free-fallback — broke players cannot open a cash table.
+    if (site && fee > 0) {
+      const siteByLr = new Map<number, number>();
+      for (const lrId of payers) {
+        const sid = await siteUserIdFor(this.db, lrId);
+        if (!sid) {
+          throw new ApiError(409, API_ERR.INSUFFICIENT_FUNDS, 'site wallet required');
+        }
+        siteByLr.set(lrId, sid);
+      }
+
+      const matchId = await this.db.transaction(async (tx) => {
+        const [header] = await tx.insert(lrMatches).values({
+          mode: input.mode,
+          type: input.type,
+          tierId: tier?.id ?? input.tierId ?? null,
+          roomId: input.roomId ?? null,
+          privateCode: input.privateCode ?? null,
+          maxPlayers: input.maxPlayers,
+          entryFee: fee,
+          pot: fee * payers.length,
+          state: 'playing',
+          startedAt: now,
+          createdAt: now,
+        });
+        return header.insertId;
+      });
+
+      const charged: Array<{ sid: number; lrId: number }> = [];
+      try {
+        for (const lrId of payers) {
+          const sid = siteByLr.get(lrId)!;
+          await site.debit(sid, fee, `ludo_entry_${matchId}_${lrId}`);
+          charged.push({ sid, lrId });
+        }
+      } catch (err) {
+        for (const c of charged) {
+          await site.credit(c.sid, fee, `ludo_entry_refund_${matchId}_${c.lrId}`).catch(() => null);
+        }
+        await this.db
+          .update(lrMatches)
+          .set({ state: 'aborted', endedAt: now })
+          .where(eq(lrMatches.id, matchId));
+        throw err;
+      }
+
+      return {
+        matchId,
+        entryFee: fee,
+        pot: fee * payers.length,
+        tierId: tier?.id ?? input.tierId ?? null,
+        userBySeat,
+        usedFreeFallback: false,
+      };
+    }
 
     const open = (feeCharged: number): Promise<number> =>
       this.db.transaction(async (tx) => {
@@ -218,6 +277,7 @@ export class MatchService {
     const firstWinMailOn = await settings.getBool('first_win_mail_enabled', true);
     const firstWinCoins = await settings.getInt('first_win_mail_coins', 250);
     const prizeMultipliers = await this.prizeMultipliers(input);
+    const site = siteWalletEnabled() ? SiteWallet.fromEnv() : null;
 
     // Pure payout math first, so lr_match_players rows carry final numbers.
     const lines = input.seats.map((seat) => {
@@ -232,7 +292,7 @@ export class MatchService {
     });
 
     try {
-      return await this.db.transaction(async (tx) => {
+      const rewardLines = await this.db.transaction(async (tx) => {
         // 1) Settle dedupe — UNIQUE(match_id, seat) guards the whole payout.
         await tx.insert(lrMatchPlayers).values(
           lines.map(({ seat, xpEarned, coinsDelta }) => ({
@@ -284,7 +344,7 @@ export class MatchService {
           if (seat.isBot || seat.userId === undefined) continue;
           const userId = seat.userId;
 
-          if (line.prize > 0) {
+          if (line.prize > 0 && !site) {
             await wallet.creditIn(
               tx, userId, 'coins', line.prize, 'match_prize', 'match', input.matchId,
             );
@@ -356,6 +416,17 @@ export class MatchService {
           xpEarned,
         }));
       });
+
+      // Site prizes after the settle tx commits (idempotent refs).
+      if (site) {
+        for (const line of lines) {
+          if (line.prize <= 0 || line.seat.isBot || line.seat.userId === undefined) continue;
+          const sid = await siteUserIdFor(this.db, line.seat.userId);
+          if (!sid) continue;
+          await site.credit(sid, line.prize, `ludo_prize_${input.matchId}_${line.seat.userId}`);
+        }
+      }
+      return rewardLines;
     } catch (err) {
       if (isDuplicateKeyError(err)) return null; // already settled — never re-pay
       throw err;

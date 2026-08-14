@@ -134,6 +134,154 @@ function info_data(intialData) {
 
 var main_counter = 0;
 var extra_counter = 0;
+function parseWalletNum() {
+    return parseFloat(String($("#wallet_balance").text()).replace(/[^\d.-]/g, '')) || 0;
+}
+
+function setWalletText(num) {
+    var txt = currency_symbol + parseFloat(num).toFixed(2);
+    $("#wallet_balance").text(txt);
+    $("#header_wallet_balance").text(txt);
+}
+
+function showCashoutToast(section_no, mult, paid) {
+    var $box = $(".custom-toaster");
+    if ($box.parent()[0] !== document.body) $box.appendTo(document.body);
+    var $t = section_no == 0 ? $(".cashout-toaster1") : $(".cashout-toaster2");
+    $t.find(".stop-number").html(parseFloat(mult).toFixed(2) + 'x');
+    $t.find(".out-amount").html(parseFloat(paid).toFixed(2) + currency_symbol);
+    $t.addClass('show');
+    if (section_no == 0) firstToastr();
+    else secondToastr();
+    cashoutCoinBurst($t);
+}
+
+// ponytail: CSS particles toward wallet — no canvas lib
+function cashoutCoinBurst($from) {
+    var $wb = $(".wallet-balance").first();
+    if (!$from.length || !$wb.length) return;
+    var a = $from[0].getBoundingClientRect();
+    var b = $wb[0].getBoundingClientRect();
+    var sx = a.left + a.width / 2;
+    var sy = a.top + a.height / 2;
+    var ex = b.left + b.width / 2;
+    var ey = b.top + b.height / 2;
+    for (var i = 0; i < 10; i++) {
+        (function (n) {
+            var el = document.createElement('span');
+            el.className = 'coin-burst';
+            el.textContent = '₹';
+            el.style.left = sx + 'px';
+            el.style.top = sy + 'px';
+            var jx = (Math.random() - 0.5) * 80;
+            var jy = (Math.random() - 0.5) * 40;
+            el.style.setProperty('--dx', (ex - sx + jx) + 'px');
+            el.style.setProperty('--dy', (ey - sy + jy) + 'px');
+            el.style.animationDelay = (n * 30) + 'ms';
+            document.body.appendChild(el);
+            setTimeout(function () { el.remove(); }, 900);
+        })(i);
+    }
+}
+
+/** Live-hide cashout when tick forfeits this user's unaffordable bet */
+function hideSectionAfterForfeit(section_no) {
+    var sec = section_no == 0 ? 'main_bet_section' : 'extra_bet_section';
+    var $s = $('#' + sec);
+    $s.find('#cashout_button').hide();
+    $s.find('#cancle_button').hide();
+    $s.find('#cancle_button #waiting').hide();
+    $s.find('#bet_button').show();
+    $s.find('.controls').removeClass('bet-border-yellow bet-border-red');
+    if (typeof bet_array !== 'undefined') {
+        bet_array = bet_array.filter(function (b) {
+            return !b || b.section_no != section_no;
+        });
+    }
+    if (section_no == 0) {
+        $(".main_bet_amount").prop('disabled', false);
+        $("#main_plus_btn, #main_minus_btn, .main_amount_btn, #main_checkout, #main_auto_bet").prop('disabled', false);
+    } else {
+        $(".extra_bet_amount").prop('disabled', false);
+        $("#extra_plus_btn, #extra_minus_btn, .extra_amount_btn, #extra_checkout, #extra_auto_bet").prop('disabled', false);
+    }
+}
+
+function applyTickForfeits(tick) {
+    if (!tick || !tick.forfeited || !tick.forfeited.length) return;
+    var uid = parseInt(member_id, 10);
+    for (var i = 0; i < tick.forfeited.length; i++) {
+        var f = tick.forfeited[i];
+        if (parseInt(f.userid, 10) !== uid) continue;
+        hideSectionAfterForfeit(f.section_no);
+    }
+}
+
+// ponytail: count-up + flying +chip; no lib
+function applyWalletCredit(addAmt, finalBal) {
+    var from = parseWalletNum();
+    var add = parseFloat(addAmt) || 0;
+    var to = (finalBal !== undefined && finalBal !== null && finalBal !== '' && !isNaN(finalBal))
+        ? parseFloat(finalBal)
+        : from + add;
+    var $wb = $(".wallet-balance").first();
+    if ($wb.length && add > 0) {
+        $wb.find(".wallet-credit-chip, .wallet-debit-chip").remove();
+        $wb.append('<span class="wallet-credit-chip">+' + add.toFixed(2) + currency_symbol + '</span>');
+        $wb.addClass('wallet-credit-pulse');
+        setTimeout(function () {
+            $wb.removeClass('wallet-credit-pulse');
+            $wb.find(".wallet-credit-chip").remove();
+        }, 900);
+    }
+    var start = performance.now();
+    var dur = 450;
+    function tick(now) {
+        var t = Math.min(1, (now - start) / dur);
+        setWalletText(from + (to - from) * t);
+        if (t < 1) requestAnimationFrame(tick);
+        else setWalletText(to);
+    }
+    requestAnimationFrame(tick);
+}
+
+function applyWalletDebit(amt) {
+    var from = parseWalletNum();
+    var sub = parseFloat(amt) || 0;
+    var to = Math.max(0, from - sub);
+    var $wb = $(".wallet-balance").first();
+    if ($wb.length && sub > 0) {
+        $wb.find(".wallet-credit-chip, .wallet-debit-chip").remove();
+        $wb.append('<span class="wallet-debit-chip">-' + sub.toFixed(2) + currency_symbol + '</span>');
+        $wb.addClass('wallet-debit-pulse');
+        setTimeout(function () {
+            $wb.removeClass('wallet-debit-pulse');
+            $wb.find(".wallet-debit-chip").remove();
+        }, 900);
+    }
+    var start = performance.now();
+    var dur = 450;
+    function tick(now) {
+        var t = Math.min(1, (now - start) / dur);
+        setWalletText(from + (to - from) * t);
+        if (t < 1) requestAnimationFrame(tick);
+        else setWalletText(to);
+    }
+    requestAnimationFrame(tick);
+}
+
+function showBetToast(amt) {
+    var $box = $(".custom-toaster");
+    if ($box.parent()[0] !== document.body) $box.appendTo(document.body);
+    $(".bet-toaster .out-amount").html(parseFloat(amt).toFixed(2) + currency_symbol);
+    $(".bet-toaster").addClass('show');
+    if (window._betToastTimer) clearTimeout(window._betToastTimer);
+    window._betToastTimer = setTimeout(function () {
+        $(".bet-toaster").removeClass('show');
+        window._betToastTimer = null;
+    }, 2500);
+}
+
 function cash_out_now(element, section_no, increment = '') {
 
     if (section_no == 0) {
@@ -181,11 +329,20 @@ function cash_out_now(element, section_no, increment = '') {
         bet_id = $("#extra_bet_id").val();
         var bet_amount = $("#extra_bet_section #bet_amount").val();
     }
+    // prefer bet_array id (survives the old swapped-hidden-input bug)
+    for (var bi = 0; bi < bet_array.length; bi++) {
+        if (bet_array[bi] && bet_array[bi].section_no == section_no && bet_array[bi].bet_id) {
+            bet_id = bet_array[bi].bet_id;
+            if (bet_array[bi].bet_amount) bet_amount = bet_array[bi].bet_amount;
+            break;
+        }
+    }
     // let incrementor = $("#auto_increment_number").text().slice(0,-1);
     game_id = (current_game_data && current_game_data.id) ? current_game_data.id : current_game_data;
 
-    // ponytail: always bet × mult (currency was "₹" so old /80 made 71.38 from 1000×5.71)
+    // ponytail: no optimistic credit — lobby was showing real DB (bets gone, win never saved)
     var amt = parseFloat(parseFloat(incrementor) * parseFloat(bet_amount)).toFixed(2);
+    var walletBefore = parseWalletNum();
 
     $('#all_bets .mCSB_container .bet_id_' + member_id + section_no + '').addClass('active');
     $('#all_bets .mCSB_container .bet_id_' + member_id + section_no + ' .column-3').html('<div class="' + get_multiplier_badge_class(incrementor) + ' custom-badge mx-auto">' + incrementor + 'x</div>');
@@ -248,24 +405,8 @@ function cash_out_now(element, section_no, increment = '') {
             if (result.isSuccess) {
                 var paid = result.data.cash_out_amount;
                 var wonMult = result.data.multiplier != null ? result.data.multiplier : incrementor;
-                if (section_no == 0) {
-                    $(".cashout-toaster1 .stop-number").html(wonMult + 'x');
-                    $(".cashout-toaster1 .out-amount").html(paid + currency_symbol);
-                    $(".cashout-toaster1").addClass('show');
-                    firstToastr();
-                } else {
-                    $(".cashout-toaster2 .stop-number").html(wonMult + 'x');
-                    $(".cashout-toaster2 .out-amount").html(paid + currency_symbol);
-                    $(".cashout-toaster2").addClass('show');
-                    secondToastr();
-                }
-                if (result.data.wallet_balance != '' && result.data.wallet_balance != NaN && result.data.wallet_balance != 'NaN') {
-                    $("#wallet_balance").text(currency_symbol + result.data.wallet_balance);
-                    $("#header_wallet_balance").text(currency_symbol + result.data.wallet_balance);
-                } else {
-                    $("#wallet_balance").text(currency_symbol + '0.00');
-                    $("#header_wallet_balance").text(currency_symbol + '0.00');
-                }
+                showCashoutToast(section_no, wonMult, paid);
+                applyWalletCredit(paid, result.data.wallet_balance);
                 if (section_no == 0) {
                     $("#main_bet_section").find("#bet_button").show();
                     $("#main_bet_section").find("#cancle_button").hide();
@@ -321,15 +462,26 @@ function cash_out_now(element, section_no, increment = '') {
                     $("#extra_auto_bet").prop('disabled', false);
 
                 }
-            } else if (!(result.data && (result.data.crashed || result.data.silent)) && result.message) {
-                $(".error-toaster1 .msg").html(result.message);
-                $(".error-toaster1").addClass('show');
-                errorToastr();
+            } else {
+                setWalletText(walletBefore);
+                $(".cashout-toaster1, .cashout-toaster2").removeClass('show');
+                if (result.data && result.data.bet_lost) {
+                    hideSectionAfterForfeit(section_no);
+                }
+                if (!(result.data && (result.data.crashed || result.data.silent || result.data.bet_lost)) && result.message) {
+                    $(".error-toaster1 .msg").html(result.message);
+                    $(".error-toaster1").addClass('show');
+                    errorToastr();
+                }
             }
             if (result.data && result.data.crashed && typeof end_flight_crash === 'function') {
                 var cm = result.data.multiplier ? parseFloat(result.data.multiplier).toFixed(2) : $("#auto_increment_number").text().slice(0, -1);
                 setTimeout(function () { end_flight_crash(cm); }, result.isSuccess ? 400 : 0);
             }
+        },
+        error: function () {
+            setWalletText(walletBefore);
+            $(".cashout-toaster1, .cashout-toaster2").removeClass('show');
         }
     });
 }
@@ -879,6 +1031,16 @@ function bet_now(element, section_no) {
         $(element).parent().parent().find(".bet-block .spinner #bet_amount").val(bet_amount);
 
         if (bet_amount >= min_bet_amount && bet_amount <= max_bet_amount) {
+            var amtNum = parseFloat(bet_amount);
+            if (parseWalletNum() < amtNum) {
+                $(".error-toaster1 .msg").html('Insufficient fund!!');
+                $(".error-toaster1").addClass('show');
+                errorToastr();
+                if (section_no == 0) $("#main_bet_section .controls").removeClass('bet-border-red');
+                else $("#extra_bet_section .controls").removeClass('bet-border-red');
+                return;
+            }
+
             $(element).parent().parent().find("#bet_button").hide();
             $(element).parent().parent().find("#cancle_button").show();
             $(element).parent().parent().find("#cancle_button #waiting").show();
@@ -889,7 +1051,10 @@ function bet_now(element, section_no) {
                 }, 500);
             }
             
-            bet_array.push({ bet_type: bet_type, bet_amount: bet_amount, section_no: section_no });
+            bet_array.push({ bet_type: bet_type, bet_amount: bet_amount, section_no: section_no, reserved: true });
+            applyWalletDebit(amtNum);
+            showBetToast(amtNum);
+            if (typeof updateWaitingText === 'function') updateWaitingText();
         }
     }
 }
@@ -907,22 +1072,21 @@ function cancle_now(element, section_no) {
             $("#extra_bet_section .controls").removeClass('bet-border-red');
         }
 
-        if (bet_array.length == 1) {
-            bet_array = [];
-        } 
-        if (bet_array.length == 2 && section_no == 0) {
-            if (bet_array[0].section_no == 0) {
-                bet_array.splice(0, 1); // Remove Perticular Bet
-            } 
-            if (bet_array[0].section_no == 1) {
-                bet_array.splice(1, 1); // Remove Perticular Bet
+        var refund = 0;
+        for (var i = 0; i < bet_array.length; i++) {
+            if (bet_array[i] && bet_array[i].section_no == section_no) {
+                refund = parseFloat(bet_array[i].bet_amount) || 0;
+                break;
             }
         }
+        bet_array = bet_array.filter(function (b) { return !b || b.section_no != section_no; });
 
         // delete bet_array[section_no];
         $(element).parent().parent().find("#bet_button").show();
         $(element).parent().parent().find("#cancle_button").hide();
         $(element).parent().parent().find("#cancle_button #waiting").hide();
+        if (refund > 0) applyWalletCredit(refund);
+        if (typeof updateWaitingText === 'function') updateWaitingText();
     }
 }
 
@@ -943,11 +1107,9 @@ function place_bet_now(done) {
             if (result.isSuccess) {
 
                 if (result.data.wallet_balance != '' && result.data.wallet_balance != NaN && result.data.wallet_balance != 'NaN') {
-                    $("#wallet_balance").text(currency_symbol + result.data.wallet_balance);
-                    $("#header_wallet_balance").text(currency_symbol + result.data.wallet_balance); // Show Header Wallet Balance
+                    setWalletText(String(result.data.wallet_balance).replace(/,/g, ''));
                 } else {
-                    $("#wallet_balance").text(currency_symbol + '0.00');
-                    $("#header_wallet_balance").text(currency_symbol + '0.00'); // Show Header Wallet Balance
+                    setWalletText(0);
                 }
 
                 if (bet_array.length == 1) {
@@ -963,39 +1125,32 @@ function place_bet_now(done) {
 
                 if (bet_array.length == 1 && bet_array[0].section_no == 0) {
                     bet_array[0].is_bet = 1;
+                    bet_array[0].bet_id = result.data.return_bets[0].bet_id;
                     enableDisable('main_bet_section');
                     $("#main_bet_id").val(result.data.return_bets[0].bet_id);
                 }
 
                 if (bet_array.length == 1 && bet_array[0].section_no == 1) {
                     bet_array[0].is_bet = 1;
+                    bet_array[0].bet_id = result.data.return_bets[0].bet_id;
                     enableDisable('extra_bet_section');
                     $("#extra_bet_id").val(result.data.return_bets[0].bet_id);
                 }
 
                 if (bet_array.length == 2) {
-
-                    if (bet_array[0].section_no == 0) {
-                        $("#main_bet_id").val(result.data.return_bets[0].bet_id);
-                        $("#extra_bet_id").val(result.data.return_bets[1].bet_id);
-                    bet_array[0].is_bet = 1;
-                    }
-
-                    if (bet_array[0].section_no == 1) {
-                        $("#main_bet_id").val(result.data.return_bets[1].bet_id);
-                        $("#extra_bet_id").val(result.data.return_bets[0].bet_id);
-                    bet_array[0].is_bet = 1;
-                    }
-                    if (bet_array[1].section_no == 0) {
-                        $("#main_bet_id").val(result.data.return_bets[0].bet_id);
-                        $("#extra_bet_id").val(result.data.return_bets[1].bet_id);
-                    bet_array[1].is_bet = 1;
-                    }
-
-                    if (bet_array[1].section_no == 1) {
-                        $("#main_bet_id").val(result.data.return_bets[1].bet_id);
-                        $("#extra_bet_id").val(result.data.return_bets[0].bet_id);
-                    bet_array[1].is_bet = 1;
+                    // ponytail: return_bets[i] matches bet_array[i] order — old if-blocks swapped ids
+                    // when section0 then section1 (main got 700's id → cashout 300 hit forfeited 700)
+                    for (var bi = 0; bi < bet_array.length; bi++) {
+                        if (!result.data.return_bets[bi]) continue;
+                        bet_array[bi].is_bet = 1;
+                        bet_array[bi].bet_id = result.data.return_bets[bi].bet_id;
+                        if (bet_array[bi].section_no == 0) {
+                            enableDisable('main_bet_section');
+                            $("#main_bet_id").val(result.data.return_bets[bi].bet_id);
+                        } else {
+                            enableDisable('extra_bet_section');
+                            $("#extra_bet_id").val(result.data.return_bets[bi].bet_id);
+                        }
                     }
                 }
                 // ensure Cash Out shows once bet is confirmed (race with lets_fly)
@@ -1004,6 +1159,15 @@ function place_bet_now(done) {
                 $(".error-toaster1 .msg").html(result.message);
                 $(".error-toaster1").addClass('show');
                 errorToastr();
+
+                // refund client-side reserved bets
+                var refundAll = 0;
+                for (var ri = 0; ri < bet_array.length; ri++) {
+                    if (bet_array[ri] && bet_array[ri].reserved) {
+                        refundAll += parseFloat(bet_array[ri].bet_amount) || 0;
+                    }
+                }
+                if (refundAll > 0) applyWalletCredit(refundAll);
 
                 $("#main_bet_section").find("#bet_button").show();
                 $("#main_bet_section").find("#cancle_button").hide();
@@ -1055,27 +1219,19 @@ function place_bet_now(done) {
 }
 
 function firstToastr() {
-    let first_no = 1;
-    var success_toast1 = setInterval(function () {
-        if (first_no < 3) {
-            first_no++;
-        } else {
-            $(".cashout-toaster1").removeClass('show');
-            clearInterval(success_toast1);
-        }
-    }, 1000); // for every second
+    if (window._cashoutToast1) clearTimeout(window._cashoutToast1);
+    window._cashoutToast1 = setTimeout(function () {
+        $(".cashout-toaster1").removeClass('show');
+        window._cashoutToast1 = null;
+    }, 5000);
 }
 
 function secondToastr() {
-    let second_no = 1;
-    var success_toast2 = setInterval(function () {
-        if (second_no < 3) {
-            second_no++;
-        } else {
-            $(".cashout-toaster2").removeClass('show');
-            clearInterval(success_toast2);
-        }
-    }, 1000); // for every second
+    if (window._cashoutToast2) clearTimeout(window._cashoutToast2);
+    window._cashoutToast2 = setTimeout(function () {
+        $(".cashout-toaster2").removeClass('show');
+        window._cashoutToast2 = null;
+    }, 5000);
 }
 
 function errorToastr() {

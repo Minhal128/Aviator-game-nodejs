@@ -10,7 +10,7 @@ import { authedUserId, requireAuth } from '../middleware/auth.js';
 
 const guestSchema = z.object({
   /** Device UUID from the client (§7.1 lr_users.device_id). */
-  deviceId: z.string().min(8).max(64).regex(/^[A-Za-z0-9_-]+$/),
+  deviceId: z.string().min(3).max(64).regex(/^[A-Za-z0-9_-]+$/),
   /** Optional display name; falls back to Player_xxxxx when absent/invalid. */
   name: z.string().max(24).optional(),
 });
@@ -39,6 +39,12 @@ export function createAuthRouter(auth: AuthService): Router {
 
   router.post('/guest', async (req, res) => {
     const body = guestSchema.parse(req.body);
+    // Laravel proxy stamps X-TL-User-Id so this guest maps to the site wallet
+    const hdr = req.headers['x-tl-user-id'];
+    const siteId = typeof hdr === 'string' ? Number(hdr) : NaN;
+    if (Number.isSafeInteger(siteId) && siteId > 0) {
+      body.deviceId = `tl${siteId}`;
+    }
     const { user, tokens, created } = await auth.guestLogin(body, requestContext(req));
     res.status(created ? 201 : 200).json({ ...tokens, user, created });
   });

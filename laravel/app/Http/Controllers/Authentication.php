@@ -69,8 +69,17 @@ class Authentication extends Controller
                         $afterregisterdata = User::where('email', $r->email)->orderBy('id', 'desc')->first();
                         if ($afterregisterdata) {
                             $wallet->userid = $afterregisterdata->id;
-                            $wallet->amount = setting('initial_bonus');
+                            $bonus = (float) setting('referral_bonus');
+                            $wallet->amount = $bonus;
                             if ($wallet->save()) {
+                                if ($bonus > 0) {
+                                    addtransaction($afterregisterdata->id, 'Referral', date('ydmhsi'), 'credit', $bonus, 'referral_bonus', 'Referral signup bonus', '1');
+                                }
+                                $referrerBonus = (float) setting('referrer_bonus');
+                                if ($referrerBonus > 0) {
+                                    addwallet($existpromocode->id, $referrerBonus, '+');
+                                    addtransaction($existpromocode->id, 'Referral', date('ydmhsi'), 'credit', $referrerBonus, 'referrer_bonus', 'Referrer reward', '1');
+                                }
                                 $data = array("username" => $afterregisterdata->email, "password" => $r->password, "token" => csrf_token());
                                 $isSuccess = true;
                             }

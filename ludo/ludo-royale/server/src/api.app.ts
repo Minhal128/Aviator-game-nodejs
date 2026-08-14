@@ -41,6 +41,7 @@ import type { ShopService } from './services/ShopService.js';
 import type { WalletService } from './services/WalletService.js';
 import { WheelService } from './services/WheelService.js';
 import type { XpService } from './services/XpService.js';
+import { enterStampedSiteBalance } from './services/SiteWallet.js';
 
 export interface ApiAppOptions {
   db: Db;
@@ -115,6 +116,14 @@ export function createApiApp(options: ApiAppOptions): { app: Express; services: 
 
   app.use(express.json({ limit: '100kb' }));
 
+  // Laravel proxy may stamp X-TL-Wallet-Balance to avoid Node→Laravel re-entry.
+  app.use((req, _res, next) => {
+    const raw = req.headers['x-tl-wallet-balance'];
+    const n = typeof raw === 'string' ? Number(raw) : NaN;
+    enterStampedSiteBalance(Number.isFinite(n) ? n : null);
+    next();
+  });
+
   // Health first and unthrottled — the installer and PM2 probe it (§8.1).
   app.get('/api/health', async (_req, res) => {
     let dbOk = false;
@@ -155,7 +164,7 @@ export function createApiApp(options: ApiAppOptions): { app: Express; services: 
   app.use('/api/v1/mail', createMailRouter(auth, core.mail));
   app.use('/api/v1/wheel', createWheelRouter(auth, wheel));
   app.use('/api/v1/friends', createFriendsRouter(auth, core.friends));
-  app.use('/api/v1/matches', createMatchesRouter(auth, core.settings, core.wallet, core.xp));
+  app.use('/api/v1/matches', createMatchesRouter(auth, core.settings, core.wallet, core.xp, db));
 
   app.use((_req, res) => {
     res.status(404).json({ error: { code: API_ERR.NOT_FOUND, message: 'not found' } });

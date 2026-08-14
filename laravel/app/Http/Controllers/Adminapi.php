@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Bankdetail;
 use App\Models\Bank_detail;
+use App\Models\Gameresult;
 use App\Models\Setting;
 use App\Models\Transaction;
 use App\Models\User;
@@ -12,6 +13,9 @@ use App\Models\Wallet;
 use App\Services\PoolCrashEngine;
 use Hash;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Schema\Blueprint;
 
 class Adminapi extends Controller
 {
@@ -51,12 +55,26 @@ class Adminapi extends Controller
         }
         return response()->json($response);
     }
+    /**
+     * Credits a deposit request after the admin has looked at the screenshot.
+     *
+     * Amount and owner come from the stored row, not the posted form, and the row
+     * is claimed with a where(status 0) before any money moves - approving twice
+     * used to credit twice.
+     * ponytail: the claim is a single conditional UPDATE, which is enough for one
+     * operator; wrap the claim and the credit in a transaction if it ever grows to
+     * several admins clicking at once.
+     */
     public function rechargeapproval($event, Request $r)
     {
         $response = array('status' => 0, 'title' => "Oops!!", 'message' => "Invalid Action!");
         $id = $r->id;
-        $userid = $r->userid;
-        $amount = $r->amount;
+        $pending = Transaction::where('id', $id)->where('category', 'recharge')->where('status', '0')->first();
+        if (!$pending) {
+            return response()->json(array('status' => 0, 'title' => "Already handled", 'message' => "That request is no longer pending."));
+        }
+        $userid = $pending->userid;
+        $amount = (float) $pending->amount;
         if ($event == 'success') {
             $firstrecharge = Transaction::where('id', $userid)->where('category', 'recharge')->where('status','0')->get();
             if (count($firstrecharge) == 0) {
@@ -82,42 +100,61 @@ class Adminapi extends Controller
                     }
                 }
             }
-            $data = Transaction::where('id', $id)->update([
-                "remark" => 'Success',
-                "status" => '1',
-            ]);
+            if (!Transaction::where('id', $id)->where('status', '0')->update(["remark" => 'Success', "status" => '1'])) {
+                return response()->json(array('status' => 0, 'title' => "Already handled", 'message' => "That request is no longer pending."));
+            }
             addwallet($userid, $amount);
-            $response = array('status' => 1, 'title' => "Success!!", 'message' => "Recharge successfully updated!");
+            $response = array('status' => 1, 'title' => "Success!!", 'message' => "Deposit approved, " . $amount . " credited.");
 
         } elseif ($event == 'cancel') {
-            $data = Transaction::where('id', $id)->update([
+            Transaction::where('id', $id)->where('status', '0')->update([
                 "remark" => 'Cancle payment due to some issue',
                 "status" => '2',
             ]);
-            $response = array('status' => 1, 'title' => "Success!!", 'message' => "Recharge successfully updated!");
+            $response = array('status' => 1, 'title' => "Success!!", 'message' => "Deposit request rejected, nothing credited.");
         }
         return response()->json($response);
     }
+    /**
+     * Approving a withdrawal is what debits the wallet - the admin has just paid
+     * the player by hand, so the money leaves here and not when they asked.
+     *
+     * That means the balance has to be re-checked: between asking and approving the
+     * player can spend it in a game. If it is short, the admin is told to cancel
+     * rather than being allowed to push the wallet negative.
+     *
+     * Cancel does NOT refund, because nothing was ever taken.
+     */
     public function withdrawalapproval($event, Request $r)
     {
         $response = array('status' => 0, 'title' => "Oops!!", 'message' => "Invalid Action!");
         $id = $r->id;
-        $userid = $r->userid;
-        $amount = $r->amount;
+        $pending = Transaction::where('id', $id)->where('category', 'withdraw')->where('status', '0')->first();
+        if (!$pending) {
+            return response()->json(array('status' => 0, 'title' => "Already handled", 'message' => "That request is no longer pending."));
+        }
+        $userid = $pending->userid;
+        $amount = (float) $pending->amount;
         if ($event == 'success') {
-            $data = Transaction::where('id', $id)->update([
+            if ((float) wallet($userid, 'num') < $amount) {
+                return response()->json(array('status' => 0, 'title' => "Not enough balance",
+                    'message' => "This player now holds " . wallet($userid) . " and asked for " . $amount . ". Cancel the request instead."));
+            }
+            if (!Transaction::where('id', $id)->where('status', '0')->update([
                 "transactionno" => 'doltedaviator' . date("dmyhis"),
                 "remark" => 'Success',
                 "status" => '1',
-            ]);
-            $response = array('status' => 1, 'title' => "Success!!", 'message' => "Withdrawal successfully updated!");
+            ])) {
+                return response()->json(array('status' => 0, 'title' => "Already handled", 'message' => "That request is no longer pending."));
+            }
+            addwallet($userid, $amount, '-');
+            $response = array('status' => 1, 'title' => "Success!!", 'message' => "Paid out, " . $amount . " taken from the wallet.");
         } elseif ($event == 'cancel') {
-            $data = Transaction::where('id', $id)->update([
+            Transaction::where('id', $id)->where('status', '0')->update([
                 "remark" => 'Cancle payment due to some issue',
                 "status" => '2',
             ]);
-            addwallet($userid, $amount);
-            $response = array('status' => 1, 'title' => "Success!!", 'message' => "Withdrawal successfully updated!");
+            $response = array('status' => 1, 'title' => "Success!!", 'message' => "Request rejected, the balance was never touched.");
         }
         return response()->json($response);
     }
@@ -133,12 +170,18 @@ class Adminapi extends Controller
     }
     public function payment_gateway(Request $r)
     {
-        $status = false;
-        $message = "Something went wrong!";
-        $detail = Bankdetail::where('id', '1')->first();
-        if ($detail) {
-            $status = true;
-            $data = array(
+        $gw = (string) $r->id;
+        $wantUpi = in_array($gw, ['1', '2', '3'], true);
+        $rows = Bankdetail::orderBy('id')->get()->filter(function ($row) use ($wantUpi) {
+            if ($wantUpi) {
+                return in_array($row->rail, ['upi', 'both'], true) && trim((string) $row->upi_id) !== '';
+            }
+            return in_array($row->rail, ['bank', 'both'], true) && trim((string) $row->account_no) !== '';
+        })->values();
+
+        $map = function ($detail) {
+            return [
+                'id' => (int) $detail->id,
                 'user_name' => $detail->account_holder_name,
                 'mobile_no' => $detail->mobile_no,
                 'upi_id' => $detail->upi_id,
@@ -146,102 +189,221 @@ class Adminapi extends Controller
                 'ifsc_code' => $detail->ifsc_code,
                 'bank_name' => $detail->bank_name,
                 'barcode' => $detail->barcode,
-            );
-            $message = "";
-
-        } else {
-            $status = false;
-            $data = array();
-            $message = "Something wents wrong!";
-        }
-        $response = array("isSuccess" => $status, "data" => $data, "message" => $message);
-        return response()->json($response);
-    }
-
-    public function editamountsetup(Request $r)
-    {
-        $response = array('status' => 0, 'title' => "Error!!", 'message' => "Something wents wrong!");
-        $update = Setting::where('id', $r->id)->update([
-            "category" => $r->settingname,
-            "value" => $r->value,
+            ];
+        };
+        $list = $rows->map($map)->all();
+        $data = $list[0] ?? [];
+        return response()->json([
+            'isSuccess' => count($list) > 0,
+            'data' => $data,
+            'list' => $list,
+            'message' => count($list) > 0 ? '' : 'No payment details configured.',
         ]);
-        if ($update) {
-            $response = array('status' => 1, 'title' => "Success!!", 'message' => "User successfully Deleted!");
-        }
-        return response()->json($response);
     }
 
     public function editbankdetail(Request $r)
     {
-        // return $r->all();
-        $response = array('status' => 0, 'title' => "Error!!", 'message' => "Something wents wrong!");
-        $exist = Bankdetail::where('id', '1')->first();
-        if ($exist) {
+        $this->ensureBankRail();
+        $rail = $r->rail === 'bank' ? 'bank' : 'upi';
+        $id = (int) $r->id;
+        $exist = $id > 0 ? Bankdetail::where('id', $id)->first() : null;
+
+        if ($rail === 'upi') {
+            if (trim((string) $r->upi_id) === '') {
+                return response()->json(['status' => 0, 'title' => 'Oops!!', 'message' => 'UPI ID is required.']);
+            }
+            $barcode = $exist ? (string) $exist->barcode : '';
             if ($r->file('barcode') != '') {
                 $barcode = imageupload($r->file('barcode'), 'barcode', 'admin/bankdetail/')['filePath'];
-            } else {
-                $barcode = $exist->barcode;
+            }
+            $fields = [
+                'rail' => $exist && $exist->rail === 'both' ? 'both' : 'upi',
+                'account_holder_name' => (string) $r->holdername,
+                'mobile_no' => (string) $r->mobile_no,
+                'upi_id' => (string) $r->upi_id,
+                'barcode' => $barcode,
+            ];
+            if (!$exist) {
+                $fields += ['account_no' => '', 'ifsc_code' => '', 'bank_name' => ''];
+            }
+        } else {
+            if (trim((string) $r->account_no) === '' || trim((string) $r->bank_name) === '') {
+                return response()->json(['status' => 0, 'title' => 'Oops!!', 'message' => 'Bank name and account number are required.']);
+            }
+            $fields = [
+                'rail' => $exist && $exist->rail === 'both' ? 'both' : 'bank',
+                'account_holder_name' => (string) $r->holdername,
+                'account_no' => (string) $r->account_no,
+                'ifsc_code' => (string) $r->ifsccode,
+                'bank_name' => (string) $r->bank_name,
+            ];
+            if (!$exist) {
+                $fields += ['mobile_no' => '', 'upi_id' => '', 'barcode' => ''];
             }
         }
-        $update = Bankdetail::where('id', '1')->update([
-            "account_holder_name" => $r->holdername,
-            "mobile_no" => $r->mobile_no,
-            "upi_id" => $r->upi_id,
-            "account_no" => $r->account_no,
-            "ifsc_code" => $r->ifsccode,
-            "bank_name" => $r->bank_name,
-            "barcode" => $barcode,
-        ]);
-        if ($update) {
-            $response = array('status' => 1, 'title' => "Success!!", 'message' => "User successfully Deleted!");
+
+        if ($exist) {
+            $exist->update($fields);
+        } else {
+            Bankdetail::create($fields);
         }
-        return response()->json($response);
-    }
-    public function updatewallet(Request $r)
-    {
-        $userid = $r->userid;
-        $amount = $r->amount;
-        $response = array('status' => 0, 'title' => "Error!!", 'message' => "Something wents wrong!");
-        $update = Wallet::where('userid', $userid)->update([
-            "amount" => $amount,
-        ]);
-        if ($update) {
-            $response = array('status' => 1, 'title' => "Success!!", 'message' => "User Wallet successfully Updated!");
-        }
-        return response()->json($response);
+        return response()->json(['status' => 1, 'title' => 'Success!!', 'message' => 'Payment details saved. Players see these on the deposit page.']);
     }
 
+    public function deletebankdetail(Request $r)
+    {
+        $this->ensureBankRail();
+        $id = (int) $r->id;
+        $side = $r->rail === 'bank' ? 'bank' : 'upi';
+        $row = Bankdetail::where('id', $id)->first();
+        if (!$row) {
+            return response()->json(['status' => 0, 'title' => 'Oops!!', 'message' => 'Already gone.']);
+        }
+        // ponytail: legacy rail=both is one row for both sides — only strip the side being removed
+        if ($row->rail === 'both') {
+            if ($side === 'upi') {
+                $row->update(['rail' => 'bank', 'upi_id' => '', 'mobile_no' => '', 'barcode' => '']);
+            } else {
+                $row->update(['rail' => 'upi', 'account_no' => '', 'ifsc_code' => '', 'bank_name' => '']);
+            }
+            return response()->json(['status' => 1, 'title' => 'Success!!', 'message' => 'Removed.']);
+        }
+        $row->delete();
+        return response()->json(['status' => 1, 'title' => 'Success!!', 'message' => 'Removed.']);
+    }
+    /**
+     * The two settings the cashier actually enforces. Amount setup used to list all
+     * fourteen rows including the game timers and commission levels; these are the
+     * only ones the deposit/withdraw pages read.
+     */
+    public function limits(Request $r)
+    {
+        foreach (['min_recharge' => $r->min_recharge, 'min_withdrawal' => $r->min_withdrawal] as $key => $value) {
+            if ($value === null || !is_numeric($value) || (float) $value < 1) {
+                return response()->json(array('status' => 0, 'title' => "Oops!!", 'message' => "Both limits have to be a number of at least 1."));
+            }
+            Setting::where('category', $key)->update(['value' => (string) (int) $value]);
+        }
+        return response()->json(array('status' => 1, 'title' => "Success!!", 'message' => "Limits updated."));
+    }
+
+    /** Wallet credits for referred signup + referrer reward. */
+    public function referral(Request $r)
+    {
+        foreach (['referral_bonus' => $r->referral_bonus, 'referrer_bonus' => $r->referrer_bonus] as $key => $value) {
+            if ($value === null || !is_numeric($value) || (float) $value < 0) {
+                return response()->json(['status' => 0, 'title' => 'Oops!!', 'message' => 'Both bonuses must be a number of at least 0.']);
+            }
+            $row = Setting::where('category', $key)->first();
+            if ($row) {
+                $row->value = (string) (int) $value;
+                $row->save();
+            } else {
+                $row = new Setting;
+                $row->category = $key;
+                $row->value = (string) (int) $value;
+                $row->status = '1';
+                $row->save();
+            }
+        }
+        return response()->json(['status' => 1, 'title' => 'Success!!', 'message' => 'Referral bonuses updated.']);
+    }
+
+    /** Admin credits INR into a player's shared wallet (all 5 games read this row). */
+    public function updatewallet(Request $r)
+    {
+        $userid = (int) $r->userid;
+        $amount = (float) $r->amount;
+        if ($userid < 1 || $amount <= 0) {
+            return response()->json(['status' => 0, 'title' => 'Oops!!', 'message' => 'Pick a player and an amount greater than 0.']);
+        }
+        if (!User::where('id', $userid)->where('isadmin', null)->exists()) {
+            return response()->json(['status' => 0, 'title' => 'Oops!!', 'message' => 'Player not found.']);
+        }
+        if (!Wallet::where('userid', $userid)->exists()) {
+            $w = new Wallet;
+            $w->userid = $userid;
+            $w->amount = 0;
+            $w->save();
+        }
+        addwallet($userid, $amount, '+');
+        addtransaction($userid, 'Admin', date('ydmhsi'), 'credit', $amount, 'admin_credit', 'Admin topped up', '1');
+        $bal = wallet($userid, 'num');
+        return response()->json([
+            'status' => 1,
+            'title' => 'Success!!',
+            'message' => 'Added ₹' . number_format($amount, 2) . '. New balance ₹' . number_format($bal, 2) . '.',
+        ]);
+    }
+
+    /**
+     * A deposit request. Nothing reaches the wallet here - the player is claiming
+     * they transferred money, and the screenshot is the claim's evidence. An admin
+     * credits it from /admin/deposits after looking at it.
+     */
     public function depositNow(Request $r)
     {
+        $amount = (float) $r->amount;
+        if ($amount < (float) setting('min_recharge')) {
+            return redirect('/deposit?msg=min');
+        }
+        // the screenshot is the whole point of the request, so it is required
+        $file = $r->file('proof');
+        if (!$file || !$file->isValid() || !in_array(strtolower($file->getClientOriginalExtension()), ['jpg', 'jpeg', 'png', 'webp'], true)) {
+            return redirect('/deposit?msg=proof');
+        }
+        if ($file->getSize() > 5 * 1024 * 1024) {
+            return redirect('/deposit?msg=big');
+        }
+
         $trn = new Transaction;
         $trn->userid = user('id');
         $trn->platform = platform($r->payment_gateway_type);
         $trn->transactionno = $r->trn;
         $trn->type = 'credit';
-        $trn->amount = $r->amount;
+        $trn->amount = $amount;
         $trn->category = 'recharge';
         $trn->remark = 'Processing';
         $trn->status = '0';
-        if ($trn->save()) {
-            return redirect('/deposit?msg=Success');
+        if (!$trn->save()) {
+            return redirect('/deposit?msg=error');
         }
+        // 'local' not 'public': a bank screenshot must not sit on a guessable URL
+        $name = $trn->id . '-' . bin2hex(random_bytes(6)) . '.' . strtolower($file->getClientOriginalExtension());
+        Storage::disk('local')->putFileAs('deposit-proof', $file, $name);
+        $trn->proof = 'deposit-proof/' . $name;
+        $trn->save();
+
+        return redirect('/deposit?msg=Success');
     }
+    /**
+     * A withdrawal request. The money stays in the wallet until an admin approves
+     * it and pays out by hand; withdrawalapproval() is what debits it.
+     *
+     * The old version debited here, but only when the balance was strictly GREATER
+     * than the amount - so asking for the exact balance created a request that was
+     * never funded, and approving it paid out money the player still had.
+     */
     public function withdrawal_query(Request $r)
     {
-        // return $r->all();
+        $amount = (float) $r->amount;
+        if ($amount < (float) setting('min_withdrawal')) {
+            return redirect('/withdraw?msg=min');
+        }
+        if ($amount > (float) wallet(user('id'), 'num')) {
+            return redirect('/withdraw?msg=balance');
+        }
+
         $trn = new Transaction;
         $trn->userid = user('id');
         $trn->platform = platform($r->payment_gateway_type);
         $trn->transactionno = '';
         $trn->type = 'debit';
-        $trn->amount = $r->amount;
+        $trn->amount = $amount;
         $trn->category = 'withdraw';
         $trn->remark = 'Processing';
         $trn->status = '0';
         if ($trn->save()) {
-            if (wallet(user('id'), 'num') > $r->amount) {
-                addwallet(user('id'), $r->amount, '-');
-            }
             $existbank = Bank_detail::where('userid', user('id'))->orderBy('id', 'desc')->first();
             if ($existbank) {
                 Bank_detail::where('userid', user('id'))->update([
@@ -266,6 +428,86 @@ class Adminapi extends Controller
                 return redirect('/withdraw?msg=error');
             }
         }
+    }
+
+    /**
+     * Real aggregates for the dashboard charts. Every number is a query - there is
+     * no seeded or example data anywhere in here.
+     *
+     * Cashier money lives in transactions under category recharge/withdraw. Game
+     * money is split: Aviator writes to userbits, and the other four write
+     * transactions under their own category (slots use 'game' with the platform
+     * naming them, chicken-road uses its own). So "play" is every transaction that
+     * is not cashier, plus userbits.
+     */
+    public function stats(Request $r)
+    {
+        $days = max(2, min(60, (int) $r->input('days', 14)));
+        $from = date('Y-m-d', strtotime('-' . ($days - 1) . ' days'));
+
+        $labels = [];
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $labels[] = date('Y-m-d', strtotime('-' . $i . ' days'));
+        }
+        $blank = array_fill_keys($labels, 0.0);
+
+        /** sum a transactions query into a day => total map */
+        $byDay = function ($query) use ($blank) {
+            $out = $blank;
+            foreach ($query as $row) {
+                if (isset($out[$row->d])) {
+                    $out[$row->d] = round((float) $row->s, 2);
+                }
+            }
+            return $out;
+        };
+        $trn = fn(array $where, string $type) => Transaction::selectRaw('DATE(created_at) as d, SUM(amount) as s')
+            ->where('type', $type)
+            ->whereIn('category', $where)
+            ->where('status', '1')
+            ->where('created_at', '>=', $from . ' 00:00:00')
+            ->groupBy('d')->get();
+
+        $deposits = $byDay($trn(['recharge'], 'credit'));
+        $withdrawals = $byDay($trn(['withdraw'], 'debit'));
+
+        // play: transactions that are not cashier, either direction
+        $play = fn(string $type) => Transaction::selectRaw('DATE(created_at) as d, SUM(amount) as s')
+            ->where('type', $type)
+            ->whereNotIn('category', ['recharge', 'withdraw'])
+            ->where('created_at', '>=', $from . ' 00:00:00')
+            ->groupBy('d')->get();
+        $staked = $byDay($play('debit'));
+        $paid = $byDay($play('credit'));
+
+        // Aviator: the bet is the stake, amount x cashout_multiplier is the payout
+        foreach (Userbit::selectRaw('DATE(created_at) as d, SUM(amount) as s, SUM(amount * cashout_multiplier) as p')
+            ->where('created_at', '>=', $from . ' 00:00:00')->groupBy('d')->get() as $row) {
+            if (isset($staked[$row->d])) {
+                $staked[$row->d] = round($staked[$row->d] + (float) $row->s, 2);
+                $paid[$row->d] = round($paid[$row->d] + (float) $row->p, 2);
+            }
+        }
+
+        $stakedTotal = array_sum($staked);
+        return response()->json([
+            'labels' => array_map(fn($d) => date('d M', strtotime($d)), $labels),
+            'deposits' => array_values($deposits),
+            'withdrawals' => array_values($withdrawals),
+            'staked' => array_values($staked),
+            'paid' => array_values($paid),
+            'totals' => [
+                'deposits' => round(array_sum($deposits), 2),
+                'withdrawals' => round(array_sum($withdrawals), 2),
+                'staked' => round($stakedTotal, 2),
+                'paid' => round(array_sum($paid), 2),
+                // what the house actually kept over the window, not the target
+                'house_pct' => $stakedTotal > 0 ? round((1 - array_sum($paid) / $stakedTotal) * 100, 2) : null,
+                'players' => User::where('isadmin', null)->count(),
+                'pending_deposits' => Transaction::where('category', 'recharge')->where('status', '0')->count(),
+                'pending_withdrawals' => Transaction::where('category', 'withdraw')->where('status', '0')->count(),
+            ],
+        ]);
     }
 
     /** Live round snapshot for admin dashboard (poll / socket). */
@@ -308,34 +550,47 @@ class Adminapi extends Controller
             $tick['mode'] = $state['mode'] ?? null;
         }
 
-        $bets = Userbit::where('userbits.gameid', $gameId)
-            ->leftJoin('users', 'users.id', '=', 'userbits.userid')
-            ->orderBy('userbits.id', 'desc')
-            ->get([
-                'userbits.id',
-                'userbits.userid',
-                'userbits.amount',
-                'userbits.status',
-                'userbits.cashout_multiplier',
-                'users.name',
-                'users.mobile',
-            ])
-            ->map(function ($b) use ($tick) {
-                $mult = ((string) $b->status === '0')
-                    ? (float) $tick['multiplier']
-                    : (float) $b->cashout_multiplier;
-                $potential = round((float) $b->amount * max($mult, 0), 2);
-                return [
-                    'id' => $b->id,
-                    'userid' => $b->userid,
-                    'name' => $b->name ?: ('User ' . $b->userid),
-                    'mobile' => $b->mobile,
-                    'amount' => (float) $b->amount,
-                    'status' => (string) $b->status === '0' ? 'flying' : 'cashed',
-                    'cashout_multiplier' => $b->cashout_multiplier,
-                    'potential' => $potential,
-                ];
-            });
+        $betsQuery = function (int $gid) use ($tick) {
+            return Userbit::where('userbits.gameid', $gid)
+                ->leftJoin('users', 'users.id', '=', 'userbits.userid')
+                ->orderBy('userbits.id', 'desc')
+                ->get([
+                    'userbits.id',
+                    'userbits.userid',
+                    'userbits.amount',
+                    'userbits.status',
+                    'userbits.cashout_multiplier',
+                    'users.name',
+                    'users.mobile',
+                ])
+                ->map(function ($b) use ($tick) {
+                    $mult = ((string) $b->status === '0')
+                        ? (float) $tick['multiplier']
+                        : (float) $b->cashout_multiplier;
+                    $potential = round((float) $b->amount * max($mult, 0), 2);
+                    return [
+                        'id' => $b->id,
+                        'userid' => $b->userid,
+                        'name' => $b->name ?: ('User ' . $b->userid),
+                        'mobile' => $b->mobile,
+                        'amount' => (float) $b->amount,
+                        'status' => (string) $b->status === '0' ? 'flying' : 'cashed',
+                        'cashout_multiplier' => $b->cashout_multiplier,
+                        'potential' => $potential,
+                    ];
+                });
+        };
+
+        $bets = $betsQuery($gameId);
+        $betsGameId = $gameId;
+        // between rounds the current id has no bets yet — show the last settled round
+        if ($bets->isEmpty()) {
+            $prevId = (int) Gameresult::where('id', '<', $gameId)->orderByDesc('id')->value('id');
+            if ($prevId > 0) {
+                $bets = $betsQuery($prevId);
+                $betsGameId = $prevId;
+            }
+        }
 
         $adminId = \App\Models\User::where('isadmin', '1')->value('id')
             ?: \App\Models\User::where('email', 'admin@example.com')->value('id');
@@ -344,9 +599,22 @@ class Adminapi extends Controller
         return response()->json([
             'tick' => $tick,
             'bets' => $bets,
+            'bets_game_id' => $betsGameId,
+            'bets_is_prev' => $betsGameId !== $gameId,
             'admin_wallet' => $adminWallet,
             'pending_recharge' => Transaction::where('category', 'recharge')->where('status', '0')->count(),
             'pending_withdraw' => Transaction::where('category', 'withdraw')->where('status', '0')->count(),
         ]);
+    }
+
+    // ponytail: cPanel never ran the rail migration; INSERT then 500s. Add the column once.
+    private function ensureBankRail(): void
+    {
+        if (Schema::hasColumn('bankdetails', 'rail')) {
+            return;
+        }
+        Schema::table('bankdetails', function (Blueprint $table) {
+            $table->string('rail', 16)->default('both');
+        });
     }
 }

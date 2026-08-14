@@ -23,7 +23,10 @@ class PoolCrashEngine
 {
     public const HOUSE_PCT = 30.0;
     public const TICK_MS = 100;
+    /** @deprecated linear step; liveMultiplier uses GROWTH_PER_MS */
     public const STEP = 0.01;
+    /** e^(r·t): r=1e-4 → ~2.00x at 7s (Spribe-like). Old linear was 0.1x/s → flat and slow. */
+    public const GROWTH_PER_MS = 0.0001;
     /** ponytail: hard ceiling on house-mode payout; raise if the client wants bigger tails */
     public const MAX_MULT = 100.0;
 
@@ -103,9 +106,9 @@ class PoolCrashEngine
         if (($state['phase'] ?? '') !== 'flying') {
             return round((float) ($state['multiplier'] ?? 1), 2);
         }
-        $elapsedMs = (int) ((microtime(true) - (float) $state['started_at']) * 1000);
-        $steps = intdiv(max(0, $elapsedMs), self::TICK_MS);
-        return round(1.0 + $steps * self::STEP, 2);
+        $elapsedMs = max(0.0, (microtime(true) - (float) $state['started_at']) * 1000.0);
+        $m = exp(self::GROWTH_PER_MS * $elapsedMs);
+        return round(min(self::MAX_MULT, max(1.0, $m)), 2);
     }
 
     public function remainingPool(array $state): float
@@ -143,8 +146,49 @@ class PoolCrashEngine
     }
 
     /**
+     * Pool mode: any active bet whose cashout at $mult would exceed remaining
+     * pool is forfeited (that bet flies away). Other bets keep flying.
+     * e.g. 300+700 → pool 700: at >1.00x the 700 bet auto-loses; 300 can ride to ~2.33x.
+     *
+     * @return list<array{bet_id:int, section_no:int, userid:int, amount:float}>
+     */
+    private function forfeitUnaffordableBets(int $gameId, array &$state, float $mult): array
+    {
+        $forfeited = [];
+        if (($state['mode'] ?? '') !== 'pool') {
+            return $forfeited;
+        }
+        $remaining = $this->remainingPool($state);
+        $actives = Userbit::where('gameid', (string) $gameId)->where('status', '0')->get();
+        foreach ($actives as $bet) {
+            $need = round((float) $bet->amount * $mult, 2);
+            if ($need > $remaining) {
+                Userbit::where('id', $bet->id)->update([
+                    'status' => 1,
+                    'cashout_multiplier' => '0.00',
+                ]);
+                $forfeited[] = [
+                    'bet_id' => (int) $bet->id,
+                    'section_no' => (int) $bet->section_no,
+                    'userid' => (int) $bet->userid,
+                    'amount' => (float) $bet->amount,
+                ];
+                Log::info('pool_crash: forfeit unaffordable bet', [
+                    'gameId' => $gameId,
+                    'betId' => $bet->id,
+                    'amount' => $bet->amount,
+                    'mult' => $mult,
+                    'need' => $need,
+                    'remaining' => $remaining,
+                ]);
+            }
+        }
+        return $forfeited;
+    }
+
+    /**
      * Advance / read state. May settle crash.
-     * @return array{multiplier: float, phase: string, crashed: bool, remaining_pool: float, game_id: int}
+     * @return array{multiplier: float, phase: string, crashed: bool, remaining_pool: float, game_id: int, forfeited?: list}
      */
     public function tick(int $gameId): array
     {
@@ -157,6 +201,7 @@ class PoolCrashEngine
                     'crashed' => false,
                     'remaining_pool' => 0.0,
                     'game_id' => $gameId,
+                    'forfeited' => [],
                 ];
             }
 
@@ -167,6 +212,7 @@ class PoolCrashEngine
                     'crashed' => true,
                     'remaining_pool' => $this->remainingPool($state),
                     'game_id' => $gameId,
+                    'forfeited' => [],
                 ];
             }
 
@@ -174,6 +220,9 @@ class PoolCrashEngine
 
             $mult = $this->liveMultiplier($state);
             $state['multiplier'] = $mult;
+
+            // drop bets the pool can no longer pay, then re-check crash on survivors
+            $forfeited = $this->forfeitUnaffordableBets($gameId, $state, $mult);
 
             if ($this->shouldCrash($gameId, $state, $mult)) {
                 $this->settleCrash($gameId, $state, $mult);
@@ -183,6 +232,7 @@ class PoolCrashEngine
                     'crashed' => true,
                     'remaining_pool' => $this->remainingPool($state),
                     'game_id' => $gameId,
+                    'forfeited' => $forfeited,
                 ];
             }
 
@@ -193,6 +243,7 @@ class PoolCrashEngine
                 'crashed' => false,
                 'remaining_pool' => $this->remainingPool($state),
                 'game_id' => $gameId,
+                'forfeited' => $forfeited,
             ];
         });
     }
@@ -252,14 +303,27 @@ class PoolCrashEngine
             $payout = round((float) $bet->amount * $mult, 2);
             $remaining = $this->remainingPool($state);
 
+            // pool mode: unaffordable cashout = THIS bet loses, round continues for others
             if (($state['mode'] ?? '') === 'pool' && $payout > $remaining) {
-                // this bet can't be paid — fly away, no error toast needed
-                Log::info('pool_crash: silent crash on cashout', compact('gameId', 'betId', 'mult', 'payout', 'remaining'));
-                $this->settleCrash($gameId, $state, $mult);
+                Log::info('pool_crash: cashout forfeit (cannot pay)', compact('gameId', 'betId', 'mult', 'payout', 'remaining'));
+                Userbit::where('id', $betId)->update([
+                    'status' => 1,
+                    'cashout_multiplier' => '0.00',
+                ]);
+
+                $crashed = false;
+                if ($this->shouldCrash($gameId, $state, $mult)) {
+                    $this->settleCrash($gameId, $state, $mult);
+                    $crashed = true;
+                } else {
+                    $this->put($gameId, $state);
+                }
+
                 return [
                     'ok' => false,
                     'message' => '',
-                    'crashed' => true,
+                    'crashed' => $crashed,
+                    'bet_lost' => true,
                     'multiplier' => $mult,
                     'silent' => true,
                 ];
@@ -273,6 +337,9 @@ class PoolCrashEngine
 
             $state['paid'] = round((float) $state['paid'] + $payout, 2);
             $state['multiplier'] = $mult;
+
+            // after this payout, drop any remaining bets the leftover pool can't cover
+            $this->forfeitUnaffordableBets($gameId, $state, $mult);
 
             $crashed = false;
             if ($this->shouldCrash($gameId, $state, $mult)) {

@@ -1,4 +1,4 @@
-@extends('Layout.admindashboard')
+@extends('Layout.tower')
 @section('css')
 @endsection
 @section('content')
@@ -7,14 +7,14 @@
             <h3 class="page-title">
                 <span class="page-title-icon bg-gradient-primary text-white me-2">
                     <i class="mdi mdi-home"></i>
-                </span> Withdrawal History
+                </span> Withdrawals
             </h3>
         </div>
         <div class="row">
             <div class="col-lg-12 grid-margin stretch-card">
                 <div class="card">
                     <div class="card-body">
-                        <h4 class="card-title">Withdrawal List</h4>
+                        <h4 class="card-title">Withdrawal requests</h4>
                         <div class="table-responsive">
                         <table class="table table-bordered">
                             <thead>
@@ -23,7 +23,7 @@
                                     <th>User id</th>
                                     <th>Name</th>
                                     <th>Transaction No.</th>
-                                    <th>Bank Detail</th>
+                                    <th>Pay out to</th>
                                     <th>Amount</th>
                                     <th>Status</th>
                                     <th>Created</th>
@@ -39,11 +39,24 @@
                                             <td>{{ appvalidate(userdetail($history->userid, 'name')) }}</td>
                                             <td>{{ appvalidate($history->transactionno) }}</td>
                                             <td>
-                                                <div>Bank name: {{ appvalidate($history->bankname) }}</div><br>
-                                                <div>A/C No.: {{ appvalidate($history->accountno) }}</div><br>
-                                                <div>IFSC Code: {{ appvalidate($history->ifsccode) }}</div><br>
-                                                <div>Mobile: {{ appvalidate($history->mobile_no) }}</div><br>
-                                                <div>UPI Id: {{ appvalidate($history->upi_id) }}</div>
+                                                <button type="button" class="btn btn-sm btn-outline-light tl-view-btn"
+                                                    data-title="Withdrawal {{ $history->id }} &middot; {{ appvalidate(userdetail($history->userid, 'name')) }} &middot; &#8377;{{ number_format($history->amount, 2) }}"
+                                                    data-html="@php
+                                                        $rows = [
+                                                            'UPI ID' => $history->upi_id,
+                                                            'Account number' => $history->accountno,
+                                                            'IFSC code' => $history->ifsccode,
+                                                            'Bank name' => $history->bankname,
+                                                            'Mobile' => $history->mobile_no,
+                                                        ];
+                                                        $out = '<dl class=&quot;tl-kv&quot;>';
+                                                        foreach ($rows as $k => $v) {
+                                                            $out .= '<dt>' . $k . '</dt><dd>' . ($v !== null && $v !== '' ? e($v) : '&mdash;') . '</dd>';
+                                                        }
+                                                        $out .= '</dl>';
+                                                    @endphp{{ $out }}">
+                                                    <i class="mdi mdi-eye-outline"></i> View
+                                                </button>
                                             </td>
                                             <td>₹{{ appvalidate(number_format($history->amount, 2)) }}</td>
                                             <td><label
@@ -65,7 +78,7 @@
                                     @endforeach
                                 @else
                                     <tr>
-                                        <td colspan="13" class="text-center"> No Withdrawal history found!!</td>
+                                        <td colspan="13" class="text-center"> No withdrawal requests yet.</td>
                                     </tr>
                                 @endif
                             </tbody>
@@ -77,6 +90,7 @@
         </div>
     </div>
     <!-- content-wrapper ends -->
+@include('include.admin.viewer')
 @endsection
 
 @section('js')
@@ -87,7 +101,7 @@
             form.append('userid', userid);
             form.append('amount', amount);
             form.append('_token', '{{ csrf_token() }}');
-            apex("POST", "{{ url('admin/api/withdraw/success') }}", form, '', "/admin/withdrawal-history", "#");
+            apex("POST", "{{ url('admin/api/withdraw/success') }}", form, '', "/admin/withdrawals", "#");
         }
 
         function rechargecancel(userid,id,amount,thisc) {
@@ -96,7 +110,7 @@
             form.append('userid', userid);
             form.append('amount', amount);
             form.append('_token', '{{ csrf_token() }}');
-            apex("POST", "{{ url('admin/api/withdraw/cancel') }}", form, '', "/admin/withdrawal-history", "#");
+            apex("POST", "{{ url('admin/api/withdraw/cancel') }}", form, '', "/admin/withdrawals", "#");
         }
     </script>
 @endsection

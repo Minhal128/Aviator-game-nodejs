@@ -1,4 +1,4 @@
-@extends('Layout.admindashboard')
+@extends('Layout.tower')
 @section('css')
 @endsection
 

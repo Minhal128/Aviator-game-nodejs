@@ -67,7 +67,13 @@ export interface SeatInfo {
 
 export interface ResultsData {
   init: MatchInit;
-  rows: { seat: Seat; place: number; color: PlayerColor; name: string }[];
+  rows: {
+    seat: Seat;
+    place: number;
+    color: PlayerColor;
+    name: string;
+    coinsDelta?: number;
+  }[];
   humanWon: boolean;
   /** Local device's seat (null in pass&play) — Results paints its avatar. */
   humanSeat?: Seat | null;

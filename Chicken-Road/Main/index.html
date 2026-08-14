@@ -18,7 +18,7 @@
 
         <div class="menu-card">
             <span class="card-label">Your Wallet Balance</span>
-            <p class="wallet-amount" id="walletBalanceText">$100.00</p>
+            <p class="wallet-amount" id="walletBalanceText">₹100.00</p>
             <button class="btn-refill" onclick="refillWalletBalance()">Refill Balance</button>
         </div>
 
@@ -46,6 +46,14 @@
             <div></div>
         </button>
 
+        <div class="cr-hud" id="crHud" aria-label="Wallet stats">
+            <div class="cr-hud-row"><span class="cr-hud-ico" aria-hidden="true">💼</span><span id="crHudBal">₹0</span></div>
+            <div class="cr-hud-row"><span class="cr-hud-ico" aria-hidden="true">🏆</span><span id="crHudWin">0</span></div>
+            <button type="button" class="cr-hud-row cr-hud-bet" id="crHudBetBtn" onclick="editHudBet()" title="Edit bet">
+                <span class="cr-hud-ico" aria-hidden="true">🪙</span><span id="crHudBet">₹10</span>
+            </button>
+        </div>
+
         <div class="road-container" id="roadContainer">
             <div class="player-wrapper" id="playerRig">
                 <canvas id="characterSprite" width="256" height="256"></canvas>
@@ -58,16 +66,16 @@
         <div class="dashboard-row">
             <div class="input-stepper-box">
                 <button class="stepper-btn" onclick="setMinBet()">MIN</button>
-                <input type="number" class="stepper-input" id="betDisplayVal" value="3" min="1" max="50" onchange="handleCustomBetInput()" onblur="handleCustomBetInput()">
+                <input type="number" class="stepper-input" id="betDisplayVal" value="10" min="1" step="1" inputmode="decimal" onchange="handleCustomBetInput()" onblur="handleCustomBetInput()">
                 <button class="stepper-btn" onclick="setMaxBet()">MAX</button>
             </div>
         </div>
 
         <div class="dashboard-row">
-            <button class="bet-shortcut-btn" onclick="setFixedBet(2)">2 <span>$</span></button>
-            <button class="bet-shortcut-btn" onclick="setFixedBet(3)">3 <span>$</span></button>
-            <button class="bet-shortcut-btn" onclick="setFixedBet(8)">8 <span>$</span></button>
-            <button class="bet-shortcut-btn" onclick="setFixedBet(20)">20 <span>$</span></button>
+            <button class="bet-shortcut-btn" onclick="setFixedBet(10)">10 <span>INR</span></button>
+            <button class="bet-shortcut-btn" onclick="setFixedBet(50)">50 <span>INR</span></button>
+            <button class="bet-shortcut-btn" onclick="setFixedBet(100)">100 <span>INR</span></button>
+            <button class="bet-shortcut-btn" onclick="setFixedBet(300)">300 <span>INR</span></button>
         </div>
 
         <div class="dashboard-row">

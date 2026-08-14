@@ -22,6 +22,10 @@ const playActionButton = document.getElementById('playActionButton');
 const difficultyDropdown = document.getElementById('difficultyDropdown');
 const spriteCanvas = document.getElementById('characterSprite');
 const spriteCtx = spriteCanvas.getContext('2d');
+const crHudBal = document.getElementById('crHudBal');
+const crHudWin = document.getElementById('crHudWin');
+const crHudBet = document.getElementById('crHudBet');
+const crHudBetBtn = document.getElementById('crHudBetBtn');
 
 // --- CONSTANTS & MAP STATE ---
 const LANE_WIDTH = 110; 
@@ -43,35 +47,75 @@ let activeBarriers = [];
 let animationFrameId = null;
 
 // --- ECONOMY & SEED STATE ---
-let currentBetAmount = 3;
+let currentBetAmount = 10;
 // the real balance is injected by Pages::gameStatic(); standalone opens stay on demo coins
 const wallet = window.TL_WALLET || null;
-const CURRENCY = wallet ? wallet.currency : '$';
+const CURRENCY = (wallet && wallet.currency) ? wallet.currency : '₹';
 let currentWalletBalance = wallet ? wallet.balance : 100.00;
-const MIN_BET = 1;
-const MAX_BET = 50;
+// live wallet uses site settings; standalone demo keeps the old 1–50 range
+const MIN_BET = wallet && wallet.minBet != null ? Number(wallet.minBet) : 1;
+const MAX_BET = wallet && wallet.maxBet != null ? Number(wallet.maxBet) : 50;
+
+function maxAffordableBet() {
+    return Math.max(MIN_BET, Math.min(MAX_BET, Math.floor(currentWalletBalance)));
+}
+
+function potentialWinInr() {
+    if (!isGameSessionActive || isGameOver) return 0;
+    const mult = parseFloat(getMultiplierVal(absoluteLaneIndex)) || 1;
+    return Math.round(currentBetAmount * mult * 100) / 100;
+}
+
+function paintHud() {
+    if (crHudBal) crHudBal.textContent = `${CURRENCY}${Number(currentWalletBalance).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+    if (crHudWin) {
+        const w = potentialWinInr();
+        crHudWin.textContent = w > 0
+            ? `${CURRENCY}${w.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
+            : '0';
+    }
+    if (crHudBet) crHudBet.textContent = `${CURRENCY}${Number(currentBetAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+    if (crHudBetBtn) crHudBetBtn.disabled = !!isGameSessionActive;
+}
+
+// --- HELPERS ---
+function showBalance() {
+    walletBalanceText.innerText = `${CURRENCY}${currentWalletBalance.toFixed(2)}`;
+    if (wallet) wallet.balance = currentWalletBalance;
+    if (typeof window.TL_setWallet === 'function') window.TL_setWallet(currentWalletBalance);
+    paintHud();
+}
+
+function clampBet(raw) {
+    let val = Number(raw);
+    const cap = maxAffordableBet();
+    if (!Number.isFinite(val) || val < MIN_BET) val = MIN_BET;
+    else if (val > cap) val = cap;
+    return Math.round(val * 100) / 100;
+}
+
+function applyBet(amount) {
+    currentBetAmount = clampBet(amount);
+    betDisplayVal.value = currentBetAmount;
+    paintHud();
+}
 
 let serverSeed = "SRV_" + Math.random().toString(36).substring(2, 15);
 let clientSeed = "CLI_" + Date.now();
 let gameNonce = 0;
 
 const safeLaneMap = {};
-const laneDirectionMap = {}; 
+const laneDirectionMap = {};
 const laneBaseSpeedMap = {};
 
 let currentFrameIndex = 0;
 let lastFrameTime = 0;
-const animationFps = 24; 
+const animationFps = 24;
 const frameDuration = 1000 / animationFps;
 
 let currentCharacterState = 'idle';
 let activeCharacterImg = spriteImages.idle;
 let activeFramesSource = idleFrames;
-
-// --- HELPERS ---
-function showBalance() {
-    walletBalanceText.innerText = `${CURRENCY}${currentWalletBalance.toFixed(2)}`;
-}
 
 /**
  * The server owns the money and the crash lane (RoadGame.php). Without
@@ -87,6 +131,7 @@ async function serverCall(action, body) {
     const json = await res.json();
     if (json.data && typeof json.data.balance === 'number') {
         currentWalletBalance = json.data.balance;
+        if (wallet) wallet.balance = currentWalletBalance;
         showBalance();
     }
     return json;
@@ -139,29 +184,37 @@ window.refillWalletBalance = function() {
 
 window.setMinBet = function() {
     playSound(sndButton);
-    currentBetAmount = MIN_BET;
-    betDisplayVal.value = currentBetAmount;
+    applyBet(MIN_BET);
 };
 
 window.setMaxBet = function() {
     playSound(sndButton);
-    currentBetAmount = MAX_BET;
-    betDisplayVal.value = currentBetAmount;
+    applyBet(maxAffordableBet());
 };
 
 window.handleCustomBetInput = function() {
-    let val = parseInt(betDisplayVal.value);
-    if (isNaN(val) || val < MIN_BET) val = MIN_BET;
-    else if (val > MAX_BET) val = MAX_BET;
-    
-    currentBetAmount = val;
-    betDisplayVal.value = currentBetAmount;
+    applyBet(betDisplayVal.value);
 };
 
 window.setFixedBet = function(amount) {
     playSound(sndButton);
-    currentBetAmount = Math.min(Math.max(amount, MIN_BET), MAX_BET);
-    betDisplayVal.value = currentBetAmount;
+    if (amount > currentWalletBalance) {
+        flashPlayButton('Insufficient Funds');
+        applyBet(maxAffordableBet());
+        return;
+    }
+    applyBet(amount);
+};
+
+window.editHudBet = function() {
+    if (isGameSessionActive) return;
+    playSound(sndButton);
+    const raw = window.prompt(
+        `Bet (${CURRENCY}) — min ${MIN_BET}, max ${maxAffordableBet()}`,
+        String(currentBetAmount),
+    );
+    if (raw === null) return;
+    applyBet(raw);
 };
 
 window.handleDifficultyChange = function() {
@@ -209,6 +262,7 @@ window.triggerBetMatchStart = async function() {
     goActionButton.style.cursor = "pointer";
 
     resetGameEnvironment();
+    paintHud();
 };
 
 window.cashoutGame = async function() {
@@ -289,6 +343,7 @@ window.performJump = async function() {
 
         const gridElements = roadContainer.children;
         badgeText.innerText = getMultiplierVal(absoluteLaneIndex);
+        paintHud();
 
         if (isTrapLane) {
             cashoutActionButton.disabled = true;
@@ -651,10 +706,16 @@ function resetGameToDashboard() {
     
     initPRNG(serverSeed, clientSeed, gameNonce); 
     resetGameEnvironment();
+    paintHud();
 }
 
 // --- INITIALIZATION ---
+currentBetAmount = Math.max(MIN_BET, Math.min(currentBetAmount, maxAffordableBet()));
+betDisplayVal.min = MIN_BET;
+betDisplayVal.max = MAX_BET;
+betDisplayVal.value = currentBetAmount;
 showBalance();   // the markup ships a hardcoded $100.00 placeholder
+paintHud();
 initPRNG(serverSeed, clientSeed, gameNonce);
 buildInitialHighwayLayout();
 requestAnimationFrame(updateGameLoop);

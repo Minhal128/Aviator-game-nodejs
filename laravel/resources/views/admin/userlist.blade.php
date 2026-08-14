@@ -1,4 +1,4 @@
-@extends('Layout.admindashboard')
+@extends('Layout.tower')
 @section('css')
 @endsection
 
@@ -50,8 +50,11 @@
                                             <td>{{ appvalidate($item->name) }}</td>
                                             <td>{{ appvalidate($item->mobile) }}</td>
                                             <td>{{ appvalidate($item->email) }}</td>
-                                            <td>₹{{ wallet($item->id) }} <span class="mdi mdi-border-color"
-                                                    style="cursor: pointer;" onclick="updatewalletbalance('{{ appvalidate($item->id) }}','{{ wallet($item->id,'num') }}')"></span></td>
+                                            <td>
+                                                ₹{{ wallet($item->id) }}
+                                                <button type="button" class="btn btn-sm btn-success ms-1"
+                                                    onclick="updatewalletbalance('{{ appvalidate($item->id) }}','{{ wallet($item->id,'num') }}')">Add funds</button>
+                                            </td>
                                             <td>₹{{ number_format(lastrecharge($item->id, 'amount'), 2) }}
                                                 <sub>{{ lastrecharge($item->id, 'created_at') ? dformat(lastrecharge($item->id, 'created_at'), 'd-m-Y') : 'No data found!' }}</sub>
                                             </td>
@@ -83,23 +86,22 @@
         </div>
     </div>
     <div class="walletupdateform" style="display: none;">
-        {{-- <div class="col-md-6 grid-margin stretch-card"> --}}
         <div class="card">
             <div class="card-body">
-                <h4 class="card-title">Update wallet</h4>
+                <h4 class="card-title">Add funds (INR)</h4>
+                <p class="text-muted mb-2" id="updatewalletcurrent">Current balance: —</p>
                 <form class="forms-sample" id="updatewallet">
                     @csrf
                     <div class="form-group">
                         <input type="hidden" name="userid" value="" id="updatewalletuserid">
-                        <label for="updatewalletamount">Amount</label>
-                        <input type="text" class="form-control" id="updatewalletamount" name="amount" placeholder="Enter Amount">
+                        <label for="updatewalletamount">Amount to add (₹)</label>
+                        <input type="number" min="1" step="1" class="form-control" id="updatewalletamount" name="amount" placeholder="e.g. 100" required>
                     </div>
-                    <button type="submit" class="btn btn-gradient-primary me-2">Submit</button>
+                    <button type="submit" class="btn btn-gradient-primary me-2">Add to wallet</button>
                     <button class="btn btn-light" type="button" onclick="closewalletupdatemodel()">Cancel</button>
                 </form>
             </div>
         </div>
-        {{-- </div> --}}
     </div>
     <!-- content-wrapper ends -->
 @endsection
@@ -121,10 +123,12 @@
                     "/admin/user-list", "#");
             }
         });
-        function updatewalletbalance(userid,amount) {
+        function updatewalletbalance(userid, balance) {
             $(".walletupdateform").show('fast');
             $("#updatewalletuserid").val(userid);
-            $("#updatewalletamount").val(amount);
+            $("#updatewalletcurrent").text('Player #' + userid + ' — current balance: ₹' + Number(balance).toLocaleString());
+            $("#updatewalletamount").val('');
+            $("#updatewalletamount").focus();
         }
         function closewalletupdatemodel() {
             $(".walletupdateform").hide('fast');

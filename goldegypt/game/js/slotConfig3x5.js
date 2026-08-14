@@ -16,7 +16,7 @@ var slotConfig3x5 = {
 
     lineColor : 0xFFEA31,       // line color
 
-    lineBetMaxValue: 20,        // slot line bet maxvalue
+    lineBetMaxValue: 124,       // 243 lines × 124 / 100 coins = ₹301.32 max stake
     useWild: true,              // use wild flag, wild can be substitute for any symbol to create winning combinations (exclude first reel)
     wild: 'Wild',               // wild symbol name
     useScatter: true,           // use scatter flag

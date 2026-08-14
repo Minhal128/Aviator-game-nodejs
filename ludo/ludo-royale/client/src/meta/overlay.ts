@@ -13,14 +13,11 @@ import { armAutoFullscreen } from '../core/fullscreen';
 import { t } from '../i18n';
 import { applyCssTokens } from '../theme/tokens';
 import { api } from './api';
-import { buildEventsRow } from './events';
-import type { EventsHandle } from './events';
 import { buildHud } from './hud';
 import type { HudHandle } from './hud';
 import { buildNav } from './nav';
 import type { NavHandle } from './nav';
 import { openBackpackPanel } from './panels/backpack';
-import { openDailyPanel } from './panels/daily';
 import { openFriendsPanel } from './panels/friends';
 import { openInvitePanel } from './panels/invite';
 import { openMailPanel } from './panels/mail';
@@ -28,15 +25,14 @@ import { openMissionsPanel } from './panels/missions';
 import { openRankingPanel } from './panels/ranking';
 import { openSettingsPanel } from './panels/settings';
 import { openShopPanel } from './panels/shop';
-import { openWheelPanel } from './panels/wheel';
 import {
   metaState,
   on,
   refreshEquipment,
   refreshProfile,
+  seedFromSiteWallet,
   setMissionsClaimable,
   setUnreadMail,
-  setWheelSpins,
 } from './store';
 import { bindOverlayRoot, bindTextureSource, closeAllPanels, el, toast } from './ui';
 import './overlay.css';
@@ -50,6 +46,7 @@ const WATCHED_SCENES: readonly string[] = ['Splash', 'Home', 'Waiting', 'Game', 
 
 export function initMetaOverlay(game: Phaser.Game): void {
   applyCssTokens();
+  seedFromSiteWallet(); // paint ₹ as coins before guest auth finishes
   api.warmUp(); // guest auth starts in parallel with the splash bakes
 
   const root = el('div', 'lr-root lr-root--hidden');
@@ -93,7 +90,6 @@ export function initMetaOverlay(game: Phaser.Game): void {
 
   // -------------------------------------------------------------- chrome
   let hud: HudHandle | null = null;
-  let events: EventsHandle | null = null;
   let nav: NavHandle | null = null;
 
   // Bottom-nav Store opens on cosmetics (Dice) so it never looks empty; the
@@ -102,17 +98,11 @@ export function initMetaOverlay(game: Phaser.Game): void {
 
   const buildChrome = (): void => {
     hud?.dispose();
-    events?.dispose();
     nav?.dispose();
     hud = buildHud({
       openShop: (tab) => openShopPanel(tab),
       openMail: openMailPanel,
       openSettings: openSettingsPanel,
-    });
-    events = buildEventsRow({
-      openWheel: openWheelPanel,
-      openDaily: openDailyPanel,
-      openInvite: openInvitePanel,
     });
     nav = buildNav({
       openFriends: openFriendsPanel,
@@ -122,7 +112,8 @@ export function initMetaOverlay(game: Phaser.Game): void {
       openBackpack: openBackpackPanel,
       openShop: openStore,
     });
-    chromeLayer.replaceChildren(hud.root, events.root, nav.ticker, nav.root);
+    // ponytail: events row (wheel/daily/feedback) hidden for now
+    chromeLayer.replaceChildren(hud.root, nav.ticker, nav.root);
   };
 
   // Language switch: re-render every DOM label, and restart the Home scene
@@ -133,7 +124,6 @@ export function initMetaOverlay(game: Phaser.Game): void {
   });
 
   // ------------------------------------------------------ session flows
-  let dailyAutoShown = false;
   let cameFromMatch = false;
   let coinsBeforeMatch: number | null = null;
   let playedThisSession = false;
@@ -168,27 +158,14 @@ export function initMetaOverlay(game: Phaser.Game): void {
         }
         cameFromMatch = false;
         coinsBeforeMatch = null;
-        if (!dailyAutoShown) {
-          dailyAutoShown = true;
-          void api
-            .getDailyBonus()
-            .then((state) => {
-              if (!state.claimedToday) openDailyPanel();
-            })
-            .catch(() => undefined);
-        }
       })
-      .catch(() => toast(t('err.ERR_NETWORK')));
+      .catch(() => undefined); // tl-ludo already paints wallet; don't cry network
 
     // Badge refreshers — independent, tolerant to failure/absence.
     void api
       .getMail()
       .then((page) => setUnreadMail(page.entries.filter((e) => !e.read).length))
       .catch(() => undefined);
-    void api
-      .getWheel()
-      .then((state) => setWheelSpins(state.spinsLeft))
-      .catch(() => setWheelSpins(null));
     void api
       .getMissions()
       .then(({ missions }) =>

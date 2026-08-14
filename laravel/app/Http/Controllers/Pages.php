@@ -92,9 +92,15 @@ class Pages extends Controller
                     . '<script>window.TL_WALLET=' . json_encode([
                         'token' => csrf_token(),
                         'balance' => (float) wallet(user('id'), 'num'),
-                        'currency' => user('currency') ?: 'Rs',
+                        'currency' => user('currency') ?: '₹',
                         'userId' => (int) user('id'),
-                    ]) . ';</script>';
+                        'minBet' => (float) setting('min_bet_amount'),
+                        'maxBet' => (float) setting('max_bet_amount'),
+                    ]) . ';</script>'
+                    . '<script src="/js/tl-back.js"></script>';
+                if ($game === 'ludo') {
+                    $head .= '<script src="/js/tl-ludo.js"></script>';
+                }
                 if (request()->boolean('mute')) {
                     // must land before the engine builds its audio graph
                     $head .= '<script src="/js/tl-mute.js"></script>';

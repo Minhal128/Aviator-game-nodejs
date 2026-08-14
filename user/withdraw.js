@@ -174,4 +174,10 @@ $("#withdraw_form").validate({
         },
     },
     
-})
+});
+
+$(document).on('click', '#edit_withdraw_amount', function () {
+    var $amt = $("#amount");
+    $amt.focus();
+    if ($amt[0] && $amt[0].select) $amt[0].select();
+});

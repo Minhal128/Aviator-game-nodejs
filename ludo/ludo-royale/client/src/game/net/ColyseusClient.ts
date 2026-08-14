@@ -219,10 +219,17 @@ export class ColyseusClient implements SceneDriver {
   // -------------------------------------------------------------------------
 
   /** §6.3 quick match: joinOrCreate grouped by size+mode via server filterBy. */
-  static async quickMatch(size: 2 | 3 | 4, powerMode = false): Promise<ColyseusClient> {
+  static async quickMatch(
+    size: 2 | 3 | 4,
+    powerMode = false,
+    tierId?: number | null,
+  ): Promise<ColyseusClient> {
     try {
       const room = await joinWithTimeout(
-        new Client(gameServerUrl()).joinOrCreate('quick', joinOptions({ size, powerMode })),
+        new Client(gameServerUrl()).joinOrCreate(
+          'quick',
+          joinOptions({ size, powerMode, ...(tierId ? { tierId } : {}) }),
+        ),
       );
       return await ColyseusClient.wrap(room);
     } catch (err) {
@@ -231,10 +238,17 @@ export class ColyseusClient implements SceneDriver {
   }
 
   /** §6.1 private room — the 6-char code is room.roomId / state.privateCode. */
-  static async createPrivate(size: 2 | 3 | 4, powerMode = false): Promise<ColyseusClient> {
+  static async createPrivate(
+    size: 2 | 3 | 4,
+    powerMode = false,
+    tierId?: number | null,
+  ): Promise<ColyseusClient> {
     try {
       const room = await joinWithTimeout(
-        new Client(gameServerUrl()).create('private', joinOptions({ size, powerMode })),
+        new Client(gameServerUrl()).create(
+          'private',
+          joinOptions({ size, powerMode, ...(tierId ? { tierId } : {}) }),
+        ),
       );
       return await ColyseusClient.wrap(room);
     } catch (err) {

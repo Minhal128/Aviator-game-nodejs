@@ -30,6 +30,44 @@ body {
     background-color: #444;
 }
 
+/* Wallet / potential win / bet — bet row is editable before Play */
+.cr-hud {
+    position: absolute;
+    left: 14px;
+    top: 56px;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+    font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+    font-size: 28px;
+    line-height: 1;
+    color: #fff;
+    text-shadow: 0 2px 4px rgba(0,0,0,.65);
+}
+.cr-hud-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    border: none;
+    color: inherit;
+    font: inherit;
+    padding: 0;
+    margin: 0;
+    text-align: left;
+}
+.cr-hud-ico { font-size: 22px; filter: grayscale(1) brightness(2); }
+.cr-hud-bet {
+    pointer-events: auto;
+    cursor: pointer;
+}
+.cr-hud-bet:disabled {
+    cursor: default;
+    opacity: 0.85;
+}
+
 .road-container {
     position: absolute;
     display: flex;

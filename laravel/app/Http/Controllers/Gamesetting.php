@@ -111,36 +111,47 @@ class Gamesetting extends Controller
     {
         $status = false;
         $message = "Something went wrong!";
+        $data = array();
         $returnbets = array();
-        for($i=0; $i < count($r->all_bets); $i++){
-		$result = new Userbit;
-        $result->userid = user('id');
-        $result->amount = $r->all_bets[$i]['bet_amount'];
-        $result->type = $r->all_bets[$i]['bet_type'];
-        $result->gameid = currentid();
-        $result->section_no = $r->all_bets[$i]['section_no'];
-        if ($r->all_bets[$i]['bet_amount'] <= wallet(user('id'), 'num')) {
+        $bets = $r->all_bets;
+        if (!is_array($bets) || count($bets) < 1) {
+            return response()->json(["isSuccess" => false, "data" => [], "message" => "No bets"]);
+        }
+
+        $uid = user('id');
+        $need = 0.0;
+        $minBet = (float) setting('min_bet_amount');
+        $maxBet = (float) setting('max_bet_amount');
+        foreach ($bets as $b) {
+            $amt = floatval($b['bet_amount']);
+            if ($amt < $minBet || $amt > $maxBet) {
+                return response()->json(["isSuccess" => false, "data" => [], "message" => "Bet must be " . $minBet . "-" . $maxBet]);
+            }
+            $need += $amt;
+        }
+        // ponytail: reject whole batch if wallet can't cover all (was deducting bet1 then failing bet2)
+        if ($need > wallet($uid, 'num')) {
+            return response()->json(["isSuccess" => false, "data" => [], "message" => "Insufficient fund!!"]);
+        }
+
+        foreach ($bets as $b) {
+            $result = new Userbit;
+            $result->userid = $uid;
+            $result->amount = $b['bet_amount'];
+            $result->type = $b['bet_type'];
+            $result->gameid = currentid();
+            $result->section_no = $b['section_no'];
             if ($result->save()) {
                 $status = true;
-                array_push($returnbets, [
-                    "bet_id" => $result->id,
-                ]);
-				/*array_push($returnbets, [
-                    "bet_id" => currentid(),
-                ]);*/
-                $exact_wallet_balance = addwallet(user('id'), floatval($r->all_bets[$i]['bet_amount']), "-");
-                $data = array(
-                    "wallet_balance" => wallet(user('id')),
-                    "return_bets" => $returnbets
-                );
+                array_push($returnbets, ["bet_id" => $result->id]);
+                addwallet($uid, floatval($b['bet_amount']), "-");
+                $data = [
+                    "wallet_balance" => wallet($uid),
+                    "return_bets" => $returnbets,
+                ];
                 $message = "";
             }
-        } else {
-            $status = false;
-            $data = array();
-            $message = "Insufficient fund!!";
         }
-		}
         $response = array("isSuccess" => $status, "data" => $data, "message" => $message);
         return response()->json($response);
     }
@@ -182,6 +193,7 @@ class Gamesetting extends Controller
                 'crashed' => !empty($out['crashed']),
                 'multiplier' => $out['multiplier'] ?? null,
                 'silent' => !empty($out['silent']),
+                'bet_lost' => !empty($out['bet_lost']),
             ];
         }
 

@@ -5,6 +5,10 @@
  * server's MatchService — all of them go through credit()/debit() (or the
  * *In variants inside their own transaction).
  *
+ * When LARAVEL_WALLET_* is set, HUD coins come from the Turbo Legends wallet
+ * (1 coin = ₹1) for deviceIds `tl{userId}`. Match entry/prize settle via
+ * SiteWallet in MatchService — not through applyIn.
+ *
  * Transactional contract (ARQUITECTURA §7.2, verbatim):
  *
  *   BEGIN;
@@ -14,24 +18,12 @@
  *   SELECT coins AS balance_after ...;               -- inside the SAME tx
  *   INSERT INTO lr_wallet_transactions (..., balance_after, ...);
  *   COMMIT;
- *
- * FORBIDDEN: "SELECT balance → compute in app → absolute UPDATE" (lost
- * update). The InnoDB row lock taken by the relative UPDATE serializes
- * concurrent mutations from ludo-api and ludo-game with no extra locking.
- *
- * The debit guard is written `coins >= :amount` (not `coins + :amount >= 0`):
- * balances are BIGINT UNSIGNED, and unsigned arithmetic would error out of
- * range instead of failing the WHERE.
- *
- * Ledger dedupe: NOT here (no polymorphic UNIQUE — Gate 1 fix). Grant dedupe
- * belongs to the ORIGIN tables (lr_user_missions, lr_user_mail,
- * lr_iap_receipts, lr_ad_rewards), checked/inserted in the SAME transaction
- * via creditIn()/debitIn().
  */
 import { and, desc, eq, gte, lt, sql } from 'drizzle-orm';
 import type { Db, DbConn, Tx } from '../db/client.js';
 import { lrUsers, lrWalletTransactions, WALLET_TX_TYPES } from '../db/schema.js';
 import { API_ERR, ApiError } from './errors.js';
+import { parseSiteUserId, SiteWallet, siteUserIdFor, siteWalletEnabled, getStampedSiteBalance } from './SiteWallet.js';
 
 export type WalletCurrency = 'coins' | 'gems';
 export type WalletTxType = (typeof WALLET_TX_TYPES)[number];
@@ -52,10 +44,6 @@ export interface LedgerPage {
 export class WalletService {
   constructor(private readonly db: Db) {}
 
-  /**
-   * Credit `amount` (positive integer) of `currency` to a user inside its
-   * own transaction.
-   */
   async credit(
     userId: number,
     currency: WalletCurrency,
@@ -71,10 +59,6 @@ export class WalletService {
     );
   }
 
-  /**
-   * Debit `amount` (positive integer). Throws ApiError(ERR_INSUFFICIENT_FUNDS)
-   * — and rolls back — when the guard fails.
-   */
   async debit(
     userId: number,
     currency: WalletCurrency,
@@ -90,11 +74,6 @@ export class WalletService {
     );
   }
 
-  /**
-   * Credit variant for composition: runs inside the CALLER's transaction so
-   * origin-table dedupe (UNIQUE insert) + balance mutation commit or roll
-   * back together (§7.2).
-   */
   async creditIn(
     tx: Tx,
     userId: number,
@@ -109,7 +88,6 @@ export class WalletService {
     return this.applyIn(tx, userId, currency, amount, type, refType, refId, note);
   }
 
-  /** Debit variant for composition (see creditIn). */
   async debitIn(
     tx: Tx,
     userId: number,
@@ -124,29 +102,34 @@ export class WalletService {
     return this.applyIn(tx, userId, currency, -amount, type, refType, refId, note);
   }
 
-  /**
-   * Public entrypoints take a POSITIVE integer; the sign is owned by the
-   * operation (credit(-5) must never become a silent debit).
-   */
   private static assertPositiveAmount(amount: number): void {
     if (!Number.isSafeInteger(amount) || amount <= 0) {
       throw new ApiError(400, API_ERR.INVALID_AMOUNT, `invalid wallet amount: ${amount}`);
     }
   }
 
-  /** Current balances (cheap denormalized read for HUD/profile). */
   async getBalances(userId: number, conn: DbConn = this.db): Promise<{ coins: number; gems: number }> {
     const rows = await conn
-      .select({ coins: lrUsers.coins, gems: lrUsers.gems })
+      .select({ coins: lrUsers.coins, gems: lrUsers.gems, deviceId: lrUsers.deviceId })
       .from(lrUsers)
       .where(eq(lrUsers.id, userId))
       .limit(1);
     const row = rows[0];
     if (!row) throw new ApiError(404, API_ERR.USER_NOT_FOUND);
-    return row;
+    const site = SiteWallet.fromEnv();
+    const siteId = site ? parseSiteUserId(row.deviceId) : null;
+    if (site && siteId) {
+      // Prefer proxy-stamped balance. Never HTTP back to Laravel here — that
+      // deadlocks php artisan serve (proxy → node → wallet → same PHP).
+      const stamped = getStampedSiteBalance();
+      if (stamped !== null) {
+        return { coins: Math.max(0, Math.floor(stamped)), gems: row.gems };
+      }
+      return { coins: row.coins, gems: row.gems };
+    }
+    return { coins: row.coins, gems: row.gems };
   }
 
-  /** User's own ledger, newest first, cursor-paginated by id (§8.1). */
   async getLedger(userId: number, opts: { limit?: number; beforeId?: number } = {}): Promise<LedgerPage> {
     const limit = Math.min(Math.max(opts.limit ?? 20, 1), 100);
     const where =
@@ -165,10 +148,6 @@ export class WalletService {
     return { entries: page, nextCursor: hasMore && last ? last.id : null };
   }
 
-  // -------------------------------------------------------------------------
-  // Core: the §7.2 contract. `signedAmount` > 0 credit, < 0 debit.
-  // -------------------------------------------------------------------------
-
   private async applyIn(
     tx: Tx,
     userId: number,
@@ -182,11 +161,47 @@ export class WalletService {
     if (!Number.isSafeInteger(signedAmount) || signedAmount === 0) {
       throw new ApiError(400, API_ERR.INVALID_AMOUNT, `invalid wallet amount: ${signedAmount}`);
     }
+
+    // Site-linked players: every coin move hits Laravel (1 coin = ₹1).
+    // MatchService already settles match_entry/prize via SiteWallet; other grants
+    // (wheel/daily/shop) come through here. Gems stay on lr_users.
+    if (currency === 'coins' && siteWalletEnabled()) {
+      const site = SiteWallet.fromEnv();
+      const sid = site ? await siteUserIdFor(tx, userId) : null;
+      if (site && sid) {
+        if (type === 'match_entry' || type === 'match_prize') {
+          throw new ApiError(
+            500,
+            API_ERR.INTERNAL,
+            'match coin moves must go through SiteWallet (MatchService)',
+          );
+        }
+        const magnitude = Math.abs(signedAmount);
+        const ref =
+          `${type}_${refType ?? 'x'}_${refId ?? 0}_${userId}_${magnitude}_${signedAmount > 0 ? 'c' : 'd'}`;
+        // ponytail: HTTP outside InnoDB atomicity; idempotent refs on Laravel side
+        if (signedAmount < 0) await site.debit(sid, magnitude, ref);
+        else await site.credit(sid, magnitude, ref);
+        const bal = Math.max(0, Math.floor(await site.balance(sid)));
+        const [insertHeader] = await tx.insert(lrWalletTransactions).values({
+          userId,
+          currency,
+          amount: signedAmount,
+          balanceAfter: bal,
+          type,
+          refType: refType ?? null,
+          refId: refId ?? null,
+          note: note ?? `site:${ref}`,
+          createdAt: new Date(),
+        });
+        return { balanceAfter: bal, ledgerId: insertHeader.insertId };
+      }
+    }
+
     const isDebit = signedAmount < 0;
     const magnitude = Math.abs(signedAmount);
     const column = currency === 'coins' ? lrUsers.coins : lrUsers.gems;
 
-    // 1) RELATIVE update with guard — the row lock serializes concurrency.
     const setClause =
       currency === 'coins'
         ? { coins: sql`${lrUsers.coins} + ${signedAmount}` }
@@ -198,7 +213,6 @@ export class WalletService {
 
     if (updateHeader.affectedRows === 0) {
       if (!isDebit) throw new ApiError(404, API_ERR.USER_NOT_FOUND);
-      // Distinguish "no such user" from "guard failed" for a precise error.
       const exists = await tx
         .select({ id: lrUsers.id })
         .from(lrUsers)
@@ -212,7 +226,6 @@ export class WalletService {
       );
     }
 
-    // 2) Snapshot INSIDE the same tx (we hold the row lock — no torn read).
     const balanceRows = await tx
       .select({ balance: column })
       .from(lrUsers)
@@ -221,7 +234,6 @@ export class WalletService {
     const balanceAfter = balanceRows[0]?.balance;
     if (balanceAfter === undefined) throw new ApiError(404, API_ERR.USER_NOT_FOUND);
 
-    // 3) Append-only ledger entry with the snapshot.
     const [insertHeader] = await tx.insert(lrWalletTransactions).values({
       userId,
       currency,

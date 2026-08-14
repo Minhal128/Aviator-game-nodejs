@@ -213,9 +213,6 @@ class GoldEgypt extends Controller
         $lineBet = (int) $r->input('lineBet', 1);
         $lines = (int) $r->input('lines', self::LINES);
 
-        if ($lineBet < 1 || $lineBet > $m['lineBetMaxValue']) {
-            return $this->fail('Line bet out of range.');
-        }
         if ($lines !== self::LINES) {
             return $this->fail('All ' . self::LINES . ' lines have to be in play.');
         }
@@ -224,10 +221,23 @@ class GoldEgypt extends Controller
         $freeLeft = (int) session('gold_free_left', 0);
         $free = $freeLeft > 0;
 
-        $betCoins = $free ? 0 : $lines * $lineBet;
-        $betAmount = $betCoins / self::COINS_PER_UNIT;
+        // Exact ₹ stake from client (no 243×lineBet quantize). lineBet = paytable mult.
+        $minStake = 100.0;
+        $bal = (float) wallet($userId, 'num');
+        if ($r->filled('betAmount')) {
+            $betAmount = round((float) $r->input('betAmount'), 2);
+        } else {
+            $betAmount = round(($lines * max(1, $lineBet)) / self::COINS_PER_UNIT, 2);
+        }
+        if ($lineBet < 1) {
+            $lineBet = max(1, (int) round($betAmount * self::COINS_PER_UNIT / self::LINES));
+        }
+        $betCoins = $free ? 0 : (int) round($betAmount * self::COINS_PER_UNIT);
         if (!$free) {
-            if ((float) wallet($userId, 'num') < $betAmount) {
+            if ($betAmount + 1e-6 < $minStake) {
+                return $this->fail('Minimum bet is ₹100.');
+            }
+            if ($bal < $betAmount) {
                 return $this->fail('Not enough balance for this spin.');
             }
             addwallet($userId, $betAmount, '-');
@@ -242,14 +252,14 @@ class GoldEgypt extends Controller
         // win = (lineWin + scatterWin) * lineBet + flat jackpot
         $winCoins = ($win['line'] + $win['scatter']) * ($m['useLineBetMultiplier'] ? $lineBet : 1) + $win['jackpot'];
         $winAmount = $winCoins / self::COINS_PER_UNIT;
-        if ($winCoins > 0) {
-            addwallet($userId, $winAmount, '+');
-            $this->log($userId, $winAmount, 'credit', 'Gold of Egypt win');
-        }
+        // Hold wins until CASHOUT — do not credit wallet here.
+        $held = round((float) session('gold_held_win', 0) + $winAmount, 2);
+        session()->put('gold_held_win', $held);
         if ($win['freeSpins'] > 0) {
             session()->put('gold_free_left', (int) session('gold_free_left', 0) + $win['freeSpins']);
         }
 
+        $bal = (float) wallet($userId, 'num');
         return response()->json([
             'isSuccess' => true,
             'data' => [
@@ -257,10 +267,36 @@ class GoldEgypt extends Controller
                 'free' => $free,
                 'betCoins' => $betCoins,
                 'winCoins' => $winCoins,
+                'heldWin' => $held,
+                'heldCoins' => (int) round($held * self::COINS_PER_UNIT),
                 'win' => $win,
                 'freeLeft' => (int) session('gold_free_left', 0),
-                'balance' => (float) wallet($userId, 'num'),
-                'coins' => (int) round((float) wallet($userId, 'num') * self::COINS_PER_UNIT),
+                'balance' => $bal,
+                'coins' => (int) round($bal * self::COINS_PER_UNIT),
+            ],
+        ]);
+    }
+
+    /** Move held spin wins into the site wallet. */
+    public function cashout()
+    {
+        $userId = user('id');
+        $held = round((float) session('gold_held_win', 0), 2);
+        if ($held <= 0) {
+            return $this->fail('Nothing to cash out.');
+        }
+        addwallet($userId, $held, '+');
+        $this->log($userId, $held, 'credit', 'Gold of Egypt cashout');
+        session()->put('gold_held_win', 0);
+        $bal = (float) wallet($userId, 'num');
+        return response()->json([
+            'isSuccess' => true,
+            'data' => [
+                'cashed' => $held,
+                'heldWin' => 0,
+                'heldCoins' => 0,
+                'balance' => $bal,
+                'coins' => (int) round($bal * self::COINS_PER_UNIT),
             ],
         ]);
     }
@@ -268,14 +304,19 @@ class GoldEgypt extends Controller
     /** Opening balance, so the reels never start from the demo credit. */
     public function state()
     {
+        $userId = user('id');
+        $held = round((float) session('gold_held_win', 0), 2);
+        $bal = (float) wallet($userId, 'num');
         return response()->json([
             'isSuccess' => true,
             'data' => [
-                'balance' => (float) wallet(user('id'), 'num'),
-                'coins' => (int) round((float) wallet(user('id'), 'num') * self::COINS_PER_UNIT),
+                'balance' => $bal,
+                'coins' => (int) round($bal * self::COINS_PER_UNIT),
+                'heldWin' => $held,
+                'heldCoins' => (int) round($held * self::COINS_PER_UNIT),
                 'coinsPerUnit' => self::COINS_PER_UNIT,
                 'lines' => self::LINES,
-                'lineBetMax' => self::model()['lineBetMaxValue'],
+                'lineBetMax' => max(1, (int) ceil($bal * self::COINS_PER_UNIT / self::LINES)),
                 'jackpotPot' => self::model()['jackpot']['defaultAmount'],
                 'freeLeft' => (int) session('gold_free_left', 0),
                 'losingStops' => self::aLosingCombination(),

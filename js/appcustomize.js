@@ -7,6 +7,10 @@ function formasync(id) {
     });
 }
 function message(data, position = 'topRight') {
+    if (typeof iziToast === 'undefined') {
+        alert((data.title ? data.title + ': ' : '') + (data.message || ''));
+        return;
+    }
     if (data.type == 1 || data.status == 1) {
         iziToast.success({
             title: data.title,
@@ -87,8 +91,8 @@ function apex(method, url, data, form, success = null, error = null, reset = fal
                         'type': 0
                     });
                 } else {
-                    $(form).find('button[type=submit]').attr('disable', false);
-                    message(response);
+                    var msg = (e.responseJSON && e.responseJSON.message) ? e.responseJSON.message : ('Server error ' + e.status);
+                    message({ title: 'Oops!', message: msg, type: 0 });
                     console.log(e);
                     $(form).find('button[type=submit]').html('Retry');
                 }

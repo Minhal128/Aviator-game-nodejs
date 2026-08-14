@@ -115,6 +115,12 @@ if ($env && ($env['DB_CONNECTION'] ?? '') === 'mysql') {
 require_once __DIR__ . '/../app/Services/PoolCrashEngine.php';
 $engine = 'App\Services\PoolCrashEngine';
 
+// pace: exponential growth reaches ~2x near 7s (was linear 10s)
+$t2 = log(2.0) / $engine::GROWTH_PER_MS;
+assert($t2 > 5000 && $t2 < 9000, "2x should land ~7s, got {$t2}ms");
+assert(abs(exp($engine::GROWTH_PER_MS * 0) - 1.0) < 0.001);
+assert(abs(exp($engine::GROWTH_PER_MS * $t2) - 2.0) < 0.01);
+
 $rounds = 200000;
 $target = 2.0;   // every player cashes out at 2x
 $paidTotal = 0.0;

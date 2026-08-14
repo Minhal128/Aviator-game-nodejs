@@ -37,7 +37,7 @@ use Illuminate\Http\Request;
 class GlamourSpins extends Controller
 {
     /** Bet options the client offers (betlimits1..5 in its own globals). */
-    public const BETS = [1, 5, 10, 25, 50];
+    public const BETS = [10, 50, 100, 300, 500];
 
     public const HOUSE_PCT = 30;
     public const TARGET_RTP = 0.70;
@@ -146,15 +146,22 @@ class GlamourSpins extends Controller
 
     public function state()
     {
+        $userId = user('id');
         $w = self::weights();
+        $held = round((float) session('glamour_held_win', 0), 2);
+        $bal = (float) wallet($userId, 'num');
         return response()->json([
             'isSuccess' => true,
             'data' => [
-                'balance' => (float) wallet(user('id'), 'num'),
+                'balance' => $bal,
+                'heldWin' => $held,
                 'currency' => user('currency') ?: 'Rs',
                 'bets' => self::BETS,
+                'minBet' => (float) setting('min_bet_amount'),
+                'maxBet' => (float) setting('max_bet_amount'),
                 'seedsMeasured' => self::table()['count'] ?? count(self::table()['seeds']),
                 'rtp' => round($w['rtp'], 4),
+                'housePct' => self::HOUSE_PCT,
             ],
         ]);
     }
@@ -169,13 +176,16 @@ class GlamourSpins extends Controller
      *
      * The win scales with the stake because the client's win is linear in the bet
      * (measured: seed 101 pays 1.35x at bets 0.5, 1, 2 and 5, to the same grid).
+     * Wins are held until CASHOUT (not auto-credited).
      */
     public function spin(Request $r)
     {
         $userId = user('id');
-        $bet = (float) $r->input('bet', self::BETS[0]);
-        if (!in_array($bet, array_map('floatval', self::BETS), true)) {
-            return $this->fail('That bet is not one of the offered amounts.');
+        $bet = round((float) $r->input('bet', self::BETS[0]), 2);
+        $minBet = (float) setting('min_bet_amount');
+        $maxBet = (float) setting('max_bet_amount');
+        if ($bet + 1e-6 < $minBet || $bet > $maxBet + 1e-6) {
+            return $this->fail('Bet must be ₹' . $minBet . '–₹' . $maxBet . '.');
         }
         if ((float) wallet($userId, 'num') < $bet) {
             return $this->fail('Not enough balance for this spin.');
@@ -186,11 +196,10 @@ class GlamourSpins extends Controller
 
         addwallet($userId, $bet, '-');
         $this->log($userId, $bet, 'debit', 'Glamour Spins bet');
-        if ($win > 0) {
-            addwallet($userId, $win, '+');
-            $this->log($userId, $win, 'credit', 'Glamour Spins win');
-        }
+        $held = round((float) session('glamour_held_win', 0) + $win, 2);
+        session()->put('glamour_held_win', $held);
 
+        $bal = (float) wallet($userId, 'num');
         return response()->json([
             'isSuccess' => true,
             'data' => [
@@ -198,7 +207,30 @@ class GlamourSpins extends Controller
                 'bet' => $bet,
                 'multiplier' => $mult,
                 'win' => $win,
-                'balance' => (float) wallet($userId, 'num'),
+                'heldWin' => $held,
+                'balance' => $bal,
+            ],
+        ]);
+    }
+
+    /** Credit held spin wins into the site wallet. */
+    public function cashout()
+    {
+        $userId = user('id');
+        $held = round((float) session('glamour_held_win', 0), 2);
+        if ($held <= 0) {
+            return $this->fail('Nothing to cash out.');
+        }
+        addwallet($userId, $held, '+');
+        $this->log($userId, $held, 'credit', 'Glamour Spins cashout');
+        session()->put('glamour_held_win', 0);
+        $bal = (float) wallet($userId, 'num');
+        return response()->json([
+            'isSuccess' => true,
+            'data' => [
+                'cashed' => $held,
+                'heldWin' => 0,
+                'balance' => $bal,
             ],
         ]);
     }

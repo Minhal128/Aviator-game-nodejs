@@ -24,6 +24,8 @@ export interface WaitingParams {
   code?: string;
   /** POWER tables — quick queues split by it; joiners inherit the room's. */
   powerMode?: boolean;
+  /** Cash stake (lr_room_tiers.id). Join inherits from the room. */
+  tierId?: number | null;
 }
 
 const SLOT_RADIUS = 50;
@@ -122,9 +124,17 @@ export class WaitingScene extends Phaser.Scene {
     try {
       const driver =
         this.params.kind === 'quick'
-          ? await ColyseusClient.quickMatch(this.params.size ?? 2, this.params.powerMode ?? false)
+          ? await ColyseusClient.quickMatch(
+              this.params.size ?? 2,
+              this.params.powerMode ?? false,
+              this.params.tierId,
+            )
           : this.params.kind === 'create'
-            ? await ColyseusClient.createPrivate(this.params.size ?? 4, this.params.powerMode ?? false)
+            ? await ColyseusClient.createPrivate(
+                this.params.size ?? 4,
+                this.params.powerMode ?? false,
+                this.params.tierId,
+              )
             : await ColyseusClient.joinPrivate(this.params.code ?? '');
 
       if (!this.scene.isActive('Waiting')) {

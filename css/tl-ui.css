@@ -25,6 +25,18 @@ html {
    white panels on profile/withdraw/history */
 body.dark-bg-main {
     background: radial-gradient(1200px 600px at 50% -200px, #1b2a4a 0%, var(--tl-bg-2) 45%, var(--tl-bg) 100%) fixed;
+    /* short pages (deposit, withdraw) ended mid-screen and left a band of bare
+       background under the footer */
+    min-height: 100vh;
+}
+
+/* Sticky, not flex: a column flex body disables cross-axis stretch on any child
+   with margin:0 auto, so .tl-lobby fell back to its min-content width and the
+   phone lobby scrolled sideways by 810px. Sticky moves the footer without
+   touching how anything is sized, and min-height above gives it room to move. */
+body.dark-bg-main > .tl-footer {
+    position: sticky;
+    top: 100vh;
 }
 
 /* ---------- header ---------- */
@@ -1172,4 +1184,422 @@ body.dark-bg-main {
 .profile-dropdown li:hover,
 .tl-menu-sec:hover {
     background: transparent;
+}
+
+/* ================= wallet: deposit / withdraw =================
+   The vendor sheet painted this page for a light theme - white cards, #09519e
+   text, a #DDE4EC grid - which read as a hole punched in the dark site. Same
+   markup, dark surfaces. Vendor logos keep their own colours on a white chip,
+   because a UPI or Net Banking mark inverted stops being that brand's mark. */
+.tl-wallet {
+    width: 100%;
+    max-width: 620px;
+    margin: 0 auto;
+    /* .header-top is position:fixed and 60px tall */
+    padding: 88px 16px 56px;
+    color: var(--tl-text);
+}
+
+.tl-wallet-head {
+    margin-bottom: 18px;
+}
+
+.tl-wallet-head h1 {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -.01em;
+    margin: 0 0 4px;
+}
+
+.tl-wallet-bal {
+    font-size: 13.5px;
+    color: var(--tl-muted);
+}
+
+.tl-wallet-bal b {
+    color: var(--tl-green);
+    font-weight: 700;
+}
+
+/* --- deposit / withdraw switch: one pill, two segments --- */
+.pay-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    padding: 4px;
+    border: 1px solid var(--tl-line);
+    border-radius: 999px;
+    background: rgba(0, 0, 0, .3);
+}
+
+.custom-tabs-link {
+    flex: 1;
+    margin: 0;
+    padding: 10px 0;
+    border-radius: 999px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    color: var(--tl-muted);
+    text-decoration: none;
+    transition: background .16s, color .16s;
+}
+
+.custom-tabs-link:hover {
+    color: var(--tl-text);
+    background: rgba(255, 255, 255, .05);
+}
+
+.custom-tabs-link.active,
+.custom-tabs-link.active:hover {
+    color: #fff;
+    background: linear-gradient(180deg, var(--tl-red-2), var(--tl-red));
+    box-shadow: 0 6px 18px rgba(229, 5, 57, .32);
+}
+
+/* the vendor underline is what the pill replaces */
+.custom-tabs-link.active:after {
+    display: none;
+}
+
+/* --- method tiles --- */
+.grid-view {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    align-items: stretch;
+    grid-gap: 14px;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+}
+
+.payment-btn {
+    height: auto;
+    gap: 14px;
+    padding: 20px 16px 18px;
+    border: 1px solid var(--tl-line);
+    border-radius: var(--tl-radius);
+    background: var(--tl-surface);
+    transition: border-color .16s, transform .16s, box-shadow .16s;
+}
+
+.payment-btn:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, .2);
+}
+
+.payment-btn.active {
+    filter: none;
+    border: 1px solid var(--tl-red-2);
+    background: var(--tl-surface-2);
+    box-shadow: 0 10px 30px rgba(229, 5, 57, .25);
+}
+
+/* brand marks are drawn for white; give them white rather than invert them */
+.payment-btn img {
+    max-width: 100%;
+    width: 100%;
+    height: 110px;
+    object-fit: contain;
+    margin: 0;
+    padding: 12px;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.PaymentCard_limit {
+    position: static;
+    font-size: 12px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--tl-muted);
+}
+
+/* --- amount panel --- */
+.deposite-box .d-box {
+    margin: 16px 0 0;
+    padding: 18px 18px 20px;
+    border: 1px solid var(--tl-line);
+    border-radius: var(--tl-radius);
+    background: var(--tl-surface);
+}
+
+.limit-txt {
+    font-size: 11px;
+    letter-spacing: .12em;
+    color: var(--tl-muted);
+}
+
+.limit-txt span {
+    color: var(--tl-gold);
+}
+
+/* .row lives outside a .container here, so its gutter margins would pull the
+   input past the panel padding */
+.deposite-box .row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.deposite-container .login-controls {
+    background-image: none;
+    background: rgba(0, 0, 0, .3);
+    border: 1px solid var(--tl-line);
+    border-radius: 12px;
+    transition: border-color .15s;
+}
+
+.deposite-box .login-controls {
+    border-radius: 999px;
+}
+
+.deposite-container .login-controls:focus-within {
+    border-color: var(--tl-red-2);
+}
+
+.deposite-container .login-controls label {
+    border: none;
+    width: 100%;
+}
+
+.deposite-container .form-control {
+    background: transparent;
+    border: none;
+    color: var(--tl-text);
+    font-weight: 600;
+    box-shadow: none;
+}
+
+.deposite-container .Input_currency {
+    color: var(--tl-muted);
+}
+
+.amount-tooltips {
+    justify-content: flex-start;
+    gap: 8px;
+    min-height: 0;
+    margin-top: 14px;
+}
+
+.amount-tooltips-btn {
+    height: 32px;
+    margin: 0;
+    padding: 0 14px;
+    border: 1px solid var(--tl-line);
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, .04);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tl-muted);
+}
+
+.amount-tooltips-btn:hover {
+    color: var(--tl-text);
+    background-color: rgba(255, 255, 255, .09);
+}
+
+.amount-tooltips-btn.active,
+.amount-tooltips-btn.active:hover {
+    color: #fff;
+    border-color: transparent;
+    background: linear-gradient(180deg, var(--tl-red-2), var(--tl-red));
+}
+
+.deposite-blc {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--tl-line);
+    font-size: 12px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--tl-muted);
+}
+
+.dopsite-vlue {
+    margin-top: 0;
+    color: var(--tl-gold);
+    font-weight: 700;
+}
+
+/* --- step 2: transfer details + confirmation form --- */
+.form-back {
+    width: max-content;
+    margin-bottom: 14px;
+    padding: 7px 14px 7px 8px;
+    border: 1px solid var(--tl-line);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .04);
+    font-size: 12.5px;
+    letter-spacing: .08em;
+    color: var(--tl-muted);
+}
+
+.form-back:hover {
+    color: var(--tl-text);
+    border-color: var(--tl-red-2);
+}
+
+.form-back span {
+    color: var(--tl-red-2);
+}
+
+.white-box {
+    padding: 18px;
+    border: 1px solid var(--tl-line);
+    border-radius: var(--tl-radius);
+    background: var(--tl-surface);
+    color: var(--tl-text);
+}
+
+/* bootstrap's ink utilities are all over this markup and every one of them
+   would be dark-on-dark now */
+.pay-static-form .text-dark,
+.pay-static-form h5,
+.l-modal .text-dark {
+    color: var(--tl-text) !important;
+}
+
+.pay-static-form .text-muted,
+.pay-static-form .text-secondary,
+.l-modal .text-muted,
+.l-modal .text-secondary,
+.l-modal .form-label {
+    color: var(--tl-muted) !important;
+}
+
+/* the "edit amount" pencil is a bare .btn-transparent, i.e. ink-coloured */
+.white-box .btn-transparent .material-symbols-outlined {
+    color: var(--tl-muted);
+}
+
+.white-box .btn-transparent:hover .material-symbols-outlined {
+    color: var(--tl-red-2);
+}
+
+/* nothing in either sheet gave validation text a colour */
+.deposite-container label.error,
+.l-modal label.error {
+    display: block;
+    margin-top: 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--tl-red-2);
+}
+
+.pay-static-form .col-form-label {
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: .06em;
+}
+
+.white-box .link-text {
+    color: var(--tl-red-2);
+    font-weight: 600;
+}
+
+/* the proof upload: a bare file input renders as light chrome on the dark panel */
+.tl-proof-input {
+    padding: 9px 12px;
+    border: 1px dashed var(--tl-line);
+    border-radius: 12px;
+    background: rgba(0, 0, 0, .3);
+    color: var(--tl-text);
+    font-size: 13px;
+}
+
+.tl-proof-input::file-selector-button {
+    margin-right: 10px;
+    padding: 5px 12px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .08);
+    color: var(--tl-text);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.tl-proof-input:hover::file-selector-button {
+    background: var(--tl-red);
+    color: #fff;
+}
+
+.tl-proof-hint {
+    margin-top: 6px;
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: var(--tl-muted);
+}
+
+/* --- withdraw modal --- */
+/* a centred column of eight labelled fields is hard to scan, and .text-center
+   on the form is a bootstrap !important - the labels have to opt out themselves */
+/* the balance line is help text wearing a .form-label class */
+#withdraw-modal .form-label.text-secondary {
+    margin: 6px 0 0;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+#withdraw-modal .form-label {
+    display: block;
+    margin: 14px 0 6px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+/* red is money in, gold is money out - keep them apart, but on theme */
+#withdraw-modal .yellow-btn {
+    background: linear-gradient(180deg, var(--tl-gold), #e08d00);
+    border: none;
+    color: #1a1206;
+    font-weight: 800;
+    box-shadow: 0 8px 22px rgba(255, 176, 32, .3);
+}
+
+.barcode-img {
+    width: 190px;
+    padding: 10px;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.copy_owner_details {
+    gap: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.copy_owner_details:hover .material-symbols-outlined {
+    color: var(--tl-red-2) !important;
+}
+
+/* the dark close glyph the vendor sheet sets is invisible on a dark header */
+.l-modal .absolute-btn.text-dark {
+    color: var(--tl-red-2) !important;
+}
+
+@media (max-width: 767px) {
+    .tl-wallet {
+        padding: 76px 14px 40px;
+    }
+
+    .tl-wallet-head h1 {
+        font-size: 22px;
+    }
+
+    /* one tile per row on a phone: without a cap the white chip is 330px of
+       card behind a 90px mark */
+    .payment-btn img {
+        height: 92px;
+        max-width: 240px;
+        margin: 0 auto;
+    }
 }

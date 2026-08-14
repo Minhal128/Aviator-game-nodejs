@@ -162,7 +162,7 @@ function setVariable(is_plan = '') {
     } else {
         var is_plan_display = '';
     }
-    animatePathDrawing(ctx, verticalLine, (ctx.canvas.height - verticalLine), diffx1, (ctx.canvas.height - verticalLine), xend, yend, 5000, is_plan_display);
+    animatePathDrawing(ctx, verticalLine, (ctx.canvas.height - verticalLine), diffx1, (ctx.canvas.height - verticalLine), xend, yend, 3000, is_plan_display);
     // console.log('-----------------------start--------setVariable-------------------------');
 }
 

@@ -24,6 +24,7 @@ import type { Db, Tx } from '../db/client.js';
 import { lrUsers, lrUserSessions } from '../db/schema.js';
 import { API_ERR, ApiError } from './errors.js';
 import type { SettingsService } from './SettingsService.js';
+import { parseSiteUserId } from './SiteWallet.js';
 import type { WalletService } from './WalletService.js';
 
 const ACCESS_TTL_S = 15 * 60;
@@ -264,6 +265,7 @@ export class AuthService {
     const rows = await this.db.select().from(lrUsers).where(eq(lrUsers.id, userId)).limit(1);
     const u = rows[0];
     if (!u || u.status === 'deleted') throw new ApiError(404, API_ERR.USER_NOT_FOUND);
+    const bal = await this.wallet.getBalances(userId);
     return {
       id: u.id,
       username: u.username,
@@ -275,8 +277,8 @@ export class AuthService {
       locale: u.locale,
       xp: u.xp,
       level: u.level,
-      coins: u.coins,
-      gems: u.gems,
+      coins: bal.coins,
+      gems: bal.gems,
       gamesPlayed: u.gamesPlayed,
       gamesWon: u.gamesWon,
       winStreak: u.winStreak,
@@ -294,7 +296,9 @@ export class AuthService {
    * can never produce a user whose balance disagrees with the ledger.
    */
   private async createGuest(deviceId: string, name?: string): Promise<number> {
-    const initialCoins = await this.settings.getInt('initial_coins', 5000);
+    // site-linked guests (tl{userId}) use the Turbo Legends wallet — no starter coins
+    const siteLinked = parseSiteUserId(deviceId) !== null;
+    const initialCoins = siteLinked ? 0 : await this.settings.getInt('initial_coins', 5000);
     const initialGems = await this.settings.getInt('initial_gems', 50);
     const wantedName = name !== undefined && USERNAME_RE.test(name) ? name : null;
 

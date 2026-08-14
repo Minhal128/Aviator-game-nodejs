@@ -1057,6 +1057,7 @@ export class GameBoardScene extends Phaser.Scene {
           place: r.place,
           color: info?.color ?? 'red',
           name: info?.name ?? '',
+          coinsDelta: r.coinsDelta,
         };
       });
     const humanSeat =

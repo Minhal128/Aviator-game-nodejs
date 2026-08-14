@@ -1,16 +1,17 @@
 @extends('Layout.usergame')
 @section('content')
-    <div class="deposite-container">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-6">
-                    <div class="pay-tabs">
-                        <a href="/deposit" class="custom-tabs-link">DEPOSIT</a>
-                        <a href="#" class="custom-tabs-link active">WITHDRAW</a>
-                    </div>
-                    <div class="pay-options">
-                        <div class="payment-cols">
-                            <div class="grid-view">
+    <div class="deposite-container tl-wallet">
+        <div class="tl-wallet-head">
+            <h1>Cashier</h1>
+            <div class="tl-wallet-bal">Wallet balance <b>{{wallet(user('id'))}}</b></div>
+        </div>
+        <div class="pay-tabs">
+            <a href="/deposit" class="custom-tabs-link">DEPOSIT</a>
+            <a href="#" class="custom-tabs-link active">WITHDRAW</a>
+        </div>
+        <div class="pay-options">
+            <div class="payment-cols">
+                <div class="grid-view">
 
 
                                 <!--<div class="grid-list">-->
@@ -35,16 +36,16 @@
                                 
                                 <div class="grid-list">
                                     <button class="btn payment-btn" data-bs-toggle="modal" data-bs-target="#withdraw-modal"
-                                        onclick="withdraw('6' , '')">
-                                        <img src="images/app-logo/interkassa_net_banking.svg " />
+                                        onclick="withdraw('6' , '{{setting('min_withdrawal')}}')">
+                                        <img src="images/app-logo/netbankinglogo.png" alt="Net Banking" />
                                         <div class="PaymentCard_limit">Net Banking</div>
                                     </button>
                                 </div>
 
                                 <div class="grid-list">
                                     <button class="btn payment-btn" data-bs-toggle="modal" data-bs-target="#withdraw-modal"
-                                        onclick="withdraw('3' , '')">
-                                        <img src="images/app-logo/upiMt.svg " />
+                                        onclick="withdraw('3' , '{{setting('min_withdrawal')}}')">
+                                        <img src="images/app-logo/upiMt.svg " alt="UPI" />
                                         <div class="PaymentCard_limit">UPI</div>
                                     </button>
                                 </div>
@@ -67,9 +68,6 @@
 
 
 
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -84,7 +82,7 @@
                         data-bs-dismiss="modal" aria-label="Close">
                         close
                     </span>
-                    <h5 class="modal-title pt-2" id="exampleModalLabel">withdraw Request</h5>
+                    <h5 class="modal-title pt-2" id="exampleModalLabel">Withdraw Request</h5>
                 </div>
                 <div class="modal-body pt-1">
                     <form class="login-form text-center" action="/insert/withdrawal" method="post" id="withdraw_form">
@@ -92,14 +90,19 @@
                         <input type="hidden" name="payment_gateway_type" id="payment_gateway_type">
                         <input type="hidden" name="min_withdraw_amount" id="min_withdraw_amount">
                         <div id="amount_div">
-                            <label for="amount" class="form-label text-dark">Amount</label>
+                            <label for="amount" class="form-label text-dark d-flex align-items-center justify-content-between">
+                                <span>Amount</span>
+                                <button type="button" class="btn btn-transparent p-0" id="edit_withdraw_amount" title="Edit amount" aria-label="Edit amount">
+                                    <span class="material-symbols-outlined bold-icon f-18">edit</span>
+                                </button>
+                            </label>
                             <div class="login-controls">
                                 <label for="amount">
                                     <input type="text" class="form-control text-indent-0" id="amount" name="amount"
                                         oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1').replace(/^0[^.]/, '0');">
                                 </label>
                             </div>
-                            <label for="amount" class="form-label text-secondary">Available Balance : {{wallet(user('id'))}}</label>
+                            <label for="amount" class="form-label text-secondary">Available balance {{wallet(user('id'))}} &middot; minimum {{setting('min_withdrawal')}} &middot; paid out by hand after an admin approves</label>
                             <input type="hidden" name="wallet_balance" id="balance" value="{{wallet(user('id'),"num")}}">
                         </div>
                         <label id="amount-error" class="error" for="amount"></label>
@@ -202,14 +205,17 @@
 @section('js')
 <script src="{{url('user/withdraw.js')}}"></script>
 @isset($_GET['msg'])
-@if ($_GET['msg'] == 'Success')
+@php
+    $notice = [
+        'Success' => ['success', 'Request sent. An admin pays out by hand, then it leaves your balance.'],
+        'min'     => ['error', 'Minimum withdrawal is ' . setting('min_withdrawal') . '.'],
+        'balance' => ['error', 'That is more than your balance.'],
+        'error'   => ['error', 'Something went wrong, please try again.'],
+    ][$_GET['msg']] ?? null;
+@endphp
+@if ($notice)
     <script>
-        toastr.success("Request send successfully!");
-    </script>
-@endif
-@if ($_GET['msg'] == 'error')
-    <script>
-        toastr.error("Something went wrong!");
+        toastr.{{ $notice[0] }}({{ Illuminate\Support\Js::from($notice[1]) }});
     </script>
 @endif
 @endisset

@@ -11,6 +11,7 @@
 
     <!--====== Favicon Icon ======-->
     <link rel="shortcut icon" href="{{ asset('images/logo.jpeg') }}" type="image/jpeg" />
+    <script src="/js/tl-back.js"></script>
 
     <!--====== Material Design Icons CSS ======-->
     <!-- <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500&family=Oswald:wght@200;300;400&display=swap" rel="stylesheet"> -->
@@ -135,10 +136,11 @@
         /* toastr START */
         .custom-toaster {
             position: fixed;
-            top: 50px;
+            top: 100px;
             transform: translateX(-50%);
             left: 50%;
-            z-index: 99999;
+            z-index: 999999;
+            pointer-events: none;
         }
 
         .cashout-toaster1,
@@ -156,8 +158,9 @@
             font-size: 12px;
             margin-bottom: 10px;
             opacity: 0;
-            margin-bottom: -55px;
             visibility: hidden;
+            pointer-events: none;
+            transform: translateY(-8px);
         }
 
         .error-toaster1 {
@@ -208,15 +211,12 @@
             visibility: visible;
         }
 
-        .cashout-toaster1.show {
-            margin: 0;
-            opacity: 1;
-            visibility: visible;
-        }
-
+        .cashout-toaster1.show,
         .cashout-toaster2.show {
             opacity: 1;
             visibility: visible;
+            pointer-events: auto;
+            transform: translateY(0);
         }
 
         .cashout-toaster2 {
@@ -286,6 +286,107 @@
         }
 
         /* toastr END */
+
+        .wallet-balance {
+            position: relative;
+            overflow: visible;
+        }
+
+        .wallet-balance.wallet-credit-pulse {
+            border-color: #4EAF11;
+            box-shadow: 0 0 0 2px rgba(78, 175, 17, 0.35);
+        }
+
+        .wallet-balance.wallet-credit-pulse #wallet_balance {
+            color: #4EAF11;
+        }
+
+        .wallet-credit-chip {
+            position: absolute;
+            left: 50%;
+            top: -2px;
+            transform: translate(-50%, 0);
+            color: #4EAF11;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 5;
+            animation: wallet-credit-fly 0.85s ease-out forwards;
+        }
+
+        @keyframes wallet-credit-fly {
+            0% { opacity: 0; transform: translate(-50%, 6px); }
+            20% { opacity: 1; }
+            100% { opacity: 0; transform: translate(-50%, -18px); }
+        }
+
+        .wallet-balance.wallet-debit-pulse {
+            border-color: #E50539;
+            box-shadow: 0 0 0 2px rgba(229, 5, 57, 0.35);
+        }
+
+        .wallet-balance.wallet-debit-pulse #wallet_balance {
+            color: #E50539;
+        }
+
+        .wallet-debit-chip {
+            position: absolute;
+            left: 50%;
+            top: -2px;
+            transform: translate(-50%, 0);
+            color: #E50539;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 5;
+            animation: wallet-credit-fly 0.85s ease-out forwards;
+        }
+
+        .bet-toaster {
+            height: 55px;
+            border-radius: 55px;
+            min-width: 280px;
+            background: #1a2744;
+            border: 1px solid #3d7eff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s;
+            padding: 0 20px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 10px;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateY(-8px);
+        }
+
+        .bet-toaster.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .coin-burst {
+            position: fixed;
+            z-index: 1000000;
+            color: #ffd54a;
+            font-weight: 800;
+            font-size: 14px;
+            pointer-events: none;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            animation: coin-burst-fly 0.85s ease-out forwards;
+        }
+
+        @keyframes coin-burst-fly {
+            0% { opacity: 1; transform: translate(0, 0) scale(1); }
+            100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.4); }
+        }
 
         .hide {
             display: none !important;
@@ -386,7 +487,7 @@
                             d="M113.341 82.064a2.344 2.344 0 0 0-3.115 1.131l-.026.057a2.343 2.343 0 1 0 4.26 1.955l.013-.028a2.344 2.344 0 0 0-1.132-3.115zM7.65 35.765a2.343 2.343 0 0 0-3.072 1.241l-.021.05a2.338 2.338 0 0 0 2.165 3.228c.922 0 1.8-.55 2.173-1.454.5-1.19-.056-2.56-1.245-3.065z" />
                     </g>
                 </svg>
-                <div class="secondary-font f-40 mt-2 waiting-text"> WAITING FOR NEXT ROUND</div>
+                <div class="secondary-font f-40 mt-2 waiting-text">WAITING FOR BET</div>
                 <div class="line-loader mt-2">
                     <div class="fill-line"></div>
                 </div>
@@ -397,6 +498,9 @@
     @include('include.game-header')
 
     <div class="custom-toaster">
+        <div class="bet-toaster">
+            Bet placed: <span class="out-amount" style="margin-left:6px;"></span>
+        </div>
         <div class="cashout-toaster1 ">
             <div class="cashout-stop">
                 <div style="font-weight: 600; color: white;">You have cashed out!</div>
@@ -617,11 +721,6 @@
                 <h3 id="auto_increment_number" class="text-center text-white">1.00x</h3>
             </div> -->
                 <div class="stage-board">
-                    <div class="tl-stage-bar" title="Staging controls">
-                        <button type="button" id="stg_pause" title="Pause">⏸</button>
-                        <button type="button" id="stg_play" class="is-active" title="Play">▶</button>
-                        <button type="button" id="stg_restart" title="Restart">↻</button>
-                    </div>
                     <div class="counter-num text-center" id="auto_increment_number_div" style="display: none;">
                         <div class="secondary-font f-40 flew_away_section" style="display: none;">FLEW AWAY!</div>
                         <div id="auto_increment_number">1.00<span>X</span></div>
@@ -638,8 +737,8 @@
                                         d="M113.341 82.064a2.344 2.344 0 0 0-3.115 1.131l-.026.057a2.343 2.343 0 1 0 4.26 1.955l.013-.028a2.344 2.344 0 0 0-1.132-3.115zM7.65 35.765a2.343 2.343 0 0 0-3.072 1.241l-.021.05a2.338 2.338 0 0 0 2.165 3.228c.922 0 1.8-.55 2.173-1.454.5-1.19-.056-2.56-1.245-3.065z" />
                                 </g>
                             </svg>
-                            <div class="secondary-font f-40 mt-2 waiting-text"> WAITING FOR NEXT ROUND</div>
-                            <div class="secondary-font f-50 mt-1 text-white" id="round_countdown">25</div>
+                            <div class="secondary-font f-40 mt-2 waiting-text">WAITING FOR BET</div>
+                            <div class="secondary-font f-50 mt-1 text-white" id="round_countdown">10</div>
                             <div class="line-loader mt-2">
                                 <div class="fill-line" id="round_fill_line"></div>
                             </div>
@@ -660,13 +759,8 @@
                                     add_circle
                                 </span>
                             </div>
-                            <div class="navigation">
+                            <div class="navigation" style="display:none">
                                 <input id="bet_type" type="hidden" value="0">
-                                <div class="navigation-switcher">
-                                    <div class="slider bet-btn">Bet</div>
-                                    <div class="slider auto-btn">Auto</div>
-                                    <span class="active-line"></span>
-                                </div>
                             </div>
                             <div class="first-row auto-game-feature">
                                 <div class="bet-block">
@@ -775,13 +869,8 @@
                                     do_not_disturb_on
                                 </span>
                             </div>
-                            <div class="navigation">
+                            <div class="navigation" style="display:none">
                                 <input id="bet_type" type="hidden" value="0">
-                                <div class="navigation-switcher">
-                                    <div class="slider bet-btn">Bet</div>
-                                    <div class="slider auto-btn">Auto</div>
-                                    <span class="active-line"></span>
-                                </div>
                             </div>
                             <div class="first-row auto-game-feature">
                                 <div class="bet-block">
@@ -1109,7 +1198,7 @@
     <script>
         var hash_id = '{{ csrf_token() }}';
         var currency_id = '{{ user('currency') }}';
-        var currency_symbol = '{{ user('currency') }}';
+        var currency_symbol = '₹';
         var wallet_balance = '{{ wallet(user('id')) }}';
         var profile_image = '1';
         var member_id = '{{ user('id') }}';
