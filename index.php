@@ -5,6 +5,23 @@ use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
+// tl-inject-start
+// ponytail: cPanel keeps serving old compiled blades, so the header edits never land;
+// patch the markup on the way out until the host stops caching views
+ob_start(static function ($html) {
+    $html = preg_replace('/<title>.*?<\/title>/s', '<title>turbolegends</title>', $html, 1) ?? $html;
+    if (strpos($html, 'Download Game') === false) {
+        $html = preg_replace(
+            '/(?=<button class="register-btn)/',
+            '<a href="https://turbolegends-downloads.s3.ap-south-1.amazonaws.com/turbo-legends.apk" class="login-btn rounded-pill d-flex align-items-center me-2" style="white-space:nowrap" aria-label="Download Game"><span class="material-symbols-outlined d-md-none">download</span><span class="d-none d-md-inline">Download Game</span></a>',
+            $html,
+            1
+        ) ?? $html;
+    }
+    return $html;
+});
+// tl-inject-end
+
 /*
 |--------------------------------------------------------------------------
 | Check If The Application Is Under Maintenance

@@ -83,12 +83,24 @@ class Pages extends Controller
         if ($file === false || !is_file($file) || !str_starts_with($file, $root)) {
             abort(404);
         }
+        // Gold of Egypt is 47MB of art in ~120 files. Routed through the front
+        // controller that is 120 PHP boots per load, each waiting on the same session
+        // file lock, and shared hosting drops the overflow - Phaser then draws its green
+        // missing-texture box for whatever did not arrive. The bundle already sits inside
+        // public_html, so point the base at it and let Apache serve the art directly;
+        // index.html still comes through here for auth and the wallet injection.
+        // slot-glamour stays on PHP: its scripts/main.js is rewritten at serve time.
+        $staticBase = [
+            'gold-egypt' => '/goldegypt/game/',
+        ];
+        $baseHref = $staticBase[$game] ?? '/' . $game . '/';
+
         // ponytail: base href so /game (no slash) still loads relative assets
         if ($rel === 'index.html') {
             $html = file_get_contents($file);
             if ($html !== false && !str_contains($html, '<base ')) {
                 // the wallet block lets a game post to /game/road/* with the session's CSRF token
-                $head = '<head><base href="/' . $game . '/">'
+                $head = '<head><base href="' . $baseHref . '">'
                     . '<script>window.TL_WALLET=' . json_encode([
                         'token' => csrf_token(),
                         'balance' => (float) wallet(user('id'), 'num'),

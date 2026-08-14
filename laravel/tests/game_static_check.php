@@ -23,6 +23,14 @@ if ($uid) {
     assert(str_contains($r->getContent(), 'minBet'), 'chicken TL_WALLET has minBet');
     assert(str_contains($r->getContent(), 'maxBet'), 'chicken TL_WALLET has maxBet');
     assert(str_contains($r->getContent(), 'base href="/chicken-road/"'), 'chicken base');
+
+    // Egypt's art is served straight off disk by Apache, not through this controller
+    $e = $c->gameStatic('gold-egypt', null);
+    assert(str_contains($e->getContent(), 'base href="/goldegypt/game/"'), 'egypt base points at the static folder');
+    assert(is_file(dirname(base_path()) . '/goldegypt/game/png/Symbols/Wick.png'), 'egypt static base resolves to real files');
+    // slot-glamour must keep going through PHP: main.js is patched at serve time
+    $g = $c->gameStatic('slot-glamour', null);
+    assert(str_contains($g->getContent(), 'base href="/slot-glamour/"'), 'slot-glamour stays on the PHP route');
 }
 
 echo "game_static_check OK\n";

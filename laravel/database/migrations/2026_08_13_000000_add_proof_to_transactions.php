@@ -13,9 +13,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('transactions', function (Blueprint $table) {
-            $table->string('proof')->nullable()->after('remark');
-        });
+        if (!Schema::hasColumn('transactions', 'proof')) {
+            Schema::table('transactions', function (Blueprint $table) {
+                $table->string('proof')->nullable()->after('remark');
+            });
+        }
     }
 
     public function down(): void

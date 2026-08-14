@@ -1,0 +1,6 @@
+# This real folder shadows the /ludo URL: Apache serves the directory, finds no
+# index file and answers 403 before Laravel's route ever runs. Hand it back.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^ /index.php [L]
+</IfModule>

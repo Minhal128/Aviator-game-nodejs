@@ -7,7 +7,7 @@
     <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
 
     <!--====== Title ======-->
-    <title>Betting company {{env('APP_NAME')}} - online sports betting</title>
+    <title>turbolegends</title>
 
     <!--====== Favicon Icon ======-->
     <link rel="shortcut icon" href="{{asset('images/logo.jpeg')}}" type="image/jpeg" />

@@ -121,6 +121,14 @@ assert($t2 > 5000 && $t2 < 9000, "2x should land ~7s, got {$t2}ms");
 assert(abs(exp($engine::GROWTH_PER_MS * 0) - 1.0) < 0.001);
 assert(abs(exp($engine::GROWTH_PER_MS * $t2) - 2.0) < 0.01);
 
+// --- mode gate: pool mode only when the smallest bet can ride to 3x ---
+assert($engine::usePoolMode(null, 700.0) === false);        // no active bet
+assert($engine::usePoolMode(10.0, pool(20)) === false);     // solo 10+10 → pool 14, dies at 1.40x
+assert($engine::usePoolMode(10.0, pool(10)) === false);     // single bet → pool 7
+assert($engine::usePoolMode(100.0, pool(770)) === true);    // 100+670 → pool 539, rides past 3x
+assert($engine::usePoolMode(10.0, 30.0) === true);          // exactly 3x is allowed
+assert($engine::usePoolMode(10.0, 29.99) === false);
+
 $rounds = 200000;
 $target = 2.0;   // every player cashes out at 2x
 $paidTotal = 0.0;

@@ -127,6 +127,13 @@
             </div>
         @else
             <div class="header-right d-flex align-items-center">
+                {{-- three full-width pills do not fit a phone header, so the label collapses to the icon --}}
+                <a href="https://turbolegends-downloads.s3.ap-south-1.amazonaws.com/turbo-legends.apk"
+                    class="login-btn rounded-pill d-flex align-items-center me-2" style="white-space:nowrap"
+                    aria-label="Download Game">
+                    <span class="material-symbols-outlined d-md-none">download</span>
+                    <span class="d-none d-md-inline">Download Game</span>
+                </a>
                 <button class="register-btn rounded-pill d-flex align-items-center me-2 reg_btn" data-bs-toggle="modal"
                     data-bs-target="#register-modal">
                     Register

@@ -29,6 +29,18 @@ class PoolCrashEngine
     public const GROWTH_PER_MS = 0.0001;
     /** ponytail: hard ceiling on house-mode payout; raise if the client wants bigger tails */
     public const MAX_MULT = 100.0;
+    /** Pool mode needs room for the smallest bet to ride this far, else it can only bust early */
+    public const POOL_MIN_RIDE = 3.0;
+
+    /**
+     * Pool mode is only fair when the pool can actually pay a win. With few players
+     * (10+10 → pool 14) every bet was force-forfeited just past 1.40x and cashout paid
+     * nothing, so those rounds fly in house mode instead — same 30% edge.
+     */
+    public static function usePoolMode(?float $minBet, float $pool): bool
+    {
+        return $minBet !== null && $minBet > 0 && round($minBet * self::POOL_MIN_RIDE, 2) <= $pool;
+    }
 
     private function key(int $gameId): string
     {
@@ -72,7 +84,7 @@ class PoolCrashEngine
         $state = [
             'game_id' => $gameId,
             'phase' => 'flying',
-            'mode' => ($minBet !== null && $minBet <= $pool) ? 'pool' : 'house',
+            'mode' => self::usePoolMode($minBet, $pool) ? 'pool' : 'house',
             'total_bets' => $total,
             'pool' => $pool,
             'paid' => 0.0,
@@ -264,7 +276,7 @@ class PoolCrashEngine
             return;
         }
         $minBet = $this->minActiveBet($gameId);
-        if ($minBet !== null && $minBet <= $state['pool']) {
+        if (self::usePoolMode($minBet, (float) $state['pool'])) {
             $state['mode'] = 'pool';
             $state['crash_at'] = null;
         }

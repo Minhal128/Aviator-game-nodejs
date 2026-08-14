@@ -305,6 +305,23 @@ function cash_out_now(element, section_no, increment = '') {
         extra_cash_out = 0;
     }
 
+    let bet_id;
+    if (section_no == 0) {
+        bet_id = $("#main_bet_id").val();
+        var bet_amount = $("#main_bet_section #bet_amount").val();
+    } else {
+        bet_id = $("#extra_bet_id").val();
+        var bet_amount = $("#extra_bet_section #bet_amount").val();
+    }
+    // prefer bet_array id (survives the old swapped-hidden-input bug), read before the splice below drops it
+    for (var bi = 0; bi < bet_array.length; bi++) {
+        if (bet_array[bi] && bet_array[bi].section_no == section_no && bet_array[bi].bet_id) {
+            bet_id = bet_array[bi].bet_id;
+            if (bet_array[bi].bet_amount) bet_amount = bet_array[bi].bet_amount;
+            break;
+        }
+    }
+
     if (bet_array.length == 1) {
         bet_array.splice(0, 1); // Remove Perticular Bet
     } else if (bet_array.length == 2 && section_no == 0) {
@@ -321,22 +338,6 @@ function cash_out_now(element, section_no, increment = '') {
         }
     }
 
-    let bet_id;
-    if (section_no == 0) {
-        bet_id = $("#main_bet_id").val();
-        var bet_amount = $("#main_bet_section #bet_amount").val();
-    } else {
-        bet_id = $("#extra_bet_id").val();
-        var bet_amount = $("#extra_bet_section #bet_amount").val();
-    }
-    // prefer bet_array id (survives the old swapped-hidden-input bug)
-    for (var bi = 0; bi < bet_array.length; bi++) {
-        if (bet_array[bi] && bet_array[bi].section_no == section_no && bet_array[bi].bet_id) {
-            bet_id = bet_array[bi].bet_id;
-            if (bet_array[bi].bet_amount) bet_amount = bet_array[bi].bet_amount;
-            break;
-        }
-    }
     // let incrementor = $("#auto_increment_number").text().slice(0,-1);
     game_id = (current_game_data && current_game_data.id) ? current_game_data.id : current_game_data;
 
@@ -1545,7 +1546,7 @@ function soundPlay() {
     } else {
         if ($("#sound").prop("checked") == true) {
             if (window_blur == 0) {
-                sound.play();
+                sound.play().catch(function () {});
             } else {
                 sound.pause();
             }
@@ -1563,7 +1564,7 @@ function flyPlaneSound() {
     } else {
         if ($("#sound").prop("checked") == true) {
             if (window_blur == 0) {
-                sound.play();
+                sound.play().catch(function () {});
             } else {
                 sound.pause();
             }
@@ -1580,7 +1581,7 @@ function cashOutSound() {
     } else {
         if ($("#sound").prop("checked") == true) {
             if (window_blur == 0) {
-                sound.play();
+                sound.play().catch(function () {});
             } else {
                 sound.pause();
             }
@@ -1597,7 +1598,7 @@ function cashOutSoundOtherSection() {
     } else {
         if ($("#sound").prop("checked") == true) {
             if (window_blur == 0) {
-                sound.play();
+                sound.play().catch(function () {});
             } else {
                 sound.pause();
             }
