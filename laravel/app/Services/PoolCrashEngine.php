@@ -42,6 +42,35 @@ class PoolCrashEngine
         return $minBet !== null && $minBet > 0 && round($minBet * self::POOL_MIN_RIDE, 2) <= $pool;
     }
 
+    /**
+     * Round winner under the admin percentage. cap = total staked x pct%; a bet
+     * whose payout at $mult would blow past the cap is out of the group, and of
+     * what is left the biggest stake wins (it lands closest to the cap).
+     *
+     * 5+10+20+30+50+85+100 = 300 staked, at 10x:
+     *   100% -> cap 300, group 5..30, winner 30 (pays 300)
+     *    90% -> cap 270, group 5..20, winner 20 (pays 200)
+     *    30% -> cap  90, group 5,     winner  5 (pays  50)
+     *
+     * @param list<array{amount: float|string}> $bets every bet of the round
+     * @return array|null the winning row, or null if the cap cannot pay anyone
+     */
+    public static function pickWinner(array $bets, float $mult, ?float $pct = null): ?array
+    {
+        $total = array_sum(array_map(fn($b) => (float) $b['amount'], $bets));
+        $cap = round($total * ($pct ?? win_pct()) / 100.0, 2);
+        $winner = null;
+        foreach ($bets as $bet) {
+            if (round((float) $bet['amount'] * $mult, 2) > $cap) {
+                continue;
+            }
+            if ($winner === null || (float) $bet['amount'] > (float) $winner['amount']) {
+                $winner = $bet;
+            }
+        }
+        return $winner;
+    }
+
     private function key(int $gameId): string
     {
         return "pool_crash:{$gameId}";
@@ -78,7 +107,7 @@ class PoolCrashEngine
         }
 
         $total = (float) Userbit::where('gameid', (string) $gameId)->sum('amount');
-        $pool = round($total * (100.0 - self::HOUSE_PCT) / 100.0, 2);
+        $pool = round($total * win_pct() / 100.0, 2);
         $minBet = $this->minActiveBet($gameId);
 
         $state = [
@@ -94,7 +123,7 @@ class PoolCrashEngine
         ];
 
         if ($state['mode'] === 'house') {
-            $state['crash_at'] = self::houseCrashPoint();
+            $state['crash_at'] = self::houseCrashPoint(win_pct());
         }
 
         $this->put($gameId, $state);
@@ -106,10 +135,11 @@ class PoolCrashEngine
      * at any target returns 70% long run — the same 30% edge, spread over rounds.
      * ~30% of these rounds bust at 1.00x, exactly like a real crash curve.
      */
-    public static function houseCrashPoint(): float
+    public static function houseCrashPoint(?float $pct = null): float
     {
         $u = mt_rand(0, mt_getrandmax() - 1) / mt_getrandmax(); // [0,1)
-        $c = (100.0 - self::HOUSE_PCT) / 100.0 / (1.0 - $u);
+        // default 70 keeps the offline checkers in tests/ runnable without a database
+        $c = ($pct ?? (100.0 - self::HOUSE_PCT)) / 100.0 / (1.0 - $u);
         return round(min(self::MAX_MULT, max(1.0, $c)), 2);
     }
 
@@ -155,6 +185,21 @@ class PoolCrashEngine
 
         $need = round($minBet * $mult, 2);
         return $need > $this->remainingPool($state);
+    }
+
+    /**
+     * Winner of this round's live bets under the admin percentage.
+     * @return array{bet_id:int, section_no:int, userid:int, amount:float}|null
+     */
+    private function roundWinner(int $gameId, float $mult): ?array
+    {
+        $bets = Userbit::where('gameid', (string) $gameId)->get()->map(fn($b) => [
+            'bet_id' => (int) $b->id,
+            'section_no' => (int) $b->section_no,
+            'userid' => (int) $b->userid,
+            'amount' => (float) $b->amount,
+        ])->all();
+        return self::pickWinner($bets, $mult);
     }
 
     /**
@@ -214,6 +259,7 @@ class PoolCrashEngine
                     'remaining_pool' => 0.0,
                     'game_id' => $gameId,
                     'forfeited' => [],
+                    'winner' => null,
                 ];
             }
 
@@ -225,6 +271,7 @@ class PoolCrashEngine
                     'remaining_pool' => $this->remainingPool($state),
                     'game_id' => $gameId,
                     'forfeited' => [],
+                    'winner' => null,
                 ];
             }
 
@@ -236,6 +283,8 @@ class PoolCrashEngine
             // drop bets the pool can no longer pay, then re-check crash on survivors
             $forfeited = $this->forfeitUnaffordableBets($gameId, $state, $mult);
 
+            $winner = $this->roundWinner($gameId, $mult);
+
             if ($this->shouldCrash($gameId, $state, $mult)) {
                 $this->settleCrash($gameId, $state, $mult);
                 return [
@@ -245,6 +294,7 @@ class PoolCrashEngine
                     'remaining_pool' => $this->remainingPool($state),
                     'game_id' => $gameId,
                     'forfeited' => $forfeited,
+                    'winner' => $winner,
                 ];
             }
 
@@ -256,6 +306,7 @@ class PoolCrashEngine
                 'remaining_pool' => $this->remainingPool($state),
                 'game_id' => $gameId,
                 'forfeited' => $forfeited,
+                'winner' => $winner,
             ];
         });
     }
@@ -268,7 +319,7 @@ class PoolCrashEngine
             return;
         }
         $state['total_bets'] = $total;
-        $state['pool'] = round($total * (100.0 - self::HOUSE_PCT) / 100.0, 2);
+        $state['pool'] = round($total * win_pct() / 100.0, 2);
 
         // Bets that landed after startFlight can make pool mode viable. Only before
         // the first payout — re-deciding mid-round would move an announced crash point.
@@ -403,7 +454,7 @@ class PoolCrashEngine
                     'multiplier' => 1.0,
                     'started_at' => microtime(true),
                 ];
-                $state['pool'] = round($state['total_bets'] * (100.0 - self::HOUSE_PCT) / 100.0, 2);
+                $state['pool'] = round($state['total_bets'] * win_pct() / 100.0, 2);
             }
             $this->settleCrash($gameId, $state, $this->liveMultiplier($state));
         });

@@ -43,7 +43,7 @@ import type { MailService } from './MailService.js';
 import type { MissionService } from './MissionService.js';
 import { utcDayStart } from './period.js';
 import type { SettingsService } from './SettingsService.js';
-import { SiteWallet, siteUserIdFor, siteWalletEnabled } from './SiteWallet.js';
+import { PRIZE_TABLE_PCT, SiteWallet, siteUserIdFor, siteWalletEnabled } from './SiteWallet.js';
 import type { WalletService } from './WalletService.js';
 import type { XpService } from './XpService.js';
 
@@ -482,6 +482,11 @@ export class MatchService {
         ? (JSON.parse(raw) as Record<string, number[]>)
         : (raw as Record<string, number[]> | undefined);
     const multipliers = table?.[String(input.numPlayers)] ?? [];
-    return multipliers.map((m) => Number(m));
+    // The seeded rows sum to 0.70 x players. Lean them to whatever share of the
+    // pot the admin has set, so Ludo pays out like the other four games.
+    const site = siteWalletEnabled() ? SiteWallet.fromEnv() : null;
+    const pct = site ? await site.winPct() : PRIZE_TABLE_PCT;
+    const scale = pct / PRIZE_TABLE_PCT;
+    return multipliers.map((m) => Number(m) * scale);
   }
 }

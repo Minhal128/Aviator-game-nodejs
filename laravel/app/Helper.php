@@ -92,6 +92,26 @@ function setting($parameter)
     return $setting->value;
 }
 
+/**
+ * Share of what players stake that is payable back, set by the admin
+ * (settings.win_percentage). Every game reads this one row: 100 = the whole pot
+ * can be won and the house keeps nothing, 30 = only 30% is ever paid out.
+ * Ships at 30: players get 30% of what they stake back, the house keeps 70%.
+ * The offline checkers in tools/ still default to the old 70 because they call
+ * the game formulas directly with an explicit share.
+ */
+function win_pct(): float
+{
+    $v = Setting::where('category', 'win_percentage')->value('value');
+    return $v === null ? 30.0 : max(0.0, min(100.0, (float) $v));
+}
+
+/** win_pct() as an RTP fraction, e.g. 70 -> 0.70. */
+function win_rtp(): float
+{
+    return win_pct() / 100.0;
+}
+
 function currentid()
 {
     $data = Gameresult::orderBy('id', 'desc')->first();

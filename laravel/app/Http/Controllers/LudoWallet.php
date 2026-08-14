@@ -18,12 +18,17 @@ class LudoWallet extends Controller
             return response()->json(['isSuccess' => false, 'message' => 'Unauthorized'], 401);
         }
 
+        $action = (string) $r->input('action');
+        if ($action === 'win_pct') {
+            // Ludo scales its prize table by this, the way every other game does
+            return response()->json(['isSuccess' => true, 'data' => ['pct' => win_pct()]]);
+        }
+
         $userId = (int) $r->input('userId');
         if ($userId < 1) {
             return response()->json(['isSuccess' => false, 'message' => 'Bad userId']);
         }
 
-        $action = (string) $r->input('action');
         if ($action === 'balance') {
             return response()->json([
                 'isSuccess' => true,

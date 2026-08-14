@@ -108,6 +108,8 @@ class Pages extends Controller
                         'userId' => (int) user('id'),
                         'minBet' => (float) setting('min_bet_amount'),
                         'maxBet' => (float) setting('max_bet_amount'),
+                        // share of stake that is payable; the ladder a game draws must match what it pays
+                        'winPct' => win_pct(),
                     ]) . ';</script>'
                     . '<script src="/js/tl-back.js"></script>';
                 if ($game === 'ludo') {

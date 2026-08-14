@@ -1,5 +1,7 @@
 // math.js
-// House keeps 30% (same rule as Aviator PoolCrashEngine::HOUSE_PCT).
+// House keeps 100 - rtp (default 30%, the same win_pct() Aviator reads).
+// setRtp() below is called with the admin's win percentage, so the ladder the
+// player reads is the ladder RoadGame.php actually settles at.
 // rtp 0.70 + volatility 0 + baseSurvival 0.70 => expected return is exactly
 // 0.70 at every cash-out depth, and step 1 pays 1.00x (no sub-1x multipliers).
 // Modes now differ by how fast the road gets deadly (decay) and how long it is.
@@ -9,6 +11,15 @@ export const GAME_MODES = {
     hard:     { rtp: 0.70,  baseSurvival: 0.70, maxSteps: 20, volatility: 0, decay: 0.018 },
     hardcore: { rtp: 0.70,  baseSurvival: 0.70, maxSteps: 15, volatility: 0, decay: 0.025 }
 };
+
+/** Point every mode at the admin's payout share (RoadGame::multiplier uses the same). */
+export function setRtp(rtp) {
+    if (!(rtp > 0) || rtp > 1) return;
+    // baseSurvival tracks rtp (see RoadGame::survival): a road safer than the rtp
+    // could only be paid with sub-1.00x multipliers, so lowering the payout share
+    // makes the road deadlier rather than selling a losing cash-out.
+    for (const mode of Object.values(GAME_MODES)) { mode.rtp = rtp; mode.baseSurvival = rtp; }
+}
 
 function cyrb128(str) {
     let h1 = 1779033703, h2 = 3144134277, h3 = 1013904242, h4 = 2773480762;

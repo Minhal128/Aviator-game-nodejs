@@ -73,11 +73,14 @@ class GlamourSpins extends Controller
      *
      * @return array{lambda: float, weights: array<int, float>, rtp: float, total: float}
      */
-    public static function weights(): array
+    public static function weights(?float $rtp = null): array
     {
-        static $cached = null;
-        if ($cached !== null) {
-            return $cached;
+        $target = $rtp ?? self::TARGET_RTP;
+        // cached per target, because the admin can move it between spins
+        static $cached = [];
+        $ck = (string) round($target, 6);
+        if (isset($cached[$ck])) {
+            return $cached[$ck];
         }
         $mults = array_map(fn ($row) => (float) $row[1], self::table()['seeds']);
         $n = count($mults);
@@ -102,12 +105,12 @@ class GlamourSpins extends Controller
         // the tilt is monotonic in lambda, so bisect
         $lo = -50.0;
         $hi = 50.0;
-        if ($meanAt($lo)[0] > self::TARGET_RTP || $meanAt($hi)[0] < self::TARGET_RTP) {
+        if ($meanAt($lo)[0] > $target || $meanAt($hi)[0] < $target) {
             abort(503, 'The measured seeds cannot reach a 70% return; measure more of them.');
         }
         for ($i = 0; $i < 200; $i++) {
             $mid = ($lo + $hi) / 2;
-            if ($meanAt($mid)[0] < self::TARGET_RTP) {
+            if ($meanAt($mid)[0] < $target) {
                 $lo = $mid;
             } else {
                 $hi = $mid;
@@ -122,14 +125,14 @@ class GlamourSpins extends Controller
             $weights[] = $w;
             $total += $w;
         }
-        [$rtp] = $meanAt($lambda);
-        return $cached = ['lambda' => $lambda, 'weights' => $weights, 'rtp' => $rtp, 'total' => $total];
+        [$measured] = $meanAt($lambda);
+        return $cached[$ck] = ['lambda' => $lambda, 'weights' => $weights, 'rtp' => $measured, 'total' => $total];
     }
 
     /** Pick a seed by weight. @return array{0: int, 1: float} [seed, multiplier] */
-    public static function draw(): array
+    public static function draw(?float $rtp = null): array
     {
-        $w = self::weights();
+        $w = self::weights($rtp);
         $seeds = self::table()['seeds'];
         // random_int for the pick, so the outcome is not predictable from the clock
         $r = random_int(0, PHP_INT_MAX) / PHP_INT_MAX * $w['total'];
@@ -147,7 +150,7 @@ class GlamourSpins extends Controller
     public function state()
     {
         $userId = user('id');
-        $w = self::weights();
+        $w = self::weights(win_rtp());
         $held = round((float) session('glamour_held_win', 0), 2);
         $bal = (float) wallet($userId, 'num');
         return response()->json([
@@ -161,7 +164,7 @@ class GlamourSpins extends Controller
                 'maxBet' => (float) setting('max_bet_amount'),
                 'seedsMeasured' => self::table()['count'] ?? count(self::table()['seeds']),
                 'rtp' => round($w['rtp'], 4),
-                'housePct' => self::HOUSE_PCT,
+                'housePct' => round(100.0 - win_pct(), 2),
             ],
         ]);
     }
@@ -191,7 +194,7 @@ class GlamourSpins extends Controller
             return $this->fail('Not enough balance for this spin.');
         }
 
-        [$seed, $mult] = self::draw();
+        [$seed, $mult] = self::draw(win_rtp());
         $win = round($bet * $mult, 2);
 
         addwallet($userId, $bet, '-');

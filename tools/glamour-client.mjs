@@ -18,8 +18,10 @@
  *     layerToCssPx() is a third of a screen out; if a future build moves that
  *     button, taps would reach the game directly and spin for free. So this taps a
  *     ring around the ellipse and demands that the game ignore every point.
- *  3. BUY FREE SPIN and AUTOPLAY stay unreachable. Neither has a price in the
- *     measured table.
+ *  3. BUY FREE SPIN stays unreachable - it has no price in the measured table.
+ *  4. AUTOPLAY spends through the bridge, never through the game's own loop. The
+ *     game's loop would spin without the server taking a bet or picking a seed, so
+ *     the tap has to reach beginSpin() and automatico_ativo has to stay 0.
  */
 import { createRequire } from 'node:module';
 const { chromium } = createRequire(import.meta.url)(process.env.TL_PLAYWRIGHT || 'playwright');
@@ -191,7 +193,7 @@ for (const [fx, fy] of ring) {
 check(`${ring.length} taps around the edge of the intercepted region, none spun`, leaked === 0);
 
 console.log('== the unpriced controls stay unreachable ==');
-for (const [label, fx, fy] of [['BUY FREE SPIN', 0.18, 0.08], ['AUTOPLAY', 0.50, 0.96]]) {
+for (const [label, fx, fy] of [['BUY FREE SPIN', 0.18, 0.08]]) {
     const bal = await walletNow();
     await clickFrac(fx, fy);
     await page.waitForTimeout(1500);
@@ -201,6 +203,31 @@ for (const [label, fx, fy] of [['BUY FREE SPIN', 0.18, 0.08], ['AUTOPLAY', 0.50,
     });
     check(`${label} did nothing (phase ${g.phase}, autoplay ${g.autom}, bought ${g.compra})`,
         g.phase === 'wait' && !g.autom && !g.compra && (await walletNow()) === bal);
+}
+
+// AUTOPLAY is a bridge control now: it must spend money through the priced path
+// and must never hand the round to the game's own loop, which has no price.
+console.log('== autoplay spins through the server, not the game\'s own loop ==');
+{
+    const before = await walletNow();
+    await clickFrac(0.50, 0.96);
+    await page.waitForTimeout(12000);
+    const g = await page.evaluate(() => {
+        const v = window.TL_C3.ir.globalVars;
+        return { autom: v.automatico_ativo, compra: v.comprourodadas };
+    });
+    const during = await walletNow();
+    check(`autoplay staked something (${before} -> ${during})`, during !== before);
+    check(`the game's own autoplay never engaged (autoplay ${g.autom}, bought ${g.compra})`,
+        !g.autom && !g.compra);
+
+    await clickFrac(0.50, 0.96);                    // toggle off
+    // the round in flight still has to finish and settle; only then does the
+    // wallet have to hold still, which is what "stopped" actually means
+    await page.waitForTimeout(15000);
+    const settled = await walletNow();
+    await page.waitForTimeout(8000);
+    check(`a second tap stops it (${settled} held)`, (await walletNow()) === settled);
 }
 
 await browser.close();

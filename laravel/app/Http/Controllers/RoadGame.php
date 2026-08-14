@@ -31,31 +31,43 @@ class RoadGame extends Controller
         'hardcore' => ['baseSurvival' => 0.70, 'maxSteps' => 15, 'decay' => 0.025],
     ];
 
-    /** survivalAt() in math.js / checkIsCrashLane() in app.js */
-    public static function survival(array $mode, int $step): float
+    /**
+     * survivalAt() in math.js / checkIsCrashLane() in app.js.
+     *
+     * baseSurvival IS the rtp in every shipped mode, and that is not a
+     * coincidence: multiplier() pays rtp / reach, so a road that survives more
+     * often than the rtp can only sell multipliers under 1.00x. The admin's
+     * percentage therefore moves the road's danger, not just the ladder - drop it
+     * to 30% and the chicken dies early instead of being sold a losing cash-out.
+     */
+    public static function survival(array $mode, int $step, ?float $rtp = null): float
     {
-        return max(0.05, $mode['baseSurvival'] - $step * $mode['decay']);
+        return max(0.05, ($rtp ?? $mode['baseSurvival']) - $step * $mode['decay']);
     }
 
-    /** calculateMultiplierForIndex() in math.js, including its 2-decimal cut. */
-    public static function multiplier(array $mode, int $step): float
+    /**
+     * calculateMultiplierForIndex() in math.js, including its 2-decimal cut.
+     * $rtp defaults to the built-in 70% so the offline checkers in tools/ can call
+     * this without a database; the controller passes the admin's win_rtp() instead.
+     */
+    public static function multiplier(array $mode, int $step, ?float $rtp = null): float
     {
         if ($step <= 0) {
             return 1.0;
         }
         $compounded = 1.0;
         for ($i = 1; $i <= $step; $i++) {
-            $compounded *= self::survival($mode, $i);
+            $compounded *= self::survival($mode, $i, $rtp);
         }
         // volatility is 0 in every mode, so there is no bonus term to mirror
-        return round(max(1.01, self::RTP / $compounded), 2);
+        return round(max(1.01, ($rtp ?? self::RTP) / $compounded), 2);
     }
 
     /** First step the player does not survive, or maxSteps+1 if the road is cleared. */
-    public static function drawCrashStep(array $mode): int
+    public static function drawCrashStep(array $mode, ?float $rtp = null): int
     {
         for ($step = 1; $step <= $mode['maxSteps']; $step++) {
-            if (mt_rand() / mt_getrandmax() > self::survival($mode, $step)) {
+            if (mt_rand() / mt_getrandmax() > self::survival($mode, $step, $rtp)) {
                 return $step;
             }
         }
@@ -109,7 +121,9 @@ class RoadGame extends Controller
             'bet' => $bet,
             'mode' => (string) $r->mode,
             'step' => 0,
-            'crash_step' => self::drawCrashStep($mode),
+            'crash_step' => self::drawCrashStep($mode, win_rtp()),
+            // frozen at bet time: an admin change mid-round must not repay an open round
+            'rtp' => win_rtp(),
         ]);
 
         return response()->json(['isSuccess' => true, 'data' => ['balance' => (float) wallet($userId, 'num')]]);
@@ -135,7 +149,7 @@ class RoadGame extends Controller
         return response()->json(['isSuccess' => true, 'data' => [
             'step' => $round['step'],
             'crashed' => $crashed,
-            'multiplier' => $crashed ? null : self::multiplier($mode, $round['step']),
+            'multiplier' => $crashed ? null : self::multiplier($mode, $round['step'], $round['rtp'] ?? null),
             'balance' => (float) wallet((int) user('id'), 'num'),
         ]]);
     }
@@ -147,7 +161,7 @@ class RoadGame extends Controller
             return response()->json(['isSuccess' => false, 'message' => 'Nothing to cash out']);
         }
         $userId = (int) user('id');
-        $mult = self::multiplier(self::MODES[$round['mode']], $round['step']);
+        $mult = self::multiplier(self::MODES[$round['mode']], $round['step'], $round['rtp'] ?? null);
         $payout = round($round['bet'] * $mult, 2);
 
         session()->forget('road_round');   // before crediting, so a double-click cannot pay twice

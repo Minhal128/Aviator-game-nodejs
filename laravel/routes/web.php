@@ -98,6 +98,7 @@ Route::group(['prefix' => 'admin/', 'middleware' => ['isAdmin']], function () {
         Route::post('/bankdetail/delete', [Adminapi::class, "deletebankdetail"]);
         Route::post('/limits', [Adminapi::class, "limits"]);
         Route::post('/referral', [Adminapi::class, "referral"]);
+        Route::post('/win-percentage', [Adminapi::class, "winPercentage"]);
         Route::post('/updatewallet', [Adminapi::class, "updatewallet"]);
         Route::get('/live-round', [Adminapi::class, "liveRound"]);
         Route::get('/stats', [Adminapi::class, "stats"]);

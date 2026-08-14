@@ -10,9 +10,13 @@ $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 use App\Http\Controllers\Adminapi;
 use App\Models\Bankdetail;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 $api = new Adminapi;
 $created = [];
+$qr = tempnam(sys_get_temp_dir(), 'qr');
+file_put_contents($qr, base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='));
 
 $upi = Request::create('/admin/api/bankdetail', 'POST', [
     'id' => 0,
@@ -20,11 +24,14 @@ $upi = Request::create('/admin/api/bankdetail', 'POST', [
     'upi_id' => 'smoke@upi',
     'holdername' => 'Smoke UPI',
     'mobile_no' => '9999999999',
-]);
+], [], ['barcode' => new UploadedFile($qr, 'qr.png', 'image/png', null, true)]);
 $res = json_decode($api->editbankdetail($upi)->getContent(), true);
+@unlink($qr);
 assert(($res['status'] ?? 0) === 1, 'add upi failed');
 $upiRow = Bankdetail::where('upi_id', 'smoke@upi')->where('rail', 'upi')->orderByDesc('id')->first();
 assert($upiRow, 'upi row missing');
+assert(str_starts_with($upiRow->barcode, '/storage/admin/bankdetail/'), 'upi QR path missing');
+Storage::disk('public')->delete(str_replace('/storage/', '', $upiRow->barcode));
 $created[] = $upiRow->id;
 
 $bank = Request::create('/admin/api/bankdetail', 'POST', [

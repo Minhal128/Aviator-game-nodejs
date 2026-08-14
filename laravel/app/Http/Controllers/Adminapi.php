@@ -213,8 +213,18 @@ class Adminapi extends Controller
                 return response()->json(['status' => 0, 'title' => 'Oops!!', 'message' => 'UPI ID is required.']);
             }
             $barcode = $exist ? (string) $exist->barcode : '';
-            if ($r->file('barcode') != '') {
-                $barcode = imageupload($r->file('barcode'), 'barcode', 'admin/bankdetail/')['filePath'];
+            $file = $r->file('barcode');
+            if ($file) {
+                if (!$file->isValid()
+                    || !in_array(strtolower($file->getClientOriginalExtension()), ['jpg', 'jpeg', 'png', 'webp'], true)
+                    || $file->getSize() > 10 * 1024 * 1024) {
+                    return response()->json(['status' => 0, 'title' => 'Oops!!', 'message' => 'QR code must be a JPG, PNG or WebP image under 10 MB.']);
+                }
+                $name = bin2hex(random_bytes(8)) . '.' . strtolower($file->getClientOriginalExtension());
+                if (!Storage::disk('public')->putFileAs('admin/bankdetail', $file, $name)) {
+                    return response()->json(['status' => 0, 'title' => 'Oops!!', 'message' => 'Could not save the QR code. Check storage permissions.']);
+                }
+                $barcode = '/storage/admin/bankdetail/' . $name;
             }
             $fields = [
                 'rail' => $exist && $exist->rail === 'both' ? 'both' : 'upi',
@@ -307,6 +317,24 @@ class Adminapi extends Controller
             }
         }
         return response()->json(['status' => 1, 'title' => 'Success!!', 'message' => 'Referral bonuses updated.']);
+    }
+
+    /**
+     * Share of a round's total stake that is payable. 100 = the whole pot can be
+     * won, house keeps nothing; 30 = only 30% of the pot is ever paid out.
+     */
+    public function winPercentage(Request $r)
+    {
+        $value = $r->win_percentage;
+        if ($value === null || !is_numeric($value) || (float) $value < 0 || (float) $value > 100) {
+            return response()->json(['status' => 0, 'title' => 'Oops!!', 'message' => 'Win percentage must be a number between 0 and 100.']);
+        }
+        $row = Setting::where('category', 'win_percentage')->first() ?: new Setting;
+        $row->category = 'win_percentage';
+        $row->value = (string) (float) $value;
+        $row->status = '1';
+        $row->save();
+        return response()->json(['status' => 1, 'title' => 'Success!!', 'message' => 'Win percentage set to ' . (float) $value . '%.']);
     }
 
     /** Admin credits INR into a player's shared wallet (all 5 games read this row). */
@@ -527,7 +555,7 @@ class Adminapi extends Controller
             'pool' => 0,
             'paid' => 0,
             'mode' => null,
-            'house_pct' => PoolCrashEngine::HOUSE_PCT,
+            'house_pct' => round(100.0 - win_pct(), 2),
         ];
 
         if ($state) {

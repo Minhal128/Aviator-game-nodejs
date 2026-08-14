@@ -125,13 +125,17 @@
     // fx .38-.62 by fy .82-.92; this ellipse covers it with a margin, and
     // tools/glamour-client.mjs re-checks that the game still agrees.
     const SPIN = { cx: 0.50, cy: 0.87, rx: 0.15, ry: 0.075 };
-    // Two entry points the server has no price for. Buying a free-spin round is a
-    // stake the table never measured, and autoplay would start spins without
-    // going through the interception below.
+    // Buying a free-spin round is a stake the table never measured, so it stays shut.
     const BLOCKED = [
         { x1: 0.00, y1: 0.00, x2: 0.40, y2: 0.16 },             // BUY FREE SPIN (covered by CASHOUT)
-        { x1: 0.33, y1: 0.93, x2: 0.67, y2: 1.00 },             // AUTOPLAY
     ];
+    // AUTOPLAY. The game's own autoplay drives its internal loop, which never
+    // reaches beginSpin() - it would spin without the server taking the bet or
+    // choosing the seed, so the tap is still swallowed before the game sees it and
+    // g.automatico stays pinned at 0 by the belt at the bottom of this file. What
+    // the tap does instead is toggle the loop below, so every autoplayed round goes
+    // down exactly the same paid path as a hand tap.
+    const AUTO_ZONE = { x1: 0.33, y1: 0.93, x2: 0.67, y2: 1.00 };
     // Exact canvas box of BUY FREE SPIN — yellow CASHOUT fills this entirely
     const CASHOUT_BOX = { x1: 0.008, y1: 0.008, x2: 0.355, y2: 0.145 };
     // Coin / bet row → type stake
@@ -366,7 +370,7 @@
         if (!res || !res.isSuccess) {
             say((res && res.message) || 'Spin refused by the server.');
             TL.spinning = false;
-            return;                                  // reels never move: nothing was staked
+            return false;                            // reels never move: nothing was staked
         }
         say('');
         TL.fresh = false;
@@ -389,6 +393,44 @@
             TL.armed = false;
             TL.paid = null;
             hardReset();
+            return false;
+        }
+        return true;
+    }
+
+    // ---- autoplay ----------------------------------------------------------
+    // Just beginSpin() on a timer. Every guard the hand path relies on is re-read
+    // each pass instead of being tracked, so the loop cannot get ahead of the game:
+    // it only stakes when the round is finished, the reset has landed and the
+    // server has not refused anything.
+    let auto = false;
+    const AUTO_MSG = 'Autoplay ON — tap AUTOPLAY to stop';
+
+    function setAuto(on) {
+        if (auto === on) return;
+        auto = on;
+        say(on ? AUTO_MSG : '');
+        if (on) autoLoop();
+    }
+
+    async function autoLoop() {
+        while (auto) {
+            await sleep(250);
+            if (!auto || !TL.ready || !TL.ir) continue;
+            // beginSpin clears the banner each round; repaint, but never over a
+            // message the player still needs to read
+            if (!banner.textContent || banner.textContent === AUTO_MSG) say(AUTO_MSG);
+            const g = TL.ir.globalVars;
+            // A free-spin round was already bought by the spin that triggered it, and
+            // the settle below waits for it to finish - so nothing may stake here.
+            // Advancing it is exactly what a hand tap does, so replay that tap.
+            if (g.Freespins > 0) {
+                if (g.Phase === 'wait') dispatchTap();
+                continue;
+            }
+            if (TL.spinning || !TL.fresh || g.Phase !== 'wait') continue;
+            // beginSpin has already put the reason on screen; leave it there
+            if (!(await beginSpin())) { auto = false; return; }
         }
     }
 
@@ -401,6 +443,12 @@
         const f = frac(e);
         if (!f) return;
         if (inBlocked(f)) { e.stopImmediatePropagation(); e.preventDefault(); return; }
+        if (inZone(f, AUTO_ZONE)) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            if (e.type === 'pointerdown') setAuto(!auto);
+            return;
+        }
         if (inZone(f, BET_ZONE)) {
             e.stopImmediatePropagation();
             e.preventDefault();

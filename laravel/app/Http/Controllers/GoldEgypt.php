@@ -29,6 +29,13 @@ class GoldEgypt extends Controller
     /** 1 coin = 1 paisa, so the 243-coin minimum spin costs Rs 2.43 instead of Rs 243. */
     public const COINS_PER_UNIT = 100;
 
+    /**
+     * RTP the reel strips themselves were tuned to (gold-egypt-rtp.mjs enumerates
+     * 0.6999 over all 460,800 stops). The strips are fixed, so the admin's
+     * win_pct() is applied as a scale on the pay instead - see spin().
+     */
+    public const NATURAL_RTP = 0.70;
+
     /** All 243 lines, always. Fewer lines shrinks the bet but not the scatter or
      *  jackpot pays, which would hand back far more than 70% - at one line the
      *  jackpot alone is worth about 26% of turnover. */
@@ -251,6 +258,10 @@ class GoldEgypt extends Controller
 
         // win = (lineWin + scatterWin) * lineBet + flat jackpot
         $winCoins = ($win['line'] + $win['scatter']) * ($m['useLineBetMultiplier'] ? $lineBet : 1) + $win['jackpot'];
+        // ponytail: reel strips are frozen at NATURAL_RTP, so the admin percentage
+        // scales the pay. Regenerate the strips instead if the paytable the player
+        // reads has to keep matching what a win credits.
+        $winCoins = (int) round($winCoins * win_rtp() / self::NATURAL_RTP);
         $winAmount = $winCoins / self::COINS_PER_UNIT;
         // Hold wins until CASHOUT — do not credit wallet here.
         $held = round((float) session('gold_held_win', 0) + $winAmount, 2);

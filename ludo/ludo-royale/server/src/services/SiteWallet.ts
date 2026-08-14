@@ -7,6 +7,9 @@ import type { DbConn } from '../db/client.js';
 import { lrUsers } from '../db/schema.js';
 import { API_ERR, ApiError } from './errors.js';
 
+/** The RTP percentage the seeded prize tables were written for (rows sum to 0.70 x players). */
+export const PRIZE_TABLE_PCT = 70;
+
 export function siteWalletEnabled(): boolean {
   return Boolean(process.env.LARAVEL_WALLET_URL && process.env.LARAVEL_WALLET_KEY);
 }
@@ -91,6 +94,26 @@ export class SiteWallet {
       throw new ApiError(502, API_ERR.INTERNAL, json.message ?? 'site wallet failed');
     }
     return json.data.balance;
+  }
+
+  /**
+   * Admin win percentage (Laravel settings.win_percentage). Ludo scales its
+   * prize table by it, so one admin number drives every game's payout share.
+   * Falls back to the 70 the seeded prize table was written for.
+   */
+  async winPct(): Promise<number> {
+    const res = await fetch(this.url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'X-TL-Ludo-Key': this.key,
+      },
+      body: JSON.stringify({ action: 'win_pct' }),
+    });
+    const json = (await res.json()) as { isSuccess?: boolean; data?: { pct?: number } };
+    const pct = json.isSuccess ? Number(json.data?.pct) : NaN;
+    return Number.isFinite(pct) ? Math.min(100, Math.max(0, pct)) : PRIZE_TABLE_PCT;
   }
 
   balance(userId: number): Promise<number> {

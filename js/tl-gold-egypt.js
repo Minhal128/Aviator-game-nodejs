@@ -58,6 +58,52 @@
 
     document.addEventListener('DOMContentLoaded', () => document.body.appendChild(banner));
 
+    // ---- portrait phones ---------------------------------------------------
+    // slotGame.js builds a fixed 1850x1080 landscape canvas on Scale.FIT, and there
+    // is no portrait layout in the build. On a 375px-wide phone FIT gives a 219px
+    // band - about a fifth of the screen - and the TOTAL BET +/- sprites come out
+    // 129 * (375/1850) = 26 CSS px, well under a thumb, with the TOTAL BET text that
+    // opens the stake dialog sitting between them. That is why +/- "does not add
+    // 100" on a phone: the taps land on the neighbour. Landscape fixes it outright -
+    // at 812x375 the same buttons are ~45px and the canvas fills the height.
+    //
+    // ponytail: a prompt, not a CSS rotate. Phaser maps pointers through
+    // canvas.getBoundingClientRect(), which reports a rotated element axis-aligned,
+    // so rotating the canvas would silently send every tap to the wrong place.
+    const rotate = document.createElement('div');
+    rotate.id = 'tl-gold-rotate';
+    rotate.style.cssText = 'position:fixed;inset:0;z-index:10001;display:none;flex-direction:column;'
+        + 'align-items:center;justify-content:center;gap:18px;background:#0e0c16;color:#fff;'
+        + 'text-align:center;padding:24px;font:600 16px/1.5 Roboto,system-ui,sans-serif';
+    rotate.innerHTML = '<div style="font-size:52px">📱</div>'
+        + '<div>Turn your phone sideways to play<br><span style="opacity:.6;font-weight:400;font-size:14px">'
+        + 'Gold of Egypt is a landscape game</span></div>'
+        + '<button type="button" style="padding:12px 22px;border:0;border-radius:10px;background:#e50539;'
+        + 'color:#fff;font:600 15px Roboto,system-ui,sans-serif">Play full screen</button>';
+
+    // Only phones/tablets get this. A desktop window can just be widened.
+    const touch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+
+    function paintOrientation() {
+        if (!rotate.isConnected) return;
+        rotate.style.display = (touch && window.innerHeight > window.innerWidth) ? 'flex' : 'none';
+    }
+
+    rotate.querySelector('button').addEventListener('click', () => {
+        // lock() needs fullscreen, and iOS Safari has neither - both are best effort,
+        // and the overlay stays up until the phone is actually sideways
+        const el = document.documentElement;
+        const full = el.requestFullscreen ? el.requestFullscreen() : Promise.reject();
+        full.then(() => screen.orientation && screen.orientation.lock('landscape')).catch(() => {});
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.body.appendChild(rotate);
+        paintOrientation();
+    });
+    window.addEventListener('resize', paintOrientation);
+    window.addEventListener('orientationchange', paintOrientation);
+
     function scene() {
         const game = (typeof slotGame !== 'undefined') ? slotGame : null;
         const s = game && game.scene && game.scene.scenes && game.scene.scenes[0];
