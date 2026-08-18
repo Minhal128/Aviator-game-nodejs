@@ -61,12 +61,12 @@ export class WaitingScene extends Phaser.Scene {
     this.lobbyInfo = undefined;
     this.codeBox = undefined;
 
-    new SceneBackdrop(this, 'home');
+    new SceneBackdrop(this, 'game');
     this.buildChevron();
 
     // LW popup card: the whole lobby lives on one violet slab.
     const card = this.add.graphics();
-    card.fillStyle(0x3d3480, 0.96);
+    card.fillStyle(0x1e5aa8, 0.96);
     card.fillRoundedRect(CARD_X - 330, CARD_Y - 340, 660, 680, 36);
     card.lineStyle(3, 0xffffff, 0.18);
     card.strokeRoundedRect(CARD_X - 330, CARD_Y - 340, 660, 680, 36);

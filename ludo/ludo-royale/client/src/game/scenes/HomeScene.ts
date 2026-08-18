@@ -81,7 +81,7 @@ export class HomeScene extends Phaser.Scene {
     // A shutdown mid-entrance leaves input disabled (its unlock timer died
     // with the Clock) — every fresh visit must start unlocked.
     this.input.enabled = true;
-    new SceneBackdrop(this, 'home');
+    new SceneBackdrop(this, 'game');
     void this.loadTiers();
 
     if (!reducedMotion()) {
@@ -92,6 +92,7 @@ export class HomeScene extends Phaser.Scene {
 
     this.showStep('root');
     this.buildMascot();
+    this.mascot?.setVisible(false);
 
     // §6.6: a reloaded tab with a live reconnection token resumes its match.
     void this.tryResume();
@@ -102,7 +103,7 @@ export class HomeScene extends Phaser.Scene {
     this.panel?.destroy();
     this.cards = [];
     // The buddy only fronts the root menu — submenus need the space.
-    this.mascot?.setVisible(step === 'root');
+    this.mascot?.setVisible(false);
     // LW parity: setup screens take the WHOLE display — the DOM chrome
     // (HUD, events, nav, ticker) only frames the root menu.
     document.getElementById('lr-root')?.classList.toggle('lr-root--hidden', step !== 'root');

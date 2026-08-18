@@ -44,12 +44,11 @@ export const LR_PLAYERS: Readonly<Record<PlayerColor, PlayerPalette>> = {
 };
 
 export const LR_COLORS = {
-  // LUDOWORLD-PARITY §1: vivid-purple override. Same keys, new values — the
-  // bakers consume these by name, so the whole scene re-paints from here.
-  worldTop: 0x5e3fd6,
-  worldBottom: 0xc77de0,
-  worldSpotlight: 0xb98bea,
-  worldVignette: 0x3a1e78,
+  // Classic Ludo table: blue field (screenshot clone), same keys.
+  worldTop: 0x2e6bb8,
+  worldBottom: 0x5aa0e0,
+  worldSpotlight: 0x7ec0f0,
+  worldVignette: 0x163a72,
   surface: 0xffffff,
   surface2: 0xf4f6fb,
   surfaceSunken: 0xe9edf6,
@@ -58,11 +57,11 @@ export const LR_COLORS = {
   borderStrong: 0xcbd3e4,
   boardSurface: 0xfbfbfe,
   cellLine: 0xe6e9f2,
-  brand1: 0xff4d8d,
-  brand2: 0x7b3ff2,
-  brand500: 0x7b3ff2,
-  brand700: 0x5a22c9,
-  brand300: 0xb78bff,
+  brand1: 0xffd400,
+  brand2: 0x1e5aa8,
+  brand500: 0x2d8cf5,
+  brand700: 0x175fbf,
+  brand300: 0x7ec0f0,
   gold300: 0xffe08a,
   gold500: 0xf5a623,
   gold700: 0xc77a12,
@@ -75,29 +74,29 @@ export const LR_COLORS = {
   textFaint: 0x8a93ad,
   textOnDark: 0xffffff,
   // --- ARTPASS-GAMEFEEL §A scene tokens, re-painted by LUDOWORLD-PARITY §1 ---
-  sceneSkyTop: 0x5e3fd6, // §1.1 top of the sky (vivid royal violet)
-  sceneSkyUpper: 0x7b54dc, // §1.1 gradient stop @0.38
-  sceneSkyMid: 0x9463dd, // §1.1 gradient stop @0.52 (violet-lilac)
-  sceneSkyLower: 0xb074e0, // §1.1 gradient stop @0.78 (lilac)
-  sceneSkyBottom: 0xc77de0, // = worldBottom (reuse, bright pink-lilac anchor)
-  sceneHorizonGlow: 0xffa6de, // §1.1 candy-pink sun glow
-  sceneHorizonLine: 0xffd1f0, // §1.1 warm horizon hairline
-  sceneCityFar: 0x9e74d8, // §1.2 far skyline (lilac haze)
-  sceneCityNear: 0x6b41b4, // §1.2 near skyline (deep violet)
+  sceneSkyTop: 0x2e6bb8,
+  sceneSkyUpper: 0x3a7fd4,
+  sceneSkyMid: 0x4a8fde,
+  sceneSkyLower: 0x5aa0e0,
+  sceneSkyBottom: 0x5aa0e0,
+  sceneHorizonGlow: 0xa8d4ff,
+  sceneHorizonLine: 0xc5e4ff,
+  sceneCityFar: 0x4a7fc0,
+  sceneCityNear: 0x1e5aa8,
   sceneWindowWarm: 0xffe0a0,
   sceneWindowCool: 0xa6e4ff,
   sceneBeacon: 0xff5a5a, // signature red pinnacle beacon — kept
-  sceneGround: 0x4e2ca0, // §1.3 stage floor (deep violet platform)
-  sceneGroundLip: 0x8a66e0, // §1.3 lit platform lip
+  sceneGround: 0x163a72,
+  sceneGroundLip: 0x3a7fd4,
   sceneStar: 0xffffff,
   sceneStarGold: 0xffe9b0,
   sceneCream: 0xfdf1d6, // §1.5 warm cream-beige panel body
   sceneRibbonRed: 0xf0402e, // §1.5 flame-red ribbon top (no longer = danger)
   sceneRibbonRedDk: 0xc4241e,
   sceneRibbonInk: 0x7a1810, // ribbon-title stroke (§2/§5)
-  sceneBevelLight: 0x6e4fc8, // §1.5 light bevel lip on violet ink panels
-  sceneBevelDark: 0x1e1050,
-  sceneShadowInk: 0x2a1560, // §1.5 shadow ink — purple-tinted, never navy
+  sceneBevelLight: 0x4a8fde,
+  sceneBevelDark: 0x0e2a58,
+  sceneShadowInk: 0x0e2a58,
   successDark: 0x0e8a4c, // success button gradient bottom (§A variants)
   successDeep: 0x0a6e3c, // success bevel/outline dark (§2)
   // --- NEW confetti (LUDOWORLD-PARITY §1.4 — home ambient falling bits) ---
@@ -106,10 +105,10 @@ export const LR_COLORS = {
   confettiCyan: 0x34e0e0, // mint cyan
   confettiViolet: 0xb78bff, // = brand300
   // --- NEW hud/nav (§1.6 — candy-violet chrome surfaces; panelInk stays ink) ---
-  hudInk: 0x3a2270, // HUD pills (coins/gems/avatar), medallion base
-  hudLip: 0x6e4fc8, // light bevel lip of the HUD (= sceneBevelLight)
-  navBand: 0x2e1866, // bottom nav band (very deep violet)
-  navBandLip: 0x5a3fb0, // lit top lip of the nav band
+  hudInk: 0x1e4a8c,
+  hudLip: 0x4a8fde,
+  navBand: 0x163a72,
+  navBandLip: 0x2e6bb8,
   // --- NEW mode-card gradients (§1.7 — saturated per mode) ---
   cardOnlineA: 0xffa61e, // online = golden orange (HOT, flagship)
   cardOnlineB: 0xf26d1c,
@@ -117,9 +116,9 @@ export const LR_COLORS = {
   cardCpuA: 0xff7a5c, // vs CPU = red-coral
   cardCpuB: 0xf0384a,
   cardCpuDark: 0xb5203a,
-  cardLocalA: 0x7c6bf0, // pass&play = blue-violet
-  cardLocalB: 0x5340d4,
-  cardLocalDark: 0x33228f,
+  cardLocalA: 0x3a7fd4,
+  cardLocalB: 0x1e5aa8,
+  cardLocalDark: 0x163a72,
   // --- NEW glossy candy buttons (§1.8 — popup CTAs) ---
   collectA: 0x46c85a, // green "COLLECT"
   collectB: 0x1e9a3a,
@@ -134,11 +133,10 @@ export const LR_COLORS = {
   // --- NEW title strokes (§1.9 — chunky Ludo-World outline) ---
   titleStrokeBrown: 0x5a3a1e, // outline on GOLD titles and over warm cards
   titleStrokeDark: 0x33280f, // deeper outline for the biggest gold numbers
-  titleStrokeCool: 0x2e2246, // dark-violet outline for white titles on cool cards/scene
-  // --- NEW splash screen (SPLASH — deep violet-navy, darker than Home) ---
-  splashTop: 0x2a1b66, // splash gradient top (deep royal violet)
-  splashBottom: 0x1a1040, // splash gradient bottom (violet-navy, near-ink)
-  splashVignette: 0x0e0826, // splash edge vignette (deeper than worldVignette)
+  titleStrokeCool: 0x0e2a58,
+  splashTop: 0x1a3d78,
+  splashBottom: 0x0e2a58,
+  splashVignette: 0x081c40,
 } as const;
 
 /** ARTPASS-GAMEFEEL motion/treatment values (§1–§5) — do not invent. */
