@@ -19,6 +19,8 @@ use Illuminate\Database\Schema\Blueprint;
 
 class Adminapi extends Controller
 {
+    public const MAX_DEPOSIT = 100000;
+
     public function changepassword(Request $r)
     {
         $response = array('status' => 0, 'title' => "Oops!!", 'message' => "Invalid Credential!");
@@ -170,13 +172,16 @@ class Adminapi extends Controller
     }
     public function payment_gateway(Request $r)
     {
-        $gw = (string) $r->id;
-        $wantUpi = in_array($gw, ['1', '2', '3'], true);
-        $rows = Bankdetail::orderBy('id')->get()->filter(function ($row) use ($wantUpi) {
-            if ($wantUpi) {
-                return in_array($row->rail, ['upi', 'both'], true) && trim((string) $row->upi_id) !== '';
-            }
-            return in_array($row->rail, ['bank', 'both'], true) && trim((string) $row->account_no) !== '';
+        if ((string) $r->id !== '3') {
+            return response()->json([
+                'isSuccess' => false,
+                'data' => [],
+                'list' => [],
+                'message' => 'Only UPI deposits are accepted.',
+            ], 403);
+        }
+        $rows = Bankdetail::orderBy('id')->get()->filter(function ($row) {
+            return in_array($row->rail, ['upi', 'both'], true) && trim((string) $row->upi_id) !== '';
         })->values();
 
         $map = function ($detail) {
@@ -205,6 +210,9 @@ class Adminapi extends Controller
     {
         $this->ensureBankRail();
         $rail = $r->rail === 'bank' ? 'bank' : 'upi';
+        if ($rail === 'bank') {
+            return response()->json(['status' => 0, 'title' => 'Disabled', 'message' => 'Net Banking deposits are disabled. Use UPI only.'], 403);
+        }
         $id = (int) $r->id;
         $exist = $id > 0 ? Bankdetail::where('id', $id)->first() : null;
 
@@ -215,8 +223,13 @@ class Adminapi extends Controller
             $barcode = $exist ? (string) $exist->barcode : '';
             $file = $r->file('barcode');
             if ($file) {
-                if (!$file->isValid()
-                    || !in_array(strtolower($file->getClientOriginalExtension()), ['jpg', 'jpeg', 'png', 'webp'], true)
+                // PHP drops anything over upload_max_filesize before this runs and hands
+                // over an invalid file, so quote the host's real ceiling, not 10 MB - the
+                // old message sent admins hunting for a limit that was never the problem
+                if (!$file->isValid()) {
+                    return response()->json(['status' => 0, 'title' => 'Oops!!', 'message' => 'The QR image did not arrive in one piece. This server accepts uploads up to ' . ini_get('upload_max_filesize') . '; try a smaller picture.']);
+                }
+                if (!in_array(strtolower($file->getClientOriginalExtension()), ['jpg', 'jpeg', 'png', 'webp'], true)
                     || $file->getSize() > 10 * 1024 * 1024) {
                     return response()->json(['status' => 0, 'title' => 'Oops!!', 'message' => 'QR code must be a JPG, PNG or WebP image under 10 MB.']);
                 }
@@ -371,9 +384,15 @@ class Adminapi extends Controller
      */
     public function depositNow(Request $r)
     {
+        if ((string) $r->payment_gateway_type !== '3') {
+            return redirect('/deposit?msg=upi');
+        }
         $amount = (float) $r->amount;
         if ($amount < (float) setting('min_recharge')) {
             return redirect('/deposit?msg=min');
+        }
+        if ($amount > self::MAX_DEPOSIT) {
+            return redirect('/deposit?msg=max');
         }
         // the screenshot is the whole point of the request, so it is required
         $file = $r->file('proof');
@@ -387,7 +406,7 @@ class Adminapi extends Controller
         $trn = new Transaction;
         $trn->userid = user('id');
         $trn->platform = platform($r->payment_gateway_type);
-        $trn->transactionno = $r->trn;
+        $trn->transactionno = (string) $r->trn;
         $trn->type = 'credit';
         $trn->amount = $amount;
         $trn->category = 'recharge';

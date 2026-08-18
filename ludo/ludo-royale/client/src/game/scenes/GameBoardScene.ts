@@ -388,6 +388,20 @@ export class GameBoardScene extends Phaser.Scene {
     );
     exit.on(Phaser.Input.Events.POINTER_DOWN, () => pressFeedback(this, exit));
     exit.on(Phaser.Input.Events.POINTER_UP, () => void this.confirmLeave());
+
+    // Yellow hamburger (clone of the classic Ludo table menu).
+    const menu = this.add.container(52, GAME_H - 56).setDepth(DEPTH.hud);
+    const menuBg = this.add.circle(0, 0, 26, 0xffd400, 1).setStrokeStyle(3, 0x1e5aa8);
+    const menuIcon = this.add.text(0, -1, '☰', {
+      fontSize: '28px',
+      color: '#1e5aa8',
+      fontStyle: '700',
+    }).setOrigin(0.5);
+    menu.add([menuBg, menuIcon]);
+    menu.setSize(52, 52);
+    menu.setInteractive(new Phaser.Geom.Rectangle(0, 0, 52, 52), Phaser.Geom.Rectangle.Contains);
+    menu.on(Phaser.Input.Events.POINTER_DOWN, () => pressFeedback(this, menu));
+    menu.on(Phaser.Input.Events.POINTER_UP, () => void this.confirmLeave());
   }
 
   private buildChips(): void {
@@ -602,14 +616,8 @@ export class GameBoardScene extends Phaser.Scene {
     // and the die inherit DIFFERENT destinations and split apart mid-air.
     this.tweens.killTweensOf([this.goBubble, this.dice, this.goText]);
     const side = chip.x < GAME_W / 2 ? 1 : -1;
-    const vside = chip.y < GAME_H / 2 ? 1 : -1; // lean away from the edge
-    // RAW logical offsets (dp() shrinks by 0.667 and had the bubble touching
-    // the chip ring): bubble half-width is 49, ring edge is 48 from the chip
-    // center — 125 leaves ~26px of real air to the tail tip.
-    const x = chip.x + side * 125;
-    // Bottom chip (the human) drops into the open area below the board so the
-    // die clears the avatar (Jose: "bajale un poco mas"); top chips nudge down.
-    const y = chip.y + (vside > 0 ? 8 : 26);
+    const x = chip.x + side * 48;
+    const y = chip.y;
     this.goBubble.setFlipX(side < 0);
     // The baked texture includes the tail, so the bubble BODY sits dp(8)
     // off-center — nudge the die toward the body side.

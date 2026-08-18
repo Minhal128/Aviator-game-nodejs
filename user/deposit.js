@@ -33,6 +33,7 @@ function deposit(id) {
         'bank_name_div',
         'upi_div',
         'utr_div',
+        'trn_div',
         'account_number_tag',
         'bank_name_tag',
         'mobile_number_tag',
@@ -124,16 +125,16 @@ function deposit(id) {
         max_amount = $("#upi_max_amount").val();
         error_id = "#upi_amount-error";
 
-        $("#mobile_title").text("MOBILE NUMBER");
-        $("#email_title").text("EMAIL ID");
-        $("#upi_title").text("UPI ID");
-        $("#utr_title").text("TRANSACTION ID");
         $("#mobile_number_title").text("UPI ID");
         $("#account_name_title").text("UPI NAME");
 
         //Hide
         array_to_hide = [
+            'mobile_div',
+            'trn_div',
             'name_div',
+            'email_div',
+            'upi_div',
             'cwallet_div',
             'ctxt_div',
             'account_no_div',
@@ -183,7 +184,7 @@ function deposit(id) {
             error_id = "#imps_amount-error";
         }
         $("#utr_title").text("Transaction Number/UTR");
-        $("#mobile_number_title").text("IFSC CODE");
+        $("#mobile_number_title").text("UTR CODE / NUMBER");
         $("#account_name_title").text("ACCOUNT NAME");
         // Hide
         array_to_hide = [
@@ -264,6 +265,17 @@ $("[data-tab]").click(function () {
 });
 
 $(document).ready(function() {
+    // the host keeps serving an old compiled blade, so the upload instruction is
+    // added here too - the id check means it never doubles up once that catches up
+    if (!$("#proof_note").length) {
+        $("#proof_div").before(
+            '<div class="mb-2 small text-muted lh-sm" id="proof_note">' +
+            '<div>\u09aa\u09c7\u09ae\u09c7\u09a8\u09cd\u099f \u09b8\u09ae\u09cd\u09aa\u09a8\u09cd\u09a8 \u0995\u09b0\u09be\u09b0 \u09aa\u09b0 \u09aa\u09c7\u09ae\u09c7\u09a8\u09cd\u099f \u09b0\u09bf\u09b8\u09bf\u09ad\u09c7\u09b0 \u09b8\u09cd\u0995\u09cd\u09b0\u09bf\u09a8\u09b6\u099f\u099f\u09bf \u098f\u0996\u09be\u09a8\u09c7 \u0986\u09aa\u09b2\u09cb\u09a1 \u0995\u09b0\u09c1\u09a8\u0964</div>' +
+            '<div>After completing the payment, upload the screenshot of the payment receipt here.</div>' +
+            '</div>'
+        );
+    }
+
     const username = $("#user_name").val();
     const password = $("#password").val();
 
@@ -475,6 +487,28 @@ $(".amount").on('input', function() {
 })
 
 
+function copyPlain(text) {
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+            toastr.success("COPIED TO THE CLIPBOARD!");
+        }).catch(function () {
+            document.execCommand("copy");
+        });
+        return;
+    }
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    if (document.execCommand("copy")) toastr.success("COPIED TO THE CLIPBOARD!");
+    document.body.removeChild(ta);
+}
+
+$(document).on('click', '#payment_rails_list .copy_rail', function () {
+    copyPlain(decodeURIComponent($(this).attr('data-copy') || ''));
+});
+
 // Copy Owner Details for Deposit
 $(".copy_owner_details").on('click', function() {
 	
@@ -528,7 +562,7 @@ function paymentGatewayDetails(id) {
                     html += '<img src="' + row.barcode + '" class="barcode-img mb-2" alt="QR"/>';
                 }
                 if (id == 3) {
-                    html += '<div class="d-flex justify-content-between flex-wrap text-dark align-items-center my-1"><span class="text-muted">UPI ID</span><span>' + (row.upi_id || '') + '</span></div>';
+                    html += '<div class="d-flex justify-content-between flex-wrap text-dark align-items-center my-1"><span class="text-muted">UPI ID</span><span class="d-flex align-items-center copy_rail" data-copy="' + encodeURIComponent(row.upi_id || '') + '" role="button" style="cursor:pointer"><span class="material-symbols-outlined bold-icon text-muted">content_copy</span><span>' + $('<div>').text(row.upi_id || '').html() + '</span></span></div>';
                     html += '<div class="d-flex justify-content-between flex-wrap text-dark align-items-center my-1"><span class="text-muted">NAME</span><span>' + (row.user_name || '') + '</span></div>';
                     if (row.mobile_no) {
                         html += '<div class="d-flex justify-content-between flex-wrap text-dark align-items-center my-1"><span class="text-muted">MOBILE</span><span>' + row.mobile_no + '</span></div>';

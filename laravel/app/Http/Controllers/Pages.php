@@ -92,11 +92,17 @@ class Pages extends Controller
         // slot-glamour stays on PHP: its scripts/main.js is rewritten at serve time.
         $staticBase = [
             'gold-egypt' => '/goldegypt/game/',
+            // same trick as Egypt: art/js/audio must not touch the session file
+            'chicken-road' => '/Chicken-Road/Main/',
+            'ludo' => '/ludo/ludo-royale/client/dist/',
         ];
         $baseHref = $staticBase[$game] ?? '/' . $game . '/';
 
         // ponytail: base href so /game (no slash) still loads relative assets
         if ($rel === 'index.html') {
+            if (!request()->hasSession() || !session()->has('userlogin')) {
+                return redirect('/');
+            }
             $html = file_get_contents($file);
             if ($html !== false && !str_contains($html, '<base ')) {
                 // the wallet block lets a game post to /game/road/* with the session's CSRF token
@@ -122,7 +128,7 @@ class Pages extends Controller
                 $html = preg_replace('/<head>/i', $head, $html, 1);
                 if ($game === 'gold-egypt') {
                     // after slotGame.js, so window.spinReels exists to be wrapped
-                    $html = str_replace('</body>', '<script src="/js/tl-gold-egypt.js"></script></body>', $html);
+                    $html = str_replace('</body>', '<script src="/js/tl-gold-egypt.js?v=20260815-2"></script></body>', $html);
                 }
                 if ($game === 'slot-glamour') {
                     // after main.js so runOnStartup() exists; both are modules, so order holds

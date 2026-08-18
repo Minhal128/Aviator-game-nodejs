@@ -38,15 +38,30 @@ function bakeSky(scene: Phaser.Scene): void {
   if (scene.textures.exists('world_sky')) return;
   const { ctx, texture } = makeCanvas(scene, 'world_sky', GAME_W, GAME_H);
 
-  // 1. 5-stop dusk gradient (§1.1).
-  const sky = ctx.createLinearGradient(0, 0, 0, GAME_H);
-  sky.addColorStop(0, cssColor(LR_COLORS.sceneSkyTop));
-  sky.addColorStop(0.38, cssColor(LR_COLORS.sceneSkyUpper));
-  sky.addColorStop(0.52, cssColor(LR_COLORS.sceneSkyMid));
-  sky.addColorStop(0.78, cssColor(LR_COLORS.sceneSkyLower));
-  sky.addColorStop(1, cssColor(LR_COLORS.sceneSkyBottom));
-  ctx.fillStyle = sky;
+  // 1. Blue table with faint repeating mini-boards.
+  ctx.fillStyle = '#3a7fd4';
   ctx.fillRect(0, 0, GAME_W, GAME_H);
+  const deep = ctx.createLinearGradient(0, 0, 0, GAME_H);
+  deep.addColorStop(0, 'rgba(20, 70, 150, 0.35)');
+  deep.addColorStop(1, 'rgba(10, 40, 100, 0.55)');
+  ctx.fillStyle = deep;
+  ctx.fillRect(0, 0, GAME_W, GAME_H);
+  ctx.save();
+  ctx.globalAlpha = 0.12;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2;
+  for (let y = -40; y < GAME_H + 80; y += 160) {
+    for (let x = -40; x < GAME_W + 80; x += 160) {
+      ctx.strokeRect(x, y, 110, 110);
+      ctx.beginPath();
+      ctx.moveTo(x + 55, y);
+      ctx.lineTo(x + 55, y + 110);
+      ctx.moveTo(x, y + 55);
+      ctx.lineTo(x + 110, y + 55);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
 
   // 2. Magenta dusk glow squashed on the horizon (§1.2).
   ctx.save();

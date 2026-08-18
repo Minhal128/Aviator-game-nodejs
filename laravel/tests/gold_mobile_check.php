@@ -43,8 +43,8 @@ assert(str_contains($js, "addEventListener('resize', paintOrientation)"), 'overl
 assert(!preg_match('/canvas\s*\.\s*style[^\n]*transform/i', $js), 'canvas is being transformed — taps will miss');
 assert(!preg_match('/rotate\(\s*\d/', $js), 'something is rotating a rendered element');
 
-// +/- steps 100, and the stake stays inside the wallet
-assert(str_contains($js, 'setStakeInr(TL.stakeInr + dir * 100);'), '+/- no longer steps 100');
+// +/- uses the configured minimum, and the stake stays inside the wallet
+assert(str_contains($js, 'setStakeInr(TL.stakeInr + dir * minInr());'), '+/- does not use configured step');
 assert(str_contains($js, 'rebindClick(s.slotControls.totalBetPlusButton, () => stepStake(1));'), 'plus unbound');
 assert(str_contains($js, 'rebindClick(s.slotControls.totalBetMinusButton, () => stepStake(-1));'), 'minus unbound');
 assert(str_contains($js, 'TL.stakeInr = Math.max(minInr(), Math.min(maxInr(), inr));'), 'stake no longer clamped');
@@ -52,4 +52,4 @@ assert(str_contains($js, 'TL.stakeInr = Math.max(minInr(), Math.min(maxInr(), in
 echo "gold_mobile_check OK\n";
 printf("  bet +/- target: %dpx portrait (too small) -> %dpx landscape\n", $button(375, 812), $button(812, 375));
 echo "  portrait sends touch devices to landscape; canvas is never rotated\n";
-echo "  +/- steps 100, clamped to min 100 .. wallet balance\n";
+echo "  +/- steps by site minimum, clamped to configured min .. wallet balance\n";

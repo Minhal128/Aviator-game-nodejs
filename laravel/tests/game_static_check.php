@@ -5,9 +5,11 @@ $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
 assert(is_file(dirname(base_path()) . '/js/tl-back.js'), 'tl-back.js');
 assert(str_contains(file_get_contents(base_path('app/Http/Controllers/Pages.php')), '/js/tl-back.js'), 'gameStatic injects back');
+assert(str_contains(file_get_contents(base_path('routes/web.php')), 'withoutMiddleware($gameAssetNoSession)'), 'game assets skip session');
+assert(str_contains(file_get_contents(dirname(base_path()) . '/ludo/.htaccess'), 'REQUEST_FILENAME} -f'), 'ludo htaccess serves real files');
 assert(str_contains(file_get_contents(base_path('resources/views/crash.blade.php')), '/js/tl-back.js'), 'aviator has back');
 assert(is_file(dirname(base_path()) . '/images/app-logo/netbankinglogo.png'), 'netbanking logo file');
-assert(str_contains(file_get_contents(base_path('resources/views/deposite.blade.php')), 'netbankinglogo.png'), 'deposit uses new logo');
+assert(!str_contains(file_get_contents(base_path('resources/views/deposite.blade.php')), 'netbankinglogo.png'), 'deposit still offers net banking');
 assert(str_contains(file_get_contents(base_path('resources/views/withdraw.blade.php')), 'netbankinglogo.png'), 'withdraw uses new logo');
 
 $c = new App\Http\Controllers\Pages();
@@ -22,7 +24,12 @@ if ($uid) {
     assert(str_contains($r->getContent(), 'TL_WALLET'), 'chicken gets TL_WALLET');
     assert(str_contains($r->getContent(), 'minBet'), 'chicken TL_WALLET has minBet');
     assert(str_contains($r->getContent(), 'maxBet'), 'chicken TL_WALLET has maxBet');
-    assert(str_contains($r->getContent(), 'base href="/chicken-road/"'), 'chicken base');
+    assert(str_contains($r->getContent(), 'base href="/Chicken-Road/Main/"'), 'chicken base');
+
+    $l = $c->gameStatic('ludo', null);
+    if ($l->getStatusCode() === 200) {
+        assert(str_contains($l->getContent(), 'base href="/ludo/ludo-royale/client/dist/"'), 'ludo base points at dist');
+    }
 
     // Egypt's art is served straight off disk by Apache, not through this controller
     $e = $c->gameStatic('gold-egypt', null);

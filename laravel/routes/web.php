@@ -107,6 +107,20 @@ Route::group(['prefix' => 'admin/', 'middleware' => ['isAdmin']], function () {
     Route::get('/logout', [Admin::class, "logout"]);
 });
 
+// Game art/js/audio: no session. File-session locks on shared hosting drop
+// the login cookie when Ludo/Chicken Road boot ~20 files at once.
+$gameAssetNoSession = [
+    \Illuminate\Session\Middleware\StartSession::class,
+    \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+    \App\Http\Middleware\VerifyCsrfToken::class,
+];
+Route::get('/chicken-road/{path}', function (string $path) {
+    return app(Pages::class)->gameStatic('chicken-road', $path);
+})->where('path', '.+')->withoutMiddleware($gameAssetNoSession);
+Route::get('/ludo/{path}', function (string $path) {
+    return app(Pages::class)->gameStatic('ludo', $path);
+})->where('path', '.+')->withoutMiddleware($gameAssetNoSession);
+
 Route::group(['middleware' => ['isUser']], function () {
 
     Route::get('/profile', [Userdetail::class, "profile"]);

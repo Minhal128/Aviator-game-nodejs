@@ -36,7 +36,7 @@ describeDb('MatchService (§6.2/§7.3)', () => {
     return header.insertId;
   }
 
-  /** Seeded Beginner tier: fee 500, prize_table 2P [1.4, 0] (30% house). */
+  /** Seeded Beginner tier: fee 5, prize_table 2P [1.4, 0] (30% house). */
   async function beginnerTierId(): Promise<number> {
     const rows = await suite.db()
       .select({ id: lrRoomTiers.id })
@@ -76,18 +76,18 @@ describeDb('MatchService (§6.2/§7.3)', () => {
       ],
     });
 
-    expect(started.entryFee).toBe(500);
-    expect(started.pot).toBe(1000);
+    expect(started.entryFee).toBe(5);
+    expect(started.pot).toBe(10);
     expect(started.usedFreeFallback).toBe(false);
     expect(started.userBySeat.get(0)).toBe(u1);
     expect(started.userBySeat.get(1)).toBe(u2);
 
-    expect((await services.wallet.getBalances(u1)).coins).toBe(4500);
-    expect((await services.wallet.getBalances(u2)).coins).toBe(4500);
+    expect((await services.wallet.getBalances(u1)).coins).toBe(4995);
+    expect((await services.wallet.getBalances(u2)).coins).toBe(4995);
 
     const matches = await suite.db().select().from(lrMatches).where(eq(lrMatches.id, started.matchId));
     expect(matches[0]!.state).toBe('playing');
-    expect(matches[0]!.pot).toBe(1000);
+    expect(matches[0]!.pot).toBe(10);
     const ledger = await services.wallet.getLedger(u1);
     expect(ledger.entries[0]!.type).toBe('match_entry');
     expect(ledger.entries[0]!.refId).toBe(started.matchId);
@@ -97,7 +97,7 @@ describeDb('MatchService (§6.2/§7.3)', () => {
     const services = build();
     const tierId = await beginnerTierId();
     const rich = await createUser(5000, 'dev-free-1-aaaaaaaa');
-    const broke = await createUser(100, 'dev-free-2-bbbbbbbb'); // fee is 500
+    const broke = await createUser(4, 'dev-free-2-bbbbbbbb'); // fee is 5
 
     const started = await services.matches.startMatch({
       mode: 'classic',
@@ -115,7 +115,7 @@ describeDb('MatchService (§6.2/§7.3)', () => {
     expect(started.pot).toBe(0);
     // Nobody paid anything — the rich seat's debit rolled back with the tx.
     expect((await services.wallet.getBalances(rich)).coins).toBe(5000);
-    expect((await services.wallet.getBalances(broke)).coins).toBe(100);
+    expect((await services.wallet.getBalances(broke)).coins).toBe(4);
   });
 
   it('persistAndReward: full 2P settle — pot, XP, stats, missions, leaderboard, first-win mail', async () => {
@@ -149,15 +149,15 @@ describeDb('MatchService (§6.2/§7.3)', () => {
       seedHash: 'a'.repeat(64),
     });
 
-    // Reward lines: winner nets 1.4×500 − 500 = +200; loser −500.
+    // Reward lines: winner nets 1.4×5 − 5 = +2; loser −5.
     expect(lines).toEqual([
-      { seat: 0, coinsDelta: 200, xpEarned: 100 },
-      { seat: 1, coinsDelta: -500, xpEarned: 60 },
+      { seat: 0, coinsDelta: 2, xpEarned: 100 },
+      { seat: 1, coinsDelta: -5, xpEarned: 60 },
     ]);
 
-    // Wallets: winner 4500 + 700 prize + 200 level-2 reward (100 XP levels up).
-    expect((await services.wallet.getBalances(winner)).coins).toBe(5400);
-    expect((await services.wallet.getBalances(loser)).coins).toBe(4500);
+    // Wallets: winner 4995 + 7 prize + 200 level-2 reward (100 XP levels up).
+    expect((await services.wallet.getBalances(winner)).coins).toBe(5202);
+    expect((await services.wallet.getBalances(loser)).coins).toBe(4995);
 
     // Match row closed with winner + audit fields.
     const match = (await suite.db().select().from(lrMatches).where(eq(lrMatches.id, started.matchId)))[0]!;
@@ -176,7 +176,7 @@ describeDb('MatchService (§6.2/§7.3)', () => {
     expect(p0.place).toBe(1);
     expect(p0.captures).toBe(3);
     expect(p0.sixes).toBe(5);
-    expect(p0.coinsDelta).toBe(200);
+    expect(p0.coinsDelta).toBe(2);
     expect(p0.xpEarned).toBe(100);
 
     // Profile stats + streaks.
@@ -296,7 +296,7 @@ describeDb('MatchService (§6.2/§7.3)', () => {
 
     const quitterLine = lines!.find((l) => l.seat === 1)!;
     expect(quitterLine.xpEarned).toBe(0);
-    expect(quitterLine.coinsDelta).toBe(-500); // fee kept, no refund (§6.7)
+    expect(quitterLine.coinsDelta).toBe(-5); // fee kept, no refund (§6.7)
 
     const board = await services.leaderboard.getView('weekly', quitter);
     expect(board.me).toEqual({ rank: 2, score: 0 }); // −10 floored at 0

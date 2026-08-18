@@ -85,7 +85,7 @@ export class SceneBackdrop {
       .setScale(0.5)
       .setBlendMode(Phaser.BlendModes.ADD);
     city.add(this.beacon);
-    if (artBg) city.setVisible(false);
+    if (artBg || mode === 'game') city.setVisible(false);
     const tweaks = perfTweaks(); // §2 lite preset on low-end devices
     if (mode === 'home' && !reducedMotion() && tweaks.parallax && !artBg) {
       scene.tweens.add({
@@ -98,7 +98,7 @@ export class SceneBackdrop {
       });
     }
 
-    this.buildTwinkles(mode === 'home' ? tweaks.twinkleHome : s.twinkleGame);
+    this.buildTwinkles(mode === 'home' ? tweaks.twinkleHome : 0);
 
     if (mode === 'home' && !reducedMotion()) {
       if (tweaks.confetti) this.buildConfetti();

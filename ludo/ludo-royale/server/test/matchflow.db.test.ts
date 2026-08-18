@@ -88,20 +88,20 @@ describeDb('LudoRoom + MatchService end-to-end (Sprint 3b)', () => {
 
     const end: MatchEndMessage = await playUntilEnd(rig);
 
-    // Beginner 2P: pot 1000, winner nets 1.4×500 − 500 = +200, 100 XP.
+    // Beginner 2P: pot 10, winner nets 1.4×5 − 5 = +2, 100 XP.
     expect(end.rewardsPending).toBeUndefined();
-    expect(end.potTotal).toBe(1000);
+    expect(end.potTotal).toBe(10);
     const first = end.ranking.find((r) => r.place === 1)!;
     const second = end.ranking.find((r) => r.place === 2)!;
     expect(first.seat).toBe(0);
-    expect(first.coinsDelta).toBe(200);
+    expect(first.coinsDelta).toBe(2);
     expect(first.xpEarned).toBe(100);
-    expect(second.coinsDelta).toBe(-500);
+    expect(second.coinsDelta).toBe(-5);
     expect(second.xpEarned).toBe(60);
 
-    // Wallets: 4500 + 700 prize + 200 level-up = 5400 / loser keeps 4500.
-    expect((await services.wallet.getBalances(winner)).coins).toBe(5400);
-    expect((await services.wallet.getBalances(loser)).coins).toBe(4500);
+    // Wallets: 4995 + 7 prize + 200 level-up = 5202 / loser keeps 4995.
+    expect((await services.wallet.getBalances(winner)).coins).toBe(5202);
+    expect((await services.wallet.getBalances(loser)).coins).toBe(4995);
 
     // The match row was opened at startPlaying and closed at FINISHED —
     // matchEnd is only broadcast AFTER persistAndReward committed, so the

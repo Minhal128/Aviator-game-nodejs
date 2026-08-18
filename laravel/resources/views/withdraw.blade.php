@@ -129,7 +129,7 @@
                             <label id="account_holder_name-error" class="error" for="account_holder_name"></label>
                         </div>
 
-                        <div id="">
+                        <div id="bank_name_div">
                             <label for="name" class="form-label text-dark ">Bank Name</label>
                             <div class="login-controls">
                                 <label for="bankname">
@@ -141,7 +141,7 @@
                         </div>
 
                         <div id="ifsc_code_div">
-                            <label for="ifsc_code" class="form-label text-dark ">IFSC Code</label>
+                            <label for="ifsc_code" class="form-label text-dark ">UTR Code / Number</label>
                             <div class="login-controls">
                                 <label for="ifsc_code">
                                     <input type="text" class="form-control text-indent-0" id="ifsc_code"
@@ -162,39 +162,6 @@
                             <label id="upi_id-error" class="error" for="upi_id"></label>
                         </div>
 
-                        <div id="mobile_div">
-                            <label for="mobile_no" class="form-label text-dark">Mobile Number</label>
-                            <div class="login-controls">
-                                <label for="mobile_no">
-                                    <input type="text" class="form-control text-indent-0" id="mobile_no"
-                                        name="mobile_no" value="{{isset($bank->mobile_no) ? $bank->mobile_no : ''}}">
-                                </label>
-                            </div>
-                            <label id="mobile_no-error" class="error" for="mobile_no"></label>
-                        </div>
-
-                        <div id="email_div">
-                            <label for="email" class="form-label text-dark">Email</label>
-                            <div class="login-controls">
-                                <label for="email">
-                                    <input type="email" class="form-control text-indent-0" id="email"
-                                        name="email" value="{{user('email')}}">
-                                </label>
-                            </div>
-                            <label id="email-error" class="error" for="email"></label>
-                        </div>
-
-                        <div id="address_div">
-                            <label for="address" class="form-label text-dark">Address</label>
-                            <div class="login-controls">
-                                <label for="address">
-                                    <input type="text" class="form-control text-indent-0" id="address"
-                                        name="address">
-                                </label>
-                            </div>
-                            <label id="address-error" class="error" for="address"></label>
-                        </div>
-
                         <button class="btn yellow-btn md-btn custm-btn-2 mx-auto mt-3 mb-1">Submit</button>
                     </form>
                 </div>
@@ -203,7 +170,7 @@
     </div>
 @endsection
 @section('js')
-<script src="{{url('user/withdraw.js')}}"></script>
+<script src="{{url('user/withdraw.js')}}?v={{env('APP_VERSION')}}"></script>
 @isset($_GET['msg'])
 @php
     $notice = [

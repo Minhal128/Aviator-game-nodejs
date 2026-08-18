@@ -12,7 +12,7 @@
  *
  * CLI: npm run db:seed  (uses DATABASE_URL)
  */
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'node:crypto';
 import { resolve } from 'node:path';
@@ -161,8 +161,8 @@ const EMOTES = ['laugh', 'cry', 'angry', 'cool', 'heart', 'thumbs_up'].map((code
 }));
 
 const TIERS = [
-  { name: 'Beginner', entryFeeCoins: 500, minLevel: 1, sortOrder: 0 },
-  { name: 'Bronze', entryFeeCoins: 2500, minLevel: 3, sortOrder: 1 },
+  { name: 'Beginner', entryFeeCoins: 5, minLevel: 1, sortOrder: 0 },
+  { name: 'Bronze', entryFeeCoins: 10, minLevel: 1, sortOrder: 1 },
   { name: 'Silver', entryFeeCoins: 10000, minLevel: 5, sortOrder: 2 },
   { name: 'Gold', entryFeeCoins: 50000, minLevel: 10, sortOrder: 3 },
 ].map((t) => ({
@@ -334,6 +334,9 @@ export async function seedCore(db: Db): Promise<void> {
   if (tierCount.length === 0) {
     await db.insert(lrRoomTiers).values(TIERS.map((t) => ({ ...t, createdAt: new Date() })));
   }
+  // Live tables were seeded at ₹500/₹2500; drop Beginner/Bronze so play starts at ₹5/₹10.
+  await db.update(lrRoomTiers).set({ entryFeeCoins: 5, minLevel: 1 }).where(eq(lrRoomTiers.name, 'Beginner'));
+  await db.update(lrRoomTiers).set({ entryFeeCoins: 10, minLevel: 1 }).where(eq(lrRoomTiers.name, 'Bronze'));
 
   // Lucky Wheel: like tiers, no natural unique key — only seed an empty
   // table (admin edits to segments/weights are never clobbered).

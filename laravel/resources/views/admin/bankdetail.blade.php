@@ -11,7 +11,7 @@
                 </span> Bank rails
             </h3>
         </div>
-        <p class="text-muted" style="margin-top:-.5rem;">Players see every UPI and bank account listed here on the deposit page. Add as many as you need.</p>
+        <p class="text-muted" style="margin-top:-.5rem;">Deposits are accepted through UPI only. Add as many UPI accounts as you need.</p>
 
         <div class="row">
             <div class="col-lg-6 col-12 grid-margin stretch-card">
@@ -87,63 +87,8 @@
             <div class="col-lg-6 col-12 grid-margin stretch-card">
                 <div class="card">
                     <div class="card-body">
-                        <h4 class="card-title"><i class="mdi mdi-bank-transfer me-1"></i> Bank accounts</h4>
-
-                        @forelse ($banks as $bank)
-                            <div class="border rounded p-3 mb-3">
-                                <form class="forms-sample tl-rail-form" data-rail="bank">
-                                    @csrf
-                                    <input type="hidden" name="id" value="{{ $bank->id }}">
-                                    <input type="hidden" name="rail" value="bank">
-                                    <div class="form-group">
-                                        <label>Bank name</label>
-                                        <input type="text" class="form-control" name="bank_name" value="{{ $bank->bank_name }}">
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Account number</label>
-                                        <input type="text" class="form-control" name="account_no" value="{{ $bank->account_no }}">
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Account holder name</label>
-                                        <input type="text" class="form-control" name="holdername" value="{{ $bank->account_holder_name }}">
-                                    </div>
-                                    <div class="form-group">
-                                        <label>IFSC code</label>
-                                        <input type="text" class="form-control" name="ifsccode" value="{{ $bank->ifsc_code }}">
-                                    </div>
-                                    <button type="submit" class="btn btn-gradient-primary me-2">Save</button>
-                                    <button type="button" class="btn btn-outline-danger tl-rail-delete" data-id="{{ $bank->id }}" data-rail="bank">Delete</button>
-                                </form>
-                            </div>
-                        @empty
-                            <p class="text-muted">No bank account yet.</p>
-                        @endforelse
-
-                        <div class="border rounded p-3 border-dashed">
-                            <h5 class="mb-3">Add bank</h5>
-                            <form class="forms-sample tl-rail-form" data-rail="bank">
-                                @csrf
-                                <input type="hidden" name="id" value="0">
-                                <input type="hidden" name="rail" value="bank">
-                                <div class="form-group">
-                                    <label>Bank name</label>
-                                    <input type="text" class="form-control" name="bank_name" placeholder="Bank name" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>Account number</label>
-                                    <input type="text" class="form-control" name="account_no" placeholder="Account number" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>Account holder name</label>
-                                    <input type="text" class="form-control" name="holdername" placeholder="Account holder name">
-                                </div>
-                                <div class="form-group">
-                                    <label>IFSC code</label>
-                                    <input type="text" class="form-control" name="ifsccode" placeholder="IFSC code">
-                                </div>
-                                <button type="submit" class="btn btn-gradient-primary">Add bank</button>
-                            </form>
-                        </div>
+                        <h4 class="card-title"><i class="mdi mdi-bank-off me-1"></i> Net Banking disabled</h4>
+                        <p class="text-muted mb-0">Bank-transfer deposits cannot be configured or submitted. Players can deposit through UPI only.</p>
                     </div>
                 </div>
             </div>
@@ -163,6 +108,11 @@
                                     name="min_recharge" value="{{ $minDeposit }}">
                             </div>
                             <div class="form-group">
+                                <label>Maximum deposit</label>
+                                <input type="text" class="form-control" value="₹1,00,000" disabled>
+                                <small class="text-muted">Fixed server-side limit.</small>
+                            </div>
+                            <div class="form-group">
                                 <label for="min_withdrawal">Minimum withdrawal</label>
                                 <input type="number" min="1" step="1" class="form-control" id="min_withdrawal"
                                     name="min_withdrawal" value="{{ $minWithdrawal }}">
@@ -178,13 +128,49 @@
 
 @section('js')
     <script>
+        /**
+         * A QR photo straight off a phone is 2-6 MB, and shared hosting caps a single
+         * upload at php.ini upload_max_filesize - 2M on this build. Over that limit PHP
+         * throws the file away before Laravel sees it, and over post_max_size it throws
+         * the whole request away, token and all, which is where "Oops! Server Error"
+         * came from. Redrawing the picture at most 1200px wide as JPEG lands it around
+         * 100 KB, so the upload stops depending on the host's php.ini at all. A QR reads
+         * fine at that size - it is a few hundred modules at most.
+         */
+        function shrinkQr(file) {
+            if (!file || !/^image\//.test(file.type)) return $.Deferred().resolve(null).promise();
+            var d = $.Deferred();
+            var url = URL.createObjectURL(file);
+            var img = new Image();
+            img.onload = function () {
+                var scale = Math.min(1, 1200 / Math.max(img.width, img.height));
+                var c = document.createElement('canvas');
+                c.width = Math.round(img.width * scale);
+                c.height = Math.round(img.height * scale);
+                c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                URL.revokeObjectURL(url);
+                c.toBlob(function (blob) {
+                    // keep the original if shrinking made it bigger (already-small PNGs)
+                    d.resolve(blob && blob.size < file.size ? blob : null);
+                }, 'image/jpeg', 0.85);
+            };
+            img.onerror = function () { URL.revokeObjectURL(url); d.resolve(null); };
+            img.src = url;
+            return d.promise();
+        }
+
         $(".tl-rail-form").each(function () {
             var $form = $(this);
             $form.on('submit', function (e) { e.preventDefault(); });
             $form.validate({
                 submitHandler: function (form) {
-                    apex("POST", "{{ url('admin/api/bankdetail') }}", new FormData(form), form,
-                        "/admin/bank-detail", "#");
+                    var fd = new FormData(form);
+                    var input = form.querySelector('input[type=file][name=barcode]');
+                    shrinkQr(input && input.files[0]).then(function (blob) {
+                        if (blob) fd.set('barcode', blob, 'qr.jpg');
+                        apex("POST", "{{ url('admin/api/bankdetail') }}", fd, form,
+                            "/admin/bank-detail", "#");
+                    });
                 }
             });
         });

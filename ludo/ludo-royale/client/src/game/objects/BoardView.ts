@@ -6,7 +6,6 @@
 import type Phaser from 'phaser';
 import type { PlayerColor } from '@ludo/shared';
 import { BoardGeometry } from '../boardMap';
-import { bakeBoardCrown } from '../textures/bakeBoard';
 import type { XY } from '../boardMap';
 import { BOARD_SIZE, BOARD_X, BOARD_Y, CELL, DEPTH } from '../layout';
 import { LR_BAKE_SCALE } from '../../theme/tokens';
@@ -38,12 +37,6 @@ export class BoardView {
       .setScale(1 / LR_BAKE_SCALE)
       .setAngle(90 * this.turns)
       .setDepth(DEPTH.board);
-    // Emblem overlay: NEVER rotates (the crown stays upright).
-    bakeBoardCrown(scene);
-    scene.add
-      .image(this.cx, this.cy, 'board_crown')
-      .setScale(1 / LR_BAKE_SCALE)
-      .setDepth(DEPTH.board + 0.1);
   }
 
   /** Rotate a board-space point around the center (same math as setAngle). */

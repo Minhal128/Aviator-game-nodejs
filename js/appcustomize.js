@@ -62,7 +62,7 @@ function apex(method, url, data, form, success = null, error = null, reset = fal
                         $(form).find('button[type=submit]').attr('disable', false);
                         message({
                             'title': 'Oops!',
-                            'message': 'Server Error, Please retry',
+                            'message': 'The server replied with something unexpected: ' + JSON.stringify(response).slice(0, 140),
                             'type': 0
                         });
                         $(form).find('button[type=submit]').html('Retry');
@@ -74,7 +74,7 @@ function apex(method, url, data, form, success = null, error = null, reset = fal
                     $(form).find('button[type=submit]').attr('disable', false);
                     message({
                         'title': 'Oops!',
-                        'message': 'Server Error, Please retry',
+                        'message': 'The server replied with something unexpected: ' + JSON.stringify(response).slice(0, 140),
                         'type': 0
                     });
                     $(form).find('button[type=submit]').html('Retry');
@@ -91,7 +91,11 @@ function apex(method, url, data, form, success = null, error = null, reset = fal
                         'type': 0
                     });
                 } else {
-                    var msg = (e.responseJSON && e.responseJSON.message) ? e.responseJSON.message : ('Server error ' + e.status);
+                    // a Laravel error page is HTML, and "Server error 500" alone is not enough to
+                    // act on - strip the tags and show the first line of what actually came back
+                    var body = String(e.responseText || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+                    var msg = (e.responseJSON && e.responseJSON.message) ? e.responseJSON.message
+                        : ('Server error ' + e.status + (body ? ' — ' + body.slice(0, 140) : ''));
                     message({ title: 'Oops!', message: msg, type: 0 });
                     console.log(e);
                     $(form).find('button[type=submit]').html('Retry');

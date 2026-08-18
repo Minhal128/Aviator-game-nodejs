@@ -62,11 +62,11 @@
                                 <div class="acc-row">
                                     <div class="row-controls">
                                         <div class="left">
-                                            IFSC Code
+                                            UTR Code / Number
                                         </div>
                                         <div class="right">
                                             <div class="d-flex align-items-center">
-                                                <div>{{isset($bank->ifsccode)?$bank->ifsccode:'No IFSC Code found!'}}</div>
+                                                <div>{{isset($bank->ifsccode)?$bank->ifsccode:'No UTR code found!'}}</div>
                                                 <button class="btn btn-transparent p-0 lh-18 ms-1">
                                                     <span class="material-symbols-outlined bold-icon text-muted f-18 lh-18"
                                                         id="changePassword" data-bs-toggle="modal"

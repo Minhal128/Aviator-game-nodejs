@@ -10,6 +10,11 @@ define('LARAVEL_START', microtime(true));
 // patch the markup on the way out until the host stops caching views
 ob_start(static function ($html) {
     $html = preg_replace('/<title>.*?<\/title>/s', '<title>turbolegends</title>', $html, 1) ?? $html;
+    // Same reason as the title: the blade already says UTR, the stale compiled copy
+    // still says IFSC. Scoped to the two label elements by id/for, so the SITE's own
+    // bank IFSC in the deposit instructions (a real IFSC the player needs) is untouched.
+    $html = preg_replace('/(id="ifsc_code_title"[^>]*>)\s*IFSC[^<]*/i', '$1UTR Code / Number', $html) ?? $html;
+    $html = preg_replace('/(<label[^>]*for="ifsc_code"[^>]*>)\s*IFSC[^<]*/i', '$1UTR Code / Number', $html) ?? $html;
     if (strpos($html, 'Download Game') === false) {
         $html = preg_replace(
             '/(?=<button class="register-btn)/',

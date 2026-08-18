@@ -15,7 +15,7 @@
 //     not the scatter or jackpot pays; at one line the jackpot alone is worth
 //     about a quarter of turnover.
 //   * TOTAL BET / YOUR WIN / BALANCE boxes show ₹ (coins/100). Tap TOTAL BET to type
-//     a stake; +/- steps ₹100. lineBet = round(₹ × 100 / 243).
+//     a stake; +/- steps by the site's configured minimum. lineBet = round(₹ × 100 / 243).
 //   * the bet buttons bind their handler at scene-create time, so overriding the
 //     SlotControls prototype is too late - their clickEvent is replaced instead.
 //
@@ -38,7 +38,7 @@
     const TL = {
         coinsPerUnit: 100,
         lines: 243,
-        stakeInr: 100, // exact ₹ stake (not 243×lineBet quantized)
+        stakeInr: Math.max(1, Number(wallet.minBet) || 1), // exact ₹ stake (not 243×lineBet quantized)
         losingStops: null,
         pending: null,
         message: (text) => {
@@ -162,9 +162,10 @@
         if (s) s.slotPlayer.setCoinsCount(Math.round(coins));
     }
 
-    // ponytail: Gold stake floor ₹100; ceiling = live wallet.
+    // Match the same site-wide floor used by every other game; ceiling = live wallet.
     function minInr() {
-        return 100;
+        const min = Number(wallet.minBet);
+        return Number.isFinite(min) && min > 0 ? min : 1;
     }
 
     function maxInr() {
@@ -207,7 +208,7 @@
     }
 
     function stepStake(dir) {
-        setStakeInr(TL.stakeInr + dir * 100);
+        setStakeInr(TL.stakeInr + dir * minInr());
         const s = scene();
         if (s && s.soundController) s.soundController.playClip('button_click');
     }
@@ -223,7 +224,7 @@
         wrap.innerHTML = '<div style="background:#1c1b24;color:#fff;padding:18px;border-radius:14px;width:250px;'
             + 'text-align:center;font:600 14px Roboto,system-ui,sans-serif">'
             + '<div style="margin-bottom:10px">TOTAL BET (₹)</div>'
-            + '<input type="number" inputmode="decimal" step="100" style="width:100%;box-sizing:border-box;'
+            + '<input type="number" inputmode="decimal" step="' + minInr() + '" style="width:100%;box-sizing:border-box;'
             + 'padding:10px;border:0;border-radius:8px;font-size:20px;text-align:center">'
             + '<div style="margin:8px 0 12px;opacity:.65;font-size:12px">min ' + minInr()
             + ' · max ' + inrText(maxInr()) + '</div>'

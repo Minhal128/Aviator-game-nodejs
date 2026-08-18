@@ -34,12 +34,12 @@ assert(str_contains($glamour, 'glamour_held_win'), 'glamour holds wins');
 assert(str_contains($glamour, 'HOUSE_PCT = 30'), 'glamour 30% house');
 assert(str_contains(file_get_contents(base_path('routes/web.php')), '/game/glamour/cashout'), 'glamour cashout route');
 
-// Gold Egypt: min ₹100, max = wallet (server + bridge)
+// Gold Egypt: site minimum, max = wallet (server + bridge)
 $gold = file_get_contents(base_path('app/Http/Controllers/GoldEgypt.php'));
-assert(str_contains($gold, 'Minimum bet is ₹100'), 'gold server min ₹100');
+assert(str_contains($gold, "setting('min_bet_amount')"), 'gold server ignores site min');
 assert(str_contains($gold, '$bal < $betAmount'), 'gold server max is wallet');
 $tlGold = file_get_contents(dirname(base_path()) . '/js/tl-gold-egypt.js');
-assert(str_contains($tlGold, 'return 100'), 'gold bridge min ₹100');
+assert(str_contains($tlGold, 'Number(wallet.minBet)'), 'gold bridge ignores site min');
 assert(str_contains($tlGold, 'wallet.balance'), 'gold bridge max is wallet');
 
 assert(is_file(dirname(base_path()) . '/js/tl-ludo.js'), 'ludo bridge script');

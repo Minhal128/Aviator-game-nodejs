@@ -229,7 +229,7 @@ class GoldEgypt extends Controller
         $free = $freeLeft > 0;
 
         // Exact ₹ stake from client (no 243×lineBet quantize). lineBet = paytable mult.
-        $minStake = 100.0;
+        $minStake = max(1.0, (float) setting('min_bet_amount'));
         $bal = (float) wallet($userId, 'num');
         if ($r->filled('betAmount')) {
             $betAmount = round((float) $r->input('betAmount'), 2);
@@ -242,7 +242,7 @@ class GoldEgypt extends Controller
         $betCoins = $free ? 0 : (int) round($betAmount * self::COINS_PER_UNIT);
         if (!$free) {
             if ($betAmount + 1e-6 < $minStake) {
-                return $this->fail('Minimum bet is ₹100.');
+                return $this->fail('Minimum bet is ₹' . $minStake . '.');
             }
             if ($bal < $betAmount) {
                 return $this->fail('Not enough balance for this spin.');

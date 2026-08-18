@@ -44,52 +44,33 @@ export class AvatarChip extends Phaser.GameObjects.Container {
     const pal = LR_PLAYERS[color];
 
     this.disc = scene.add.graphics();
-    // Soft ground shadow so the chip sits on the stage (ARTPASS §4.6).
-    this.disc.fillStyle(LR_COLORS.sceneShadowInk, 0.3);
-    this.disc.fillCircle(0, 3, radius);
-    this.disc.fillStyle(LR_COLORS.surface, 1);
-    this.disc.fillCircle(0, 0, radius);
-    this.disc.lineStyle(4, pal.mid, 1);
-    this.disc.strokeCircle(0, 0, radius - 3);
-    // Beveled elevated ring: light rim up-left, dark base down-right.
-    this.disc.lineStyle(2, LR_COLORS.surface, 0.45);
-    this.disc.beginPath();
-    this.disc.arc(0, 0, radius - 3, Math.PI * 1.05, Math.PI * 1.95);
-    this.disc.strokePath();
-    this.disc.lineStyle(2, pal.dark, 0.6);
-    this.disc.beginPath();
-    this.disc.arc(0, 0, radius - 3, Math.PI * 0.05, Math.PI * 0.95);
-    this.disc.strokePath();
-    // LUDOWORLD-PARITY §3.1/§3.4: gold beveled frame — gold700 base rim with
-    // a gold300 light arc up-left (the candy medal look).
-    this.disc.lineStyle(3, LR_COLORS.gold700, 0.9);
-    this.disc.strokeCircle(0, 0, radius);
-    this.disc.lineStyle(2, LR_COLORS.gold300, 0.9);
-    this.disc.beginPath();
-    this.disc.arc(0, 0, radius, Math.PI * 0.95, Math.PI * 1.9);
-    this.disc.strokePath();
+    const boxW = radius * 3.4;
+    const boxH = radius * 1.45;
+    // Horizontal seat box (pin + die slot), not a circular avatar.
+    this.disc.fillStyle(LR_COLORS.sceneShadowInk, 0.25);
+    this.disc.fillRoundedRect(-boxW / 2 + 2, -boxH / 2 + 3, boxW, boxH, 16);
+    this.disc.fillStyle(0xf3e8ee, 1);
+    this.disc.fillRoundedRect(-boxW / 2, -boxH / 2, boxW, boxH, 16);
+    this.disc.lineStyle(3, pal.mid, 1);
+    this.disc.strokeRoundedRect(-boxW / 2, -boxH / 2, boxW, boxH, 16);
+    const slot = 28;
+    this.disc.fillStyle(0xffffff, 1);
+    this.disc.fillRoundedRect(boxW / 2 - slot - 10, -slot / 2, slot, slot, 6);
+    this.disc.lineStyle(2, pal.dark, 0.35);
+    this.disc.strokeRoundedRect(boxW / 2 - slot - 10, -slot / 2, slot, slot, 6);
     this.add(this.disc);
 
+    const pin = scene.add.image(-boxW / 2 + 28, 4, `piece_${color}`).setScale(0.42);
+    this.add(pin);
+
     if (artKey !== undefined && scene.textures.exists(artKey)) {
-      // Shipped avatar art (e.g. the CPU robot) fills the disc; it ships
-      // pre-rounded so no mask is needed.
-      const art = scene.add.image(0, 0, artKey);
-      art.setDisplaySize((radius - 4) * 2, (radius - 4) * 2);
+      const art = scene.add.image(-boxW / 2 + 28, -2, artKey);
+      art.setDisplaySize(28, 28);
       this.add(art);
-    } else {
-      const label = scene.add
-        .text(0, 0, initials, {
-          fontFamily: LR_FONTS.ui,
-          fontSize: `${Math.round(radius * 0.62)}px`,
-          fontStyle: '800',
-          color: cssColor(pal.dark),
-        })
-        .setOrigin(0.5);
-      this.add(label);
     }
 
     const nameText = scene.add
-      .text(0, radius + 12, name, {
+      .text(0, boxH / 2 + 12, name || initials, {
         fontFamily: LR_FONTS.ui,
         fontSize: '12px',
         fontStyle: '700',

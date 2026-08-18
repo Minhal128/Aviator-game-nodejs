@@ -7,6 +7,11 @@
     try {
         localStorage.setItem('lr_device_id', 'tl' + w.userId);
     } catch (e) { /* private mode */ }
+    if (navigator.serviceWorker) {
+        navigator.serviceWorker.getRegistrations().then(function (regs) {
+            for (var i = 0; i < regs.length; i++) regs[i].unregister();
+        });
+    }
 
     function coins() {
         return Math.max(0, Math.floor(Number(w.balance) || 0));

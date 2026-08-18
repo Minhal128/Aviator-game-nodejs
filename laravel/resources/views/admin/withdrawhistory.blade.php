@@ -45,7 +45,7 @@
                                                         $rows = [
                                                             'UPI ID' => $history->upi_id,
                                                             'Account number' => $history->accountno,
-                                                            'IFSC code' => $history->ifsccode,
+                                                            'UTR code / number' => $history->ifsccode,
                                                             'Bank name' => $history->bankname,
                                                             'Mobile' => $history->mobile_no,
                                                         ];

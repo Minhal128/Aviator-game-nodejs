@@ -16,52 +16,11 @@
                     <div class="pay-options">
                         <div class="payment-cols">
                             <div class="grid-view">
-                                <div class="grid-list" onclick="paymentGatewayDetails('6')">
-                                    <button class="btn payment-btn" data-tab="netbanking">
-                                        <img src="images/app-logo/netbankinglogo.png" alt="Net Banking" />
-                                        <div class="PaymentCard_limit">Net Banking &middot; Min {{setting('min_recharge')}}</div>
-                                    </button>
-                                </div>
                                 <div class="grid-list" onclick="paymentGatewayDetails('3')">
                                     <button class="btn payment-btn" data-tab="upi">
                                         <img src="images/app-logo/upiMt.svg" alt="UPI" />
-                                        <div class="PaymentCard_limit">UPI &middot; Min {{setting('min_recharge')}}</div>
+                                        <div class="PaymentCard_limit">UPI &middot; {{setting('min_recharge')}}–₹1,00,000</div>
                                     </button>
-                                </div>
-                            </div>
-                            <div class="deposite-box" id="netbanking">
-                                <div class="d-box">
-                                    <div class="limit-txt">LIMITS:<span>{{setting('min_recharge')}}</span></div>
-                                    <div class="row g-3">
-                                        <div class="col-6">
-                                            <div class="login-controls mt-3 rounded-pill h42">
-                                                <label for="Username" class="rounded-pill">
-                                                    <input type="text" class="form-control text-i10 amount"
-                                                        id="net_bank_amount"
-                                                        oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/(\..*?)\..*/g, '$1').replace(/^0[^.]/, '0');">
-                                                    <input type="hidden" id="net_bank_min_amount" value="{{setting('min_recharge')}}">
-                                                    <input type="hidden" id="net_bank_max_amount" value="">
-                                                    <i class="Input_currency">
-                                                        INR
-                                                    </i>
-                                                </label>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <button
-                                                class="register-btn rounded-pill d-flex align-items-center w-100 mt-3 orange-shadow"
-                                                onclick="deposit('6')">
-                                                DEPOSIT
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="amount-tooltips">
-                                        <button class="btn amount-tooltips-btn">500</button>
-                                        <button class="btn amount-tooltips-btn active">1000</button>
-                                        <button class="btn amount-tooltips-btn">2500</button>
-                                        <button class="btn amount-tooltips-btn">5000</button>
-                                    </div>
-                                    <label for="net_bank_amount" class="error" id="net_bank_amount-error"></label>
                                 </div>
                             </div>
                             <div class="deposite-box" id="Phonepay">
@@ -101,7 +60,7 @@
                             </div>
                             <div class="deposite-box" id="upi">
                                 <div class="d-box">
-                                    <div class="limit-txt">LIMITS:<span>{{setting('min_recharge')}}</span></div>
+                                    <div class="limit-txt">LIMITS:<span>{{setting('min_recharge')}} - ₹1,00,000</span></div>
                                     <div class="row g-3">
                                         <div class="col-6">
                                             <div class="login-controls mt-3 rounded-pill h42">
@@ -110,7 +69,7 @@
                                                         id="upi_amount"
                                                         oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/(\..*?)\..*/g, '$1').replace(/^0[^.]/, '0');">
                                                     <input type="hidden" id="upi_min_amount" value="{{setting('min_recharge')}}">
-                                                    <input type="hidden" id="upi_max_amount" value="">
+                                                    <input type="hidden" id="upi_max_amount" value="100000">
                                                     <i class="Input_currency">
                                                         INR
                                                     </i>
@@ -206,7 +165,7 @@
                             <div class="d-flex align-items-center justify-content-between">
                                 <div class="dopsite-vlue fw-bold f-20">
                                     <div id="select_amount_view">₹ <span id="select_amount"></span></div>
-                                    <input type="number" id="select_amount_edit" class="form-control d-none" min="1" step="1" inputmode="numeric" style="max-width:9rem;font-weight:700;">
+                                    <input type="number" id="select_amount_edit" class="form-control d-none" min="1" max="100000" step="1" inputmode="numeric" style="max-width:9rem;font-weight:700;">
                                 </div>
                                 <button type="button" class="btn btn-transparent p-0" id="edit_credited_amount" title="Edit amount" aria-label="Edit amount">
                                     <span class="material-symbols-outlined bold-icon">
@@ -270,7 +229,7 @@
                                         <div class="login-controls">
                                             <label for="trn">
                                                 <input type="text" class="form-control text-indent-0" id="trn"
-                                                    name="trn" required>
+                                                    name="trn">
                                             </label>
                                         </div>
                                     </div>
@@ -333,7 +292,7 @@
                                 </div>
                                 <div class="mb-3 row" id="ifsc_code_div">
                                     <label for="staticEmail" class="col-sm-4 col-5 col-form-label text-muted fw-bold"
-                                        id="ifsc_code_title">IFSC Code</label>
+                                        id="ifsc_code_title">UTR Code / Number</label>
                                     <div class="col-sm-8 col-7">
                                         <div class="login-controls">
                                             <label for="ifsc_code_id">
@@ -370,6 +329,10 @@
                                     </div>
                                     <label id="upi_id-error" class="error" for="upi_id"></label>
                                 </div>
+                                <div class="mb-2 small text-muted lh-sm" id="proof_note">
+                                    <div>পেমেন্ট সম্পন্ন করার পর পেমেন্ট রিসিভের স্ক্রিনশটটি এখানে আপলোড করুন।</div>
+                                    <div>After completing the payment, upload the screenshot of the payment receipt here.</div>
+                                </div>
                                 <div class="mb-3 row" id="proof_div">
                                     <label for="proof" class="col-sm-4 col-5 col-form-label text-muted fw-bold">Payment screenshot</label>
                                     <div class="col-sm-8 col-7">
@@ -394,7 +357,7 @@
 
 @endsection
 @section('js')
-    <script src="{{ url('user/deposit.js') }}"></script>
+    <script src="{{ url('user/deposit.js') }}?v={{env('APP_VERSION')}}-copy"></script>
     @isset($_GET['msg'])
     @php
         $notice = [
@@ -402,6 +365,8 @@
             'proof'   => ['error', 'Attach a screenshot of the payment (JPG, PNG or WEBP).'],
             'big'     => ['error', 'That screenshot is over 5 MB.'],
             'min'     => ['error', 'Minimum deposit is ' . setting('min_recharge') . '.'],
+            'max'     => ['error', 'Maximum deposit is ₹1,00,000.'],
+            'upi'     => ['error', 'Only UPI deposits are accepted.'],
             'error'   => ['error', 'Something went wrong, please try again.'],
         ][$_GET['msg']] ?? null;
     @endphp

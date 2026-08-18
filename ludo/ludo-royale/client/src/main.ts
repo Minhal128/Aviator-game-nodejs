@@ -61,7 +61,14 @@ window.addEventListener('resize', () => game.scale.refresh());
 // PWA (UX sprint §1): cache-first shell so installed/standalone launches are
 // instant and offline-tolerant. PROD only — a SW in dev would cache Vite's
 // transformed modules and poison HMR.
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+// Site embed: a SW that caches /ludo navigations will serve a login redirect
+// after the session cookie is dropped. Don't register, and drop any old one.
+const siteWallet = (window as unknown as { TL_WALLET?: { userId?: number } }).TL_WALLET;
+if (siteWallet && 'serviceWorker' in navigator) {
+  void navigator.serviceWorker.getRegistrations().then((regs) => {
+    for (const r of regs) void r.unregister();
+  });
+} else if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     void navigator.serviceWorker.register('sw.js').catch(() => undefined);
   });

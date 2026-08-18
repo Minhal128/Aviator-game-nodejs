@@ -1,6 +1,9 @@
-# This real folder shadows the /ludo URL: Apache serves the directory, finds no
-# index file and answers 403 before Laravel's route ever runs. Hand it back.
+# This real folder shadows the /ludo URL. Serve files that exist (the built
+# client under ludo-royale/client/dist) off disk so they never lock the
+# Laravel session; send the directory itself to index.php for auth + wallet.
 <IfModule mod_rewrite.c>
     RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
     RewriteRule ^ /index.php [L]
 </IfModule>

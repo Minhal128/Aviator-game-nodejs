@@ -12,7 +12,6 @@ import { ENTRY_CELLS, SAFE_CELLS } from '@ludo/shared';
 import type { PlayerColor } from '@ludo/shared';
 import {
   ENTRY_DIR,
-  GATE_DIR,
   LANE_GRID,
   TRACK_GRID,
   YARD_ORIGIN,
@@ -392,51 +391,28 @@ export function bakeBoard(scene: Phaser.Scene, theme: BoardThemeId = 'classic'):
   }
   ctx.restore();
 
-  // Center medallion (§5.2): violet `hudInk` rounded square (candy chrome,
-  // not navy) + 4 colored gates with gold rim.
+  // Classic home: four colored triangles filling the 3×3, meeting at center.
   const mx = CELL * 6;
   const mw = CELL * 3;
-  ctx.save();
-  ctx.shadowColor = cssRgba(LR_COLORS.sceneShadowInk, 0.35);
-  ctx.shadowBlur = 8;
-  roundedRectPath(ctx, mx + 2, mx + 2, mw - 4, mw - 4, dp(24));
-  ctx.fillStyle = cssColor(P.medallion);
-  ctx.fill();
-  ctx.restore();
-  // Futurist core: the medallion frame emits gold light.
-  ctx.save();
-  ctx.shadowColor = cssRgba(LR_COLORS.gold300, 0.9);
-  ctx.shadowBlur = dp(9);
-  roundedRectPath(ctx, mx + 3, mx + 3, mw - 6, mw - 6, dp(22));
-  ctx.strokeStyle = cssRgba(LR_COLORS.gold300, 0.65);
-  ctx.lineWidth = 2.5;
-  ctx.stroke();
-  ctx.restore();
-
   const mc = mx + mw / 2;
-  for (const c of COLORS) {
-    const d = GATE_DIR[c];
-    // The gate triangle points inward from its board-edge side.
-    const bx = mc - d.x * (mw / 2 - 4);
-    const by = mc - d.y * (mw / 2 - 4);
-    const tipX = mc - d.x * (mw / 2 - 4 - CELL * 1.05);
-    const tipY = mc - d.y * (mw / 2 - 4 - CELL * 1.05);
-    const px = d.y * CELL * 1.1;
-    const py = d.x * CELL * 1.1;
+  const homes: { c: PlayerColor; pts: [number, number][] }[] = [
+    { c: 'red', pts: [[mx, mx], [mx + mw, mx], [mc, mc]] },
+    { c: 'blue', pts: [[mx + mw, mx], [mx + mw, mx + mw], [mc, mc]] },
+    { c: 'yellow', pts: [[mx + mw, mx + mw], [mx, mx + mw], [mc, mc]] },
+    { c: 'green', pts: [[mx, mx + mw], [mx, mx], [mc, mc]] },
+  ];
+  for (const h of homes) {
     ctx.beginPath();
-    ctx.moveTo(bx + px, by + py);
-    ctx.lineTo(bx - px, by - py);
-    ctx.lineTo(tipX, tipY);
+    ctx.moveTo(h.pts[0]![0], h.pts[0]![1]);
+    ctx.lineTo(h.pts[1]![0], h.pts[1]![1]);
+    ctx.lineTo(h.pts[2]![0], h.pts[2]![1]);
     ctx.closePath();
-    ctx.fillStyle = cssColor(LR_PLAYERS[c].mid);
+    ctx.fillStyle = cssColor(LR_PLAYERS[h.c].mid);
     ctx.fill();
-    ctx.strokeStyle = cssColor(LR_COLORS.gold700);
+    ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2;
     ctx.stroke();
   }
-
-  // (The gold ring + crown live in their OWN texture — see bakeBoardCrown —
-  // so the LW view rotation never tips the emblem sideways.)
 
   // Subtle inner border of the play surface (baked inset).
   roundedRectPath(ctx, 1.5, 1.5, size - 3, size - 3, dp(20) - 1);
