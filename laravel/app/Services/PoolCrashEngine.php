@@ -10,18 +10,22 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * House keeps 30%. Payout pool = 70% of round bets.
+ * House keeps 5%. Payout pool = 95% of round bets.
+ * Example: ₹1000 staked → ₹950 pool. Cashouts (50×2.5 + 200×2.7 = 665) that
+ * fit in the pool stay; when the next active bet would blow past remaining
+ * pool, the plane crashes.
+ *
  * Crash when no active (non-cashed) bet can be paid at current multiplier:
  *   min(active.amount) * multiplier > remaining_pool
  *
  * When the pool cannot pay even the smallest bet at 1.00x (solo player, or one
- * bet >70% of the round), that rule can only ever crash at 1.00x — the round is
- * then flown in 'house' mode: random crash point with the same 30% edge,
+ * bet >95% of the round), that rule can only ever crash at 1.00x — the round is
+ * then flown in 'house' mode: random crash point with the same 5% edge,
  * banked over many rounds instead of guaranteed per round.
  */
 class PoolCrashEngine
 {
-    public const HOUSE_PCT = 30.0;
+    public const HOUSE_PCT = 5.0;
     public const TICK_MS = 100;
     /** @deprecated linear step; liveMultiplier uses GROWTH_PER_MS */
     public const STEP = 0.01;
@@ -35,7 +39,7 @@ class PoolCrashEngine
     /**
      * Pool mode is only fair when the pool can actually pay a win. With few players
      * (10+10 → pool 14) every bet was force-forfeited just past 1.40x and cashout paid
-     * nothing, so those rounds fly in house mode instead — same 30% edge.
+     * nothing, so those rounds fly in house mode instead — same 5% edge.
      */
     public static function usePoolMode(?float $minBet, float $pool): bool
     {
@@ -131,9 +135,9 @@ class PoolCrashEngine
     }
 
     /**
-     * Crash point for house-risk rounds. P(crash >= x) = 0.70 / x, so cashing out
-     * at any target returns 70% long run — the same 30% edge, spread over rounds.
-     * ~30% of these rounds bust at 1.00x, exactly like a real crash curve.
+     * Crash point for house-risk rounds. P(crash >= x) = rtp / x, so cashing out
+     * at any target returns the admin RTP long run — the same house edge, spread
+     * over rounds. With 5% house (~95% RTP) few rounds bust at 1.00x.
      */
     public static function houseCrashPoint(?float $pct = null): float
     {

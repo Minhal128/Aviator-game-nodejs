@@ -58,6 +58,43 @@
 
     document.addEventListener('DOMContentLoaded', () => document.body.appendChild(banner));
 
+    // Visible CASHOUT (Glamour-style). Panel art still says LINES — players never find the tap target.
+    const cashBtn = document.createElement('button');
+    cashBtn.id = 'tl-gold-cash';
+    cashBtn.type = 'button';
+    cashBtn.className = 'tl-slot-cash';
+    cashBtn.innerHTML = 'CASHOUT <span id="tl-gold-held">₹0.00</span>';
+
+    function placeCashBtn() {
+        const c = document.querySelector('canvas');
+        if (!c || !cashBtn.isConnected) return;
+        const r = c.getBoundingClientRect();
+        if (!r.width || !r.height) return;
+        // bottom-left LINES box on the 1850×1080 egypt layout
+        const left = r.left + r.width * 0.012;
+        const top = r.top + r.height * 0.86;
+        const w = r.width * 0.16;
+        const h = r.height * 0.09;
+        cashBtn.style.cssText = 'position:fixed;left:' + left + 'px;top:' + top + 'px;width:' + w + 'px;height:' + h + 'px;'
+            + 'z-index:2147483000;display:flex;align-items:center;justify-content:center;gap:6px;'
+            + 'padding:0 8px;cursor:pointer;box-sizing:border-box;pointer-events:auto;font-size:14px';
+    }
+
+    function mountCashBtn() {
+        if (cashBtn.isConnected) return;
+        document.body.appendChild(cashBtn);
+        cashBtn.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            doCashout();
+        });
+        cashBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); });
+        placeCashBtn();
+        window.addEventListener('resize', placeCashBtn);
+        window.addEventListener('orientationchange', placeCashBtn);
+        setInterval(placeCashBtn, 1000);
+    }
+
     // ---- portrait phones ---------------------------------------------------
     // slotGame.js builds a fixed 1850x1080 landscape canvas on Scale.FIT, and there
     // is no portrait layout in the build. On a 375px-wide phone FIT gives a 219px
@@ -344,10 +381,33 @@
         return true;
     }
 
+    function abortSpin(reels, cfg, completeCallback, msg) {
+        TL.message(msg);
+        const s = scene();
+        if (s) {
+            s.reelSpin = false;
+            if (s.soundController) s.soundController.stopSounds();
+            if (s.slotControls && s.slotControls.resetAutoSpinsMode) s.slotControls.resetAutoSpinsMode();
+        }
+        // Must land on a known loser before the win-search step, or unpaid wins flash on screen.
+        cfg.reels_simulate = TL.losingStops || [0, 0, 0, 0, 0];
+        const prev = reels.map((r) => r.spinTime);
+        reels.forEach((r) => { r.spinTime = 40; });
+        origSpinReels(reels, cfg, () => {
+            reels.forEach((r, i) => { r.spinTime = prev[i]; });
+            completeCallback();
+        });
+    }
+
     const origSpinReels = window.spinReels;
     window.spinReels = function (reels, cfg, completeCallback) {
         const s = scene();
         const lineBet = s && s.slotControls ? inrToLineBet(TL.stakeInr) : 1;
+        const free = !!(s && (s.isFreeSpin || (s.slotControls && s.slotControls.hasFreeSpin && s.slotControls.hasFreeSpin())));
+        if (!free && Number(wallet.balance) + 1e-9 < Number(TL.stakeInr)) {
+            abortSpin(reels, cfg, completeCallback, 'Not enough balance for this spin.');
+            return;
+        }
 
         post('/game/gold/spin', {
             lineBet: lineBet,
@@ -355,9 +415,7 @@
             betAmount: TL.stakeInr,
         }).then((res) => {
             if (!res || !res.isSuccess) {
-                TL.message((res && res.message) || 'Spin refused by the server.');
-                cfg.reels_simulate = TL.losingStops;
-                origSpinReels(reels, cfg, completeCallback);
+                abortSpin(reels, cfg, completeCallback, (res && res.message) || 'Spin refused by the server.');
                 return;
             }
             TL.message('');
@@ -370,9 +428,7 @@
             cfg.reels_simulate = res.data.stops;
             origSpinReels(reels, cfg, completeCallback);
         }).catch(() => {
-            TL.message('Connection lost.');
-            cfg.reels_simulate = TL.losingStops;
-            origSpinReels(reels, cfg, completeCallback);
+            abortSpin(reels, cfg, completeCallback, 'Connection lost.');
         });
     };
 
@@ -382,6 +438,8 @@
             s.slotControls.linesCountText.setText(coinsToInrText(coins));
         }
         paintWin(s && s.slotControls, coins);
+        const el = document.getElementById('tl-gold-held');
+        if (el) el.textContent = '₹' + coinsToInrText(coins);
     }
 
     function applyWallet(data) {
@@ -422,6 +480,22 @@
             if (++tries < 400) setTimeout(attach, 50);
             return;
         }
+        mountCashBtn();
+        // Block runSlot before the reels sequence starts (client coins can lag the wallet HUD).
+        const sc0 = scene();
+        if (sc0 && !sc0.__tlRunGuard) {
+            sc0.__tlRunGuard = true;
+            const origRun = sc0.runSlot.bind(sc0);
+            sc0.runSlot = function () {
+                const free = !!(this.isFreeSpin || (this.slotControls && this.slotControls.hasFreeSpin && this.slotControls.hasFreeSpin()));
+                if (!free && Number(wallet.balance) + 1e-9 < Number(TL.stakeInr)) {
+                    TL.message('Not enough balance for this spin.');
+                    if (this.slotControls && this.slotControls.resetAutoSpinsMode) this.slotControls.resetAutoSpinsMode();
+                    return;
+                }
+                return origRun();
+            };
+        }
         // BIG WIN only when payout beats this spin's stake (your screenshot: 28782 < 29889)
         if (typeof slotConfig !== 'undefined') {
             const prev = slotConfig.minWin;
@@ -433,6 +507,42 @@
                     return Math.max(prev, bet + 1);
                 },
             });
+            // ponytail: vendor defaults are 2000/3000ms; feel snappier without touching game files
+            slotConfig.spinTime = 1100;
+            slotConfig.winShowTime = 1400;
+            slotConfig.winMessageTime = 1200;
+        }
+        // Popup showed raw coins (3000) while wallet credited coins/100 (₹30).
+        // ponytail: patch the three message entry points; leave game files alone.
+        const sc = scene();
+        if (sc && Array.isArray(sc.reels)) {
+            sc.reels.forEach((r) => { if (r) r.spinTime = 1100; });
+        }
+        if (sc && !sc.__tlWinMsg) {
+            sc.__tlWinMsg = true;
+            const wrap = (name) => {
+                const orig = sc[name].bind(sc);
+                sc[name] = function (winCoins, time) {
+                    return orig(coinsToInrText(winCoins), time);
+                };
+            };
+            wrap('showBigWinMessage');
+            wrap('showJackpotWinMessage');
+            sc.showWinCoinsMessage = function (winCoins, time) {
+                const msg = this.guiController.showMessage(
+                    'CONGRATULATION!',
+                    'YOUR WIN: ₹' + coinsToInrText(winCoins) + '!',
+                    this,
+                    () => {
+                        if (this.timeoutMess) clearTimeout(this.timeoutMess);
+                        this.timeoutMess = null;
+                        this.guiController.closePopUp(msg);
+                    }
+                );
+                if (time && time > 0) {
+                    this.timeoutMess = setTimeout(() => this.guiController.closePopUp(msg), time);
+                }
+            };
         }
         fetch('/game/gold/state')
             .then((r) => r.json())

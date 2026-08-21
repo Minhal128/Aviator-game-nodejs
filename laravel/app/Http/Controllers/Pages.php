@@ -89,9 +89,10 @@ class Pages extends Controller
         // missing-texture box for whatever did not arrive. The bundle already sits inside
         // public_html, so point the base at it and let Apache serve the art directly;
         // index.html still comes through here for auth and the wallet injection.
-        // slot-glamour stays on PHP: its scripts/main.js is rewritten at serve time.
+        // Glamour same path: scripts/main.js is patched on disk (useWorker:false).
         $staticBase = [
             'gold-egypt' => '/goldegypt/game/',
+            'slot-glamour' => '/slotglamor/game/',
             // same trick as Egypt: art/js/audio must not touch the session file
             'chicken-road' => '/Chicken-Road/Main/',
             'ludo' => '/ludo/ludo-royale/client/dist/',
@@ -126,29 +127,38 @@ class Pages extends Controller
                     $head .= '<script src="/js/tl-mute.js"></script>';
                 }
                 $html = preg_replace('/<head>/i', $head, $html, 1);
-                if ($game === 'gold-egypt') {
-                    // after slotGame.js, so window.spinReels exists to be wrapped
-                    $html = str_replace('</body>', '<script src="/js/tl-gold-egypt.js?v=20260815-2"></script></body>', $html);
-                }
-                if ($game === 'slot-glamour') {
-                    // after main.js so runOnStartup() exists; both are modules, so order holds
-                    $html = str_replace('</body>', '<script type="module" src="/js/tl-c3-slot.js"></script></body>', $html);
+                if ($game === 'gold-egypt' || $game === 'slot-glamour') {
+                    $slotClass = $game === 'gold-egypt' ? 'tl-slot tl-slot-egypt' : 'tl-slot tl-slot-glamour';
+                    $slotLabel = $game === 'gold-egypt' ? 'Gold of Egypt' : 'Glamour Spins';
+                    $html = preg_replace(
+                        '/<body([^>]*)>/i',
+                        '<body$1 class="' . $slotClass . '">',
+                        $html,
+                        1
+                    );
+                    $html = str_replace(
+                        '</body>',
+                        '<link rel="stylesheet" href="/css/tl-slots.css?v=20260821-cash">'
+                        . '<div class="tl-slot-brand" aria-hidden="true">Turbo · ' . $slotLabel . '</div>'
+                        . ($game === 'gold-egypt'
+                            ? '<script src="/js/tl-gold-egypt.js?v=20260821-cash"></script>'
+                            : '<script type="module" src="/js/tl-c3-slot.js?v=20260821-cash"></script>')
+                        . '</body>',
+                        $html
+                    );
                 }
             }
             return response($html, 200)->header('Content-Type', 'text/html; charset=UTF-8');
         }
-        // Glamour Spins ships with useWorker:true, which hides the C3 runtime (and its
-        // global variables: balance, betAmount, bonusbalance) inside a Web Worker where
-        // the page cannot reach it. The flag is the vendor's own switch, so flip it at
-        // serve time instead of editing the bundle - survives re-extracting html5.zip.
+        // Belt: if something still hits /slot-glamour/scripts/main.js (old base),
+        // force useWorker:false. On-disk file is already patched for Apache.
         if ($game === 'slot-glamour' && $rel === 'scripts/main.js') {
+            $raw = (string) file_get_contents($file);
             $js = str_replace(
                 'const e=true;window["c3_runtimeInterface"]',
                 'const e=false;window["c3_runtimeInterface"]',
-                (string) file_get_contents($file)
+                $raw
             );
-            // a cached copy of the original brings the worker back and the wallet
-            // bridge silently stops working, so this one file is never cacheable
             return response($js, 200)
                 ->header('Content-Type', 'application/javascript; charset=UTF-8')
                 ->header('Cache-Control', 'no-store, must-revalidate');

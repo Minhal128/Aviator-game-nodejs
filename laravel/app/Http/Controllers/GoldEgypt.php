@@ -247,7 +247,7 @@ class GoldEgypt extends Controller
             if ($bal < $betAmount) {
                 return $this->fail('Not enough balance for this spin.');
             }
-            addwallet($userId, $betAmount, '-');
+            addwallet($userId, $betAmount, '-', true);
             $this->log($userId, $betAmount, 'debit', 'Gold of Egypt bet');
         } else {
             session()->put('gold_free_left', $freeLeft - 1);

@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 
 /**
  * Server side of Glamour Spins, so the game runs on the same wallet as Aviator
- * and the house keeps 30% of what is staked.
+ * and the house keeps 5% of what is staked.
  *
  * This game had to be done the hard way. It is a Construct 3 export whose win
  * logic ships as compiled opcodes: there is no paytable to read and no protocol
@@ -19,7 +19,7 @@ use Illuminate\Http\Request;
  * pin game time to 1/60s a tick, and a spin replays exactly - same grid, same
  * win, same number of draws. tools/glamour-measure.mjs plays a few thousand seeds
  * and records what each pays; the tilt below leans that measured distribution
- * until its mean is 0.70, and draw() picks from it.
+ * until its mean is 0.95, and draw() picks from it.
  *
  * One correction worth keeping, because it invalidated a whole earlier attempt: a
  * seed's payout is NOT a property of the seed on its own. The outcome also
@@ -39,8 +39,8 @@ class GlamourSpins extends Controller
     /** Bet options the client offers (betlimits1..5 in its own globals). */
     public const BETS = [10, 50, 100, 300, 500];
 
-    public const HOUSE_PCT = 30;
-    public const TARGET_RTP = 0.70;
+    public const HOUSE_PCT = 5;
+    public const TARGET_RTP = 0.95;
 
     private static ?array $table = null;
 
@@ -197,7 +197,7 @@ class GlamourSpins extends Controller
         [$seed, $mult] = self::draw(win_rtp());
         $win = round($bet * $mult, 2);
 
-        addwallet($userId, $bet, '-');
+        addwallet($userId, $bet, '-', true);
         $this->log($userId, $bet, 'debit', 'Glamour Spins bet');
         $held = round((float) session('glamour_held_win', 0) + $win, 2);
         session()->put('glamour_held_win', $held);

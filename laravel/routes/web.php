@@ -143,7 +143,14 @@ Route::group(['middleware' => ['isUser']], function () {
         return view('withdraw');
     });
     Route::get('/referal', function () {
-        return view('refferal');
+        return view('refferal', [
+            // Authentication@register stores the referrer's id in users.promocode
+            'invited' => \App\Models\User::where('promocode', user('id'))->count(),
+            'earned' => (float) \App\Models\Transaction::where('userid', user('id'))
+                ->where('category', 'referrer_bonus')->sum('amount'),
+            // setting() throws on a missing row; the admin default is 100
+            'bonus' => (float) (\App\Models\Setting::where('category', 'referrer_bonus')->value('value') ?? 100),
+        ]);
     });
     Route::get('/level-management', [Pages::class,'level_management']);
 

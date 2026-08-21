@@ -62,7 +62,7 @@ class LudoWallet extends Controller
             if ((float) wallet($userId, 'num') < $amount) {
                 return response()->json(['isSuccess' => false, 'message' => 'Insufficient balance']);
             }
-            addwallet($userId, $amount, '-');
+            addwallet($userId, $amount, '-', true);
             $this->log($userId, $amount, 'debit', $ref);
         } else {
             addwallet($userId, $amount, '+');

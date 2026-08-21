@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Userbit;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 function imageupload($file, $name, $path)
@@ -72,6 +73,22 @@ function wallet($userid, $type = "string")
     return number_format($amt, 2);
 }
 
+/** Cash that may leave the site (total − still-locked bonus). */
+function withdrawable($userid, $type = "num")
+{
+    $row = ensure_wallet($userid);
+    $w = max(0.0, (float) $row->amount - (float) ($row->bonus ?? 0));
+    return $type === "string" ? number_format($w, 2) : $w;
+}
+
+/** How many × the bonus must be staked in games before it unlocks. */
+function bonus_wager_mult(): float
+{
+    $v = Setting::where('category', 'bonus_wager_mult')->value('value');
+    $m = $v === null ? 1.0 : (float) $v;
+    return $m < 0 ? 0.0 : $m;
+}
+
 /** One wallet row per user id — create empty if missing. */
 function ensure_wallet($userid)
 {
@@ -83,6 +100,10 @@ function ensure_wallet($userid)
     $row = new Wallet;
     $row->userid = $userid;
     $row->amount = 0;
+    if (Schema::hasColumn('wallets', 'bonus')) {
+        $row->bonus = 0;
+        $row->wager_left = 0;
+    }
     $row->save();
     return $row;
 }
@@ -95,15 +116,13 @@ function setting($parameter)
 /**
  * Share of what players stake that is payable back, set by the admin
  * (settings.win_percentage). Every game reads this one row: 100 = the whole pot
- * can be won and the house keeps nothing, 30 = only 30% is ever paid out.
- * Ships at 30: players get 30% of what they stake back, the house keeps 70%.
- * The offline checkers in tools/ still default to the old 70 because they call
- * the game formulas directly with an explicit share.
+ * can be won and the house keeps nothing, 95 = house keeps 5% (Aviator pool =
+ * 95% of round bets). Ships at 95.
  */
 function win_pct(): float
 {
     $v = Setting::where('category', 'win_percentage')->value('value');
-    return $v === null ? 30.0 : max(0.0, min(100.0, (float) $v));
+    return $v === null ? 95.0 : max(0.0, min(100.0, (float) $v));
 }
 
 /** win_pct() as an RTP fraction, e.g. 70 -> 0.70. */
@@ -145,19 +164,66 @@ function userbetdetail($id,$parameter)
     }
     return 0;
 }
-function addwallet($id, $amount, $symbol = "+")
+/**
+ * Move money on the wallet.
+ * $wager=true on game stake debits: counts toward clearing bonus lock.
+ * Withdrawals/transfers must leave $wager false so cash-out does not unlock bonus.
+ */
+function addwallet($id, $amount, $symbol = "+", $wager = false)
 {
     $wallet = ensure_wallet($id);
     $cur = (float) $wallet->amount;
+    $amt = (float) $amount;
+    $bonus = (float) ($wallet->bonus ?? 0);
+    $wagerLeft = (float) ($wallet->wager_left ?? 0);
+
     if ($symbol == "+") {
-        $new = $cur + (float) $amount;
+        $new = $cur + $amt;
     } elseif ($symbol == "-") {
-        $new = $cur - (float) $amount;
+        $new = $cur - $amt;
+        if ($wager && $wagerLeft > 0) {
+            $wagerLeft = max(0.0, $wagerLeft - $amt);
+            if ($wagerLeft <= 0.00001) {
+                $bonus = 0.0;
+                $wagerLeft = 0.0;
+            }
+        }
+        // losses (or cash withdraw) cannot leave locked bonus above the balance
+        $bonus = min($bonus, max(0.0, $new));
     } else {
         return $cur;
     }
-    Wallet::where('userid', (string) $id)->update(["amount" => $new]);
+
+    // ponytail: amount always; bonus cols only if migrated (avoids bricking bets on partial deploy)
+    static $hasBonusCols = null;
+    if ($hasBonusCols === null) {
+        $hasBonusCols = Schema::hasColumn('wallets', 'bonus') && Schema::hasColumn('wallets', 'wager_left');
+    }
+    $payload = ['amount' => $new];
+    if ($hasBonusCols) {
+        $payload['bonus'] = $bonus;
+        $payload['wager_left'] = $wagerLeft;
+    }
+    Wallet::where('userid', (string) $id)->update($payload);
     // ponytail: old return was wallet()+amount AFTER update → lied by +$amount to every caller
+    return $new;
+}
+
+/** Credit promotional funds: playable immediately, withdrawable only after wagering. */
+function credit_bonus($id, $amount)
+{
+    $amount = (float) $amount;
+    if ($amount <= 0) {
+        return (float) ensure_wallet($id)->amount;
+    }
+    $wallet = ensure_wallet($id);
+    $new = (float) $wallet->amount + $amount;
+    $payload = ['amount' => $new];
+    if (Schema::hasColumn('wallets', 'bonus') && Schema::hasColumn('wallets', 'wager_left')) {
+        $payload['bonus'] = (float) ($wallet->bonus ?? 0) + $amount;
+        $payload['wager_left'] = (float) ($wallet->wager_left ?? 0) + $amount * bonus_wager_mult();
+    }
+    Wallet::where('userid', (string) $id)->update($payload);
     return $new;
 }
 function appvalidate($input)

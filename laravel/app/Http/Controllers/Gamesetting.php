@@ -144,7 +144,7 @@ class Gamesetting extends Controller
             if ($result->save()) {
                 $status = true;
                 array_push($returnbets, ["bet_id" => $result->id]);
-                addwallet($uid, floatval($b['bet_amount']), "-");
+                addwallet($uid, floatval($b['bet_amount']), "-", true);
                 $data = [
                     "wallet_balance" => wallet($uid),
                     "return_bets" => $returnbets,

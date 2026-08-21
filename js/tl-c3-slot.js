@@ -142,15 +142,18 @@
     const BET_ZONE = { x1: 0.00, y1: 0.895, x2: 0.28, y2: 0.975 };
 
     const banner = document.createElement('div');
+    banner.id = 'tl-g-msg';
     banner.style.cssText = 'position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:9999;'
-        + 'padding:10px 18px;border-radius:999px;background:rgba(229,5,57,.92);color:#fff;'
-        + 'font:600 14px/1 Roboto,system-ui,sans-serif;opacity:0;transition:opacity .2s;pointer-events:none';
+        + 'padding:10px 18px;border-radius:999px;background:linear-gradient(180deg,#ff4d8d,#e50539);color:#fff;'
+        + 'font:600 14px/1 Roboto,system-ui,sans-serif;opacity:0;transition:opacity .2s;pointer-events:none;'
+        + 'border:1px solid rgba(255,255,255,.22);box-shadow:0 10px 28px rgba(229,5,57,.4);letter-spacing:.04em';
     const say = (text) => { banner.textContent = text; banner.style.opacity = text ? '1' : '0'; };
 
     // Covers BUY FREE SPIN — shiny gold pill only (no maroon frame)
     const cashBtn = document.createElement('button');
     cashBtn.id = 'tl-g-cash';
     cashBtn.type = 'button';
+    cashBtn.className = 'tl-slot-cash';
     cashBtn.innerHTML = 'CASHOUT <span id="tl-g-held">₹0.00</span>';
 
     function placeCashBtn() {
@@ -163,13 +166,10 @@
         const top = r.top + r.height * b.y1;
         const w = r.width * (b.x2 - b.x1);
         const h = r.height * (b.y2 - b.y1);
+        // layout only — look lives in css/tl-slots.css (.tl-slot-cash)
         cashBtn.style.cssText = 'position:fixed;left:' + left + 'px;top:' + top + 'px;width:' + w + 'px;height:' + h + 'px;'
             + 'z-index:2147483000;display:flex;align-items:center;justify-content:center;gap:8px;'
-            + 'padding:0 12px;border-radius:14px;border:2px solid #a86b00;cursor:pointer;'
-            + 'background:linear-gradient(180deg,#ffe08a 0%,#ffba00 45%,#e69800 100%);'
-            + 'color:#1a1200;font:800 18px/1 Roboto,system-ui,sans-serif;'
-            + 'box-shadow:0 2px 8px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.55);pointer-events:auto;'
-            + 'box-sizing:border-box';
+            + 'padding:0 12px;cursor:pointer;box-sizing:border-box;pointer-events:auto';
     }
 
     function editBet() {
@@ -281,15 +281,25 @@
         TL.resetting = true;
         TL.fresh = false;
         restore();
+        // Between spins we are already on Game + wait — only wipe globals.
+        // Full goToLayout was ~1.8s dead air after every settle.
+        // ponytail: soft path; hard path if soft leaves the button dead.
+        if (layoutName(TL.ir) === 'Game' && TL.ir.globalVars.Phase === 'wait' && spinButtonReady()) {
+            await sleep(120);
+            restore();
+            TL.fresh = spinButtonReady();
+            TL.resetting = false;
+            if (TL.fresh) return;
+            TL.resetting = true;
+            TL.fresh = false;
+        }
         TL.ir.goToLayout('Game');
         // Phase is one of the globals we put back, so it says 'wait' immediately and
         // proves nothing - wait on the rebuilt button and on real ticks instead
-        await sleep(1200);
+        await sleep(400);
         restore();
-        for (let i = 0; i < 60 && !spinButtonReady(); i++) await sleep(50);
-        // the button existing is not the same as the event sheet answering it; the
-        // measured timing that always works is a little over a second and a half
-        await sleep(600);
+        for (let i = 0; i < 40 && !spinButtonReady(); i++) await sleep(40);
+        await sleep(200);
         TL.fresh = spinButtonReady();
         TL.resetting = false;
         if (!TL.fresh) say('Still getting ready...');
@@ -500,8 +510,8 @@
                     grace = 0;
                     return;
                 }
-                if (++quiet < 15) return;              // 1.5s with the balance still
-                if (++grace < 20) return;              // and 2s more with nothing pending
+                if (++quiet < 5) return;               // 0.5s balance quiet
+                if (++grace < 5) return;               // +0.5s nothing pending
                 const paid = TL.paid;
                 TL.spinning = false;
                 TL.armed = false;
@@ -571,7 +581,8 @@
         // the game opens on its menu and the player decides when to start, so this
         // waits as long as it takes rather than giving up
         if (layoutName(ir) !== 'Game' || g.Phase !== 'wait') { setTimeout(attach, 200); return; }
-        await sleep(2000);                            // let the arrival animation finish
+        // ponytail: was sleep(2000); spin button ready is the real signal
+        for (let i = 0; i < 50 && !spinButtonReady(); i++) await sleep(40);
         TL.snap = Object.assign({}, g);               // the state every spin starts from
 
         const s = await fetch('/game/glamour/state').then((r) => r.json()).catch(() => null);

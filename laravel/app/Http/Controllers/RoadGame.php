@@ -8,11 +8,11 @@ use Illuminate\Http\Request;
 /**
  * Chicken Road on the real wallet, with the crash lane decided here.
  *
- * The client used to roll its own PRNG and its own balance, so the 30% margin
+ * The client used to roll its own PRNG and its own balance, so the 5% margin
  * in Chicken-Road/Main/js/math.js was decoration - a player could edit the JS
  * and never crash. Now the server picks the crash step when the bet is placed
  * and reveals it one lane at a time, and the multiplier is recomputed here, so
- * the house keeps 30% no matter what the client says.
+ * the house keeps 5% no matter what the client says.
  *
  * MODES and the multiplier formula MUST stay identical to
  * Chicken-Road/Main/js/math.js - tools/house-edge-check.mjs checks the JS side,
@@ -20,7 +20,7 @@ use Illuminate\Http\Request;
  */
 class RoadGame extends Controller
 {
-    private const HOUSE_PCT = 30.0;
+    private const HOUSE_PCT = 5.0;
     private const RTP = (100.0 - self::HOUSE_PCT) / 100.0;
 
     /** baseSurvival/decay/maxSteps per difficulty, mirroring GAME_MODES in math.js */
@@ -38,7 +38,7 @@ class RoadGame extends Controller
      * coincidence: multiplier() pays rtp / reach, so a road that survives more
      * often than the rtp can only sell multipliers under 1.00x. The admin's
      * percentage therefore moves the road's danger, not just the ladder - drop it
-     * to 30% and the chicken dies early instead of being sold a losing cash-out.
+     * to 50% and the chicken dies early instead of being sold a losing cash-out.
      */
     public static function survival(array $mode, int $step, ?float $rtp = null): float
     {
@@ -110,11 +110,17 @@ class RoadGame extends Controller
             return response()->json(['isSuccess' => false, 'message' => 'Insufficient balance']);
         }
         if (session()->has('road_round')) {
-            // a reload mid-round leaves the stake spent; drop the orphan and let them bet again
+            // reload mid-round: refund the orphan stake so money is not eaten
+            $old = session('road_round');
             session()->forget('road_round');
+            $orphan = round((float) ($old['bet'] ?? 0), 2);
+            if ($orphan > 0) {
+                addwallet($userId, $orphan, '+');
+                $this->log($userId, $orphan, 'credit', 'orphan round refund');
+            }
         }
 
-        addwallet($userId, $bet, '-');
+        addwallet($userId, $bet, '-', true);
         $this->log($userId, $bet, 'debit', 'bet ' . (string) $r->mode);
         // ponytail: one round per session, so no table. Add one if you need round history.
         session()->put('road_round', [
