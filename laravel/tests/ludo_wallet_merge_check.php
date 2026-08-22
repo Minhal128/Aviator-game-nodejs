@@ -9,6 +9,7 @@ $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 assert(is_file(dirname(base_path()) . '/js/tl-ludo.js'), 'tl-ludo.js');
 $tl = file_get_contents(dirname(base_path()) . '/js/tl-ludo.js');
 assert(str_contains($tl, 'lr-hud__pill--coins'), 'tl-ludo paints coin pill');
+assert(str_contains($tl, '13.232.99.7'), 'rewrites AWS WS/HTTP onto HTTPS origin');
 assert(str_contains(file_get_contents(dirname(base_path()) . '/ludo/ludo-royale/client/src/meta/store.ts'), 'seedFromSiteWallet'), 'client seeds site wallet');
 $pages = file_get_contents(base_path('app/Http/Controllers/Pages.php'));
 assert(str_contains($pages, 'tl-ludo.js'), 'Pages injects tl-ludo');
@@ -18,6 +19,8 @@ assert(str_contains($api, 'ludo/wallet'), 'api route /ludo/wallet');
 assert(str_contains($api, 'X-TL-User-Id'), 'proxy stamps X-TL-User-Id');
 assert(str_contains($api, 'X-TL-Wallet-Balance'), 'proxy stamps wallet balance');
 assert(str_contains($api, "'expect' => false"), 'proxy disables Expect 100-continue');
+assert(str_contains($api, 'KeepLoginCookie'), 'proxy must not overwrite login cookie');
+assert(str_contains($api, '13.232.99.7'), 'production ludo-api is not 127.0.0.1');
 
 assert(class_exists(App\Http\Controllers\LudoWallet::class), 'LudoWallet controller');
 assert(is_file(dirname(base_path()) . '/ludo/ludo-royale/server/src/services/SiteWallet.ts'), 'SiteWallet.ts');

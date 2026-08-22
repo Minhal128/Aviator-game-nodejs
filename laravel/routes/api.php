@@ -19,9 +19,12 @@ Route::post('/user/withdrawal_list', [Userdetail::class, "withdrawal_list"]);
 // Ludo Node → Laravel wallet (shared key). Not browser-facing.
 Route::post('/ludo/wallet', [LudoWallet::class, 'handle']);
 
-// Ludo Royale REST (ludo-api). Same box → 127.0.0.1:8110; AWS Node → http://API_HOST:8110 (or https via nginx)
+// Ludo Royale REST. cPanel PHP cannot reach 127.0.0.1:8110 (Node is on AWS :80).
 Route::any('/v1/{path?}', function (Request $request, ?string $path = null) {
     $base = rtrim((string) env('LUDO_API_URL', 'http://127.0.0.1:8110'), '/');
+    if (app()->environment('production') && (str_contains($base, '127.0.0.1') || str_contains($base, 'localhost'))) {
+        $base = 'http://13.232.99.7';
+    }
     $target = $base . '/api/v1/' . ltrim((string) $path, '/');
     if ($qs = $request->getQueryString()) {
         $target .= '?' . $qs;
@@ -52,4 +55,4 @@ Route::any('/v1/{path?}', function (Request $request, ?string $path = null) {
     return response($res->body(), $res->status())->withHeaders([
         'Content-Type' => $res->header('Content-Type') ?: 'application/json',
     ]);
-})->where('path', '.*')->middleware('web');
+})->where('path', '.*')->middleware(['web', \App\Http\Middleware\KeepLoginCookie::class]);

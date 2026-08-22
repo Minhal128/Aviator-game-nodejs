@@ -23,7 +23,9 @@ function localGameEndpoint(): string | null {
 
 export function gameServerUrl(): string {
   const fromEnv = import.meta.env.VITE_GAME_WS;
-  if (fromEnv !== undefined && fromEnv !== '') return fromEnv;
+  if (fromEnv !== undefined && fromEnv !== '' && !fromEnv.includes('13.232.99.7') && !fromEnv.startsWith('ws://')) {
+    return fromEnv;
+  }
   if (import.meta.env.DEV) return DEV_ENDPOINT;
   return localGameEndpoint() ?? sameOriginEndpoint();
 }

@@ -509,6 +509,7 @@
                     return Math.max(prev, bet + 1);
                 },
             });
+            slotConfig.useBigWinCongratulation = false;
             // ponytail: vendor defaults are 2000/3000ms; feel snappier without touching game files
             slotConfig.spinTime = 1100;
             slotConfig.winShowTime = 1400;
@@ -528,8 +529,8 @@
                     return orig(coinsToInrText(winCoins), time);
                 };
             };
-            wrap('showBigWinMessage');
             wrap('showJackpotWinMessage');
+            sc.showBigWinMessage = function () { /* ponytail: no Big Win popup */ };
             sc.showWinCoinsMessage = function (winCoins, time) {
                 const msg = this.guiController.showMessage(
                     'CONGRATULATION!',

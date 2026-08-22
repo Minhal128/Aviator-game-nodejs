@@ -128,7 +128,7 @@ class Pages extends Controller
                     ]) . ';</script>'
                     . '<script src="/js/tl-back.js"></script>';
                 if ($game === 'ludo') {
-                    $head .= '<script src="/js/tl-ludo.js"></script>';
+                    $head .= '<script src="/js/tl-ludo.js?v=20260823-wss"></script>';
                 }
                 if (request()->boolean('mute')) {
                     // must land before the engine builds its audio graph
@@ -149,7 +149,7 @@ class Pages extends Controller
                         '<link rel="stylesheet" href="/css/tl-slots.css?v=20260823-hud">'
                         . '<div class="tl-slot-brand" aria-hidden="true">Turbo · ' . $slotLabel . '</div>'
                         . ($game === 'gold-egypt'
-                            ? '<script src="/js/tl-gold-egypt.js?v=20260823-nomaxbar"></script>'
+                            ? '<script src="/js/tl-gold-egypt.js?v=20260823-nobigwin"></script>'
                             : '<script type="module" src="/js/tl-c3-slot.js?v=20260823-fit"></script>')
                         . '</body>',
                         $html
