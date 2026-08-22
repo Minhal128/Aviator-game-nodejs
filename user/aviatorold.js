@@ -1127,37 +1127,19 @@ function place_bet_now(done) {
                     }
                 }
 
-                if (bet_array.length == 1 && bet_array[0].section_no == 0) {
-                    bet_array[0].is_bet = 1;
-                    bet_array[0].bet_id = result.data.return_bets[0].bet_id;
-                    enableDisable('main_bet_section');
-                    $("#main_bet_id").val(result.data.return_bets[0].bet_id);
-                }
-
-                if (bet_array.length == 1 && bet_array[0].section_no == 1) {
-                    bet_array[0].is_bet = 1;
-                    bet_array[0].bet_id = result.data.return_bets[0].bet_id;
-                    enableDisable('extra_bet_section');
-                    $("#extra_bet_id").val(result.data.return_bets[0].bet_id);
-                }
-
-                if (bet_array.length == 2) {
-                    // ponytail: return_bets[i] matches bet_array[i] order — old if-blocks swapped ids
-                    // when section0 then section1 (main got 700's id → cashout 300 hit forfeited 700)
-                    for (var bi = 0; bi < bet_array.length; bi++) {
-                        if (!result.data.return_bets[bi]) continue;
-                        bet_array[bi].is_bet = 1;
-                        bet_array[bi].bet_id = result.data.return_bets[bi].bet_id;
-                        if (bet_array[bi].section_no == 0) {
-                            enableDisable('main_bet_section');
-                            $("#main_bet_id").val(result.data.return_bets[bi].bet_id);
-                        } else {
-                            enableDisable('extra_bet_section');
-                            $("#extra_bet_id").val(result.data.return_bets[bi].bet_id);
-                        }
+                var rb = (result.data && result.data.return_bets) || [];
+                for (var bi = 0; bi < bet_array.length; bi++) {
+                    if (!bet_array[bi] || !rb[bi]) continue;
+                    bet_array[bi].is_bet = 1;
+                    bet_array[bi].bet_id = rb[bi].bet_id;
+                    if (bet_array[bi].section_no == 0) {
+                        enableDisable('main_bet_section');
+                        $("#main_bet_id").val(rb[bi].bet_id);
+                    } else {
+                        enableDisable('extra_bet_section');
+                        $("#extra_bet_id").val(rb[bi].bet_id);
                     }
                 }
-                // ensure Cash Out shows once bet is confirmed (race with lets_fly)
                 show_cashout_ui_for_bets();
             } else {
                 $(".error-toaster1 .msg").html(result.message);
@@ -1216,6 +1198,22 @@ function place_bet_now(done) {
             if (typeof done === 'function') done();
         },
         error: function () {
+            var refundAll = 0;
+            for (var ei = 0; ei < bet_array.length; ei++) {
+                if (bet_array[ei] && bet_array[ei].reserved) {
+                    refundAll += parseFloat(bet_array[ei].bet_amount) || 0;
+                }
+            }
+            if (refundAll > 0) applyWalletCredit(refundAll);
+            $("#main_bet_section").find("#bet_button").show();
+            $("#main_bet_section").find("#cancle_button").hide();
+            $("#main_bet_section").find("#cancle_button #waiting").hide();
+            $("#main_bet_section").find("#cashout_button").hide();
+            $("#extra_bet_section").find("#bet_button").show();
+            $("#extra_bet_section").find("#cancle_button").hide();
+            $("#extra_bet_section").find("#cancle_button #waiting").hide();
+            $("#extra_bet_section").find("#cashout_button").hide();
+            bet_array = [];
             if (typeof done === 'function') done();
         }
 

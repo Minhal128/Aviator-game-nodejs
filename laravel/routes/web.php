@@ -181,6 +181,7 @@ Route::group(['middleware' => ['isUser']], function () {
     Route::post('/game/road/bet', [RoadGame::class, 'bet']);
     Route::post('/game/road/step', [RoadGame::class, 'step']);
     Route::post('/game/road/cashout', [RoadGame::class, 'cashout']);
+    Route::post('/game/road/forfeit', [RoadGame::class, 'forfeit']);
     // Gold of Egypt on the real wallet - reel stops drawn and settled server side
     Route::get('/game/gold/state', [GoldEgypt::class, 'state']);
     Route::post('/game/gold/spin', [GoldEgypt::class, 'spin']);

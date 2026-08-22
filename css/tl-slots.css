@@ -87,15 +87,17 @@ body.tl-slot-glamour canvas {
     text-transform: uppercase;
 }
 
-/* Glamour cashout — layout stays in JS; look lives here */
+/* Glamour cashout only — Egypt uses native MAX BET */
+#tl-g-cash.tl-slot-cash,
 .tl-slot-cash {
     border: 2px solid #ffe08a !important;
-    border-radius: 16px !important;
+    border-radius: 10px !important;
     background:
         linear-gradient(180deg, #fff3c4 0%, #ffd24a 38%, #f0a000 100%) !important;
     color: #2a1800 !important;
-    font: 800 17px/1 "Segoe UI", Roboto, system-ui, sans-serif !important;
-    letter-spacing: .06em !important;
+    font: 800 11px/1 "Segoe UI", Roboto, system-ui, sans-serif !important;
+    letter-spacing: .02em !important;
+    overflow: visible !important;
     text-shadow: 0 1px 0 rgba(255, 255, 255, .45) !important;
     box-shadow:
         0 4px 14px rgba(0, 0, 0, .45),
@@ -125,7 +127,7 @@ body.tl-slot-glamour canvas {
 .tl-slot-brand {
     position: fixed;
     right: 14px;
-    top: 12px;
+    top: 56px;
     z-index: 9998;
     pointer-events: none;
     padding: 6px 12px;

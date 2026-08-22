@@ -138,8 +138,8 @@
     // the tap does instead is toggle the loop below, so every autoplayed round goes
     // down exactly the same paid path as a hand tap.
     const AUTO_ZONE = { x1: 0.33, y1: 0.93, x2: 0.67, y2: 1.00 };
-    // Exact canvas box of BUY FREE SPIN — yellow CASHOUT fills this entirely
-    const CASHOUT_BOX = { x1: 0.008, y1: 0.008, x2: 0.355, y2: 0.145 };
+    // Position only — width follows the label so "CASHOUT ₹0.00" never clips
+    const CASHOUT_BOX = { x1: 0.02, y1: 0.018 };
     // Coin / bet row → type stake
     const BET_ZONE = { x1: 0.00, y1: 0.895, x2: 0.28, y2: 0.975 };
 
@@ -164,14 +164,11 @@
         const r = c.getBoundingClientRect();
         if (!r.width || !r.height) return;
         const b = CASHOUT_BOX;
-        const left = r.left + r.width * b.x1;
+        const left = Math.max(8, r.left + r.width * b.x1);
         const top = r.top + r.height * b.y1;
-        const w = r.width * (b.x2 - b.x1);
-        const h = r.height * (b.y2 - b.y1);
-        // layout only — look lives in css/tl-slots.css (.tl-slot-cash)
-        cashBtn.style.cssText = 'position:fixed;left:' + left + 'px;top:' + top + 'px;width:' + w + 'px;height:' + h + 'px;'
-            + 'z-index:2147483000;display:flex;align-items:center;justify-content:center;gap:8px;'
-            + 'padding:0 12px;cursor:pointer;box-sizing:border-box;pointer-events:auto';
+        cashBtn.style.cssText = 'position:fixed;left:' + left + 'px;top:' + top + 'px;width:auto;height:auto;'
+            + 'z-index:2147483000;display:inline-flex;align-items:center;justify-content:center;gap:6px;'
+            + 'padding:7px 10px;cursor:pointer;box-sizing:border-box;pointer-events:auto;white-space:nowrap';
     }
 
     function editBet() {

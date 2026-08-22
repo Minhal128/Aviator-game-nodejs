@@ -1,7 +1,7 @@
 // app.js
 import { playSound, sndButton, sndBgm, sndCashout, sndBrake, sndPassby, sndHonk1, sndHonk2, sndGo, sndCrash } from './audio.js';
 import { carImageAssets, idleFrames, jumpFrames, spriteImages } from './sprites.js';
-import { initPRNG, getRNG, calculateMultiplierForIndex, GAME_MODES, setRtp } from './math.js';
+import { initPRNG, getRNG, calculateMultiplierForIndex, GAME_MODES } from './math.js';
 
 // --- CORE DOM ELEMENTS ---
 const roadContainer = document.getElementById('roadContainer');
@@ -53,7 +53,14 @@ let lastPaidMult = 0; // last /game/road/step multiplier — HUD must not invent
 const wallet = window.TL_WALLET || null;
 const CURRENCY = (wallet && wallet.currency) ? wallet.currency : '₹';
 // draw the lane multipliers at the same rtp the server settles at
-if (wallet && wallet.winPct != null) setRtp(Number(wallet.winPct) / 100);
+// (inline so a cached math.js without setRtp still loads — otherwise the
+// module graph dies and window.setFixedBet never exists)
+if (wallet && wallet.winPct != null) {
+    const rtp = Number(wallet.winPct) / 100;
+    if (rtp > 0 && rtp <= 1) {
+        for (const mode of Object.values(GAME_MODES)) { mode.rtp = rtp; mode.baseSurvival = rtp; }
+    }
+}
 let currentWalletBalance = wallet ? wallet.balance : 100.00;
 // live wallet uses site settings; standalone demo keeps the old 1–50 range
 const MIN_BET = wallet && wallet.minBet != null ? Number(wallet.minBet) : 1;
@@ -681,6 +688,10 @@ function buildInitialHighwayLayout() {
 }
 
 function checkLiveCollision(car) {
+    // live wallet: only the server crash car may kill. Cosmetic traffic used
+    // to end the round locally; next Play then refunded the stake.
+    if (wallet && !isVisualCrashHappening) return;
+    if (!isGameSessionActive || isGameOver) return;
     if (car.laneIndex === currentLaneIndex) {
         const rigTop = playerRig.offsetTop;
         const liveCarHeight = car.element.offsetHeight || 180;
@@ -713,7 +724,14 @@ function triggerCarOverDeath(hittingCar) {
     const distanceLeft = viewportHeight + 150;
     const durationMs = (distanceLeft / hittingCar.speed) * 16.66; 
 
-    setTimeout(() => { resetGameToDashboard(); }, Math.min(Math.max(durationMs, 700), 1800)); 
+    const wait = Math.min(Math.max(durationMs, 700), 1800);
+    setTimeout(() => {
+        if (wallet) {
+            Promise.resolve(serverCall('forfeit', {})).catch(() => {}).finally(() => resetGameToDashboard());
+        } else {
+            resetGameToDashboard();
+        }
+    }, wait);
 }
 
 function resetGameEnvironment() {

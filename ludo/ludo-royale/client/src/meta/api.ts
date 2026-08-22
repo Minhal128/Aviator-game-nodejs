@@ -409,7 +409,7 @@ export const api = {
   getTiers: async (): Promise<{ tiers: StakeTier[] }> => {
     let res: Response;
     try {
-      res = await fetch(`${BASE}/matches/tiers`);
+      res = await fetch(`${BASE}/matches/tiers`, { credentials: 'same-origin', cache: 'no-store' });
     } catch {
       throw new MetaApiError(0, 'ERR_NETWORK');
     }

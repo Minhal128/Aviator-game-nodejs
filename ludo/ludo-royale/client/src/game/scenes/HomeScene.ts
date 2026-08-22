@@ -61,6 +61,7 @@ export class HomeScene extends Phaser.Scene {
   private tiers: StakeTier[] = [];
   private tierSelected: number | null = null;
   private tiersFetched = false;
+  private tierAttempts = 0;
   private step: HomeStep = 'root';
   private toast?: Toast;
 
@@ -76,6 +77,7 @@ export class HomeScene extends Phaser.Scene {
     this.connecting = false;
     this.tiers = [];
     this.tiersFetched = false;
+    this.tierAttempts = 0;
     this.step = 'root';
     this.toast = new Toast(this, GAME_W / 2, 200);
     // A shutdown mid-entrance leaves input disabled (its unlock timer died
@@ -625,12 +627,18 @@ export class HomeScene extends Phaser.Scene {
   private async loadTiers(): Promise<void> {
     try {
       const { tiers } = await api.getTiers();
-      this.tiers = tiers;
-      if (this.tierSelected == null && tiers[0]) this.tierSelected = tiers[0].id;
+      this.tiers = Array.isArray(tiers) ? tiers : [];
+      if (this.tierSelected == null && this.tiers[0]) this.tierSelected = this.tiers[0].id;
     } catch {
       this.tiers = [];
     }
-    this.tiersFetched = true;
+    this.tierAttempts += 1;
+    this.tiersFetched = this.tiers.length > 0 || this.tierAttempts >= 5;
+    if (this.tiers.length === 0 && this.tierAttempts < 5 && this.scene.isActive('Home')) {
+      this.time.delayedCall(800, () => {
+        if (this.tiers.length === 0) void this.loadTiers();
+      });
+    }
     // User often opens Play Online before the GET lands — redraw stake row.
     if (this.scene.isActive('Home') && (this.step === 'online' || this.step === 'create')) {
       this.showStep(this.step);

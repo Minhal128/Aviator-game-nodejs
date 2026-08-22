@@ -5,8 +5,7 @@
  */
 $js = file_get_contents(dirname(__DIR__, 2) . '/js/tl-gold-egypt.js');
 assert($js !== false, 'missing tl-gold-egypt.js');
-assert(str_contains($js, 'id = \'tl-gold-cash\''), 'HTML cashout for mobile thumbs');
-assert(str_contains($js, 'tl-slot-cash'), 'tappable cash chip');
+assert(!str_contains($js, 'tl-gold-cash'), 'Egypt must not overlay HTML cashout');
 assert(!str_contains($js, 'mountCashBtn'), 'HTML mount removed');
 assert(str_contains($js, "setText('CASHOUT')"), 'CASHOUT on MAX BET label');
 assert(str_contains($js, '__tlCashAmt'), 'held amount on MAX BET line 2');
@@ -19,7 +18,9 @@ assert(str_contains($js, '/game/gold/cashout'), 'cashout endpoint');
 assert(str_contains($js, 'applyWallet(res.data)'), 'balance paints on spin debit');
 
 $pages = file_get_contents(dirname(__DIR__) . '/app/Http/Controllers/Pages.php');
-assert(str_contains($pages, 'tl-gold-egypt.js?v=20260822-cashchip'), 'cache bust');
+assert(str_contains($pages, 'tl-gold-egypt.js?v=20260823-nomaxbar'), 'cache bust');
+assert(str_contains($pages, 'id="tl-gboot"'), 'game boot overlay');
+assert(str_contains($pages, 'name="viewport"'), 'injects viewport when missing');
 
 $glamour = file_get_contents(dirname(__DIR__, 2) . '/js/tl-c3-slot.js');
 assert(!str_contains($glamour, 'tries < 400'), 'glamour must keep waiting on mobile');

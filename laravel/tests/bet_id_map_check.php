@@ -72,7 +72,8 @@ assert(round(300 * 2.03, 2) <= 700.0);
 assert(round(700 * 2.03, 2) > 700.0);
 
 $js = file_get_contents(dirname(__DIR__, 2) . '/user/aviatorold.js');
-assert(strpos($js, 'return_bets[i] matches bet_array[i] order') !== false, 'fix must be in aviatorold.js');
+assert(strpos($js, 'var rb = (result.data && result.data.return_bets) || []') !== false, 'fix must be in aviatorold.js');
+assert(strpos($js, 'error: function ()') !== false && strpos($js, 'bet_array = [];') !== false, 'add_bet error must clear queued Cancel');
 
 echo "bet_id_map_check OK\n";
 echo "  old swap reproduced; new map keeps 300→main, 700→extra\n";

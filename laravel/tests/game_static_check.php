@@ -37,6 +37,8 @@ if ($uid) {
     // Egypt's art is served straight off disk by Apache, not through this controller
     $e = $c->gameStatic('gold-egypt', null);
     assert(str_contains($e->getContent(), 'base href="/goldegypt/game/"'), 'egypt base points at the static folder');
+    assert(str_contains($e->getContent(), 'name="viewport"'), 'egypt viewport for mobile');
+    assert(str_contains($e->getContent(), 'id="tl-gboot"'), 'egypt boot overlay');
     assert(is_file(dirname(base_path()) . '/goldegypt/game/png/Symbols/Wick.png'), 'egypt static base resolves to real files');
     // Glamour same as Egypt: Apache serves art; main.js is patched on disk (useWorker:false)
     $g = $c->gameStatic('slot-glamour', null);

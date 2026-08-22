@@ -12,9 +12,11 @@ $js = file_get_contents(dirname(__DIR__, 2) . '/js/tl-gold-egypt.js');
 $game = file_get_contents(dirname(__DIR__, 2) . '/goldegypt/game/js/slotGame.js');
 
 // the canvas the layout is authored against
-assert(preg_match('/width: (\d+),\s+\/\/ game width/', $game, $w) === 1, 'game width');
-assert(preg_match('/height: (\d+),\s+\/\/ game height/', $game, $h) === 1, 'game height');
-[$GW, $GH] = [(int) $w[1], (int) $h[1]];
+$widthOk = preg_match('/width:\s*(\d+)/', $game, $w) === 1;
+$heightOk = preg_match('/height:\s*(\d+)/', $game, $h) === 1;
+assert($widthOk, 'game width');
+assert($heightOk, 'game height');
+[$GW, $GH] = [(int) ($w[1] ?? 0), (int) ($h[1] ?? 0)];
 assert($GW === 1850 && $GH === 1080, "game canvas moved to {$GW}x{$GH} — re-measure the touch targets");
 assert(str_contains($game, 'Phaser.Scale.FIT'), 'no longer FIT — the maths below does not hold');
 
@@ -34,7 +36,7 @@ assert($button(812, 375) >= 44, 'landscape no longer gives a tappable button');
 assert((int) round($GH * min(812 / $GW, 375 / $GH)) === 375, 'landscape stopped filling the height');
 
 assert(str_contains($js, "setText('CASHOUT')"), 'CASHOUT on native MAX BET');
-assert(str_contains($js, "id = 'tl-gold-cash'"), 'HTML cashout for phone');
+assert(!str_contains($js, 'tl-gold-cash'), 'HTML cashout for phone');
 assert(str_contains($js, 'tl-gold-css-land'), 'CSS landscape fallback missing');
 assert(str_contains($js, 'orientation.lock'), 'must try auto landscape lock');
 assert(str_contains($js, 'transformPointer'), 'CSS rotate needs pointer remap');

@@ -135,9 +135,14 @@ class RoadGame extends Controller
         if ($old) {
             $this->saveRound($userId, null);
             $orphan = round((float) ($old['bet'] ?? 0), 2);
-            if ($orphan > 0) {
+            $oldStep = (int) ($old['step'] ?? 0);
+            // step 0 = never moved, give the stake back. step>=1 = they already
+            // played (and may have "died" on a cosmetic car) — keep the debit.
+            if ($orphan > 0 && $oldStep < 1) {
                 addwallet($userId, $orphan, '+');
                 $this->log($userId, $orphan, 'credit', 'orphan round refund');
+            } elseif ($orphan > 0) {
+                $this->log($userId, 0, 'credit', 'forfeit orphan at step ' . $oldStep);
             }
         }
 
@@ -197,6 +202,20 @@ class RoadGame extends Controller
         return response()->json(['isSuccess' => true, 'data' => [
             'multiplier' => $mult,
             'payout' => $payout,
+            'balance' => (float) wallet($userId, 'num'),
+        ]]);
+    }
+
+    /** Client ended the round as a loss (hit a car). Stake already taken at bet. */
+    public function forfeit(Request $r)
+    {
+        $userId = (int) user('id');
+        $round = $this->roundOf($userId);
+        if ($round) {
+            $this->saveRound($userId, null);
+            $this->log($userId, 0, 'credit', 'forfeit at step ' . (int) ($round['step'] ?? 0));
+        }
+        return response()->json(['isSuccess' => true, 'data' => [
             'balance' => (float) wallet($userId, 'num'),
         ]]);
     }

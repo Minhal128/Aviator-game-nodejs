@@ -440,8 +440,6 @@
         if (s && s.slotControls && s.slotControls.__tlCashAmt && s.slotControls.__tlCashAmt.setText) {
             s.slotControls.__tlCashAmt.setText(amt);
         }
-        var goldChip = document.getElementById('tl-gold-held');
-        if (goldChip) goldChip.textContent = '₹' + amt;
         paintWin(s && s.slotControls, coins);
     }
 
@@ -478,23 +476,6 @@
             setTimeout(() => TL.message(''), 1500);
         }).catch(() => TL.message('Connection lost.'));
     }
-
-    (function mountGoldCash() {
-        if (document.getElementById('tl-gold-cash')) return;
-        const b = document.createElement('button');
-        b.id = 'tl-gold-cash';
-        b.className = 'tl-slot-cash';
-        b.type = 'button';
-        b.setAttribute('aria-label', 'Cashout to wallet');
-        b.innerHTML = 'CASHOUT <span id="tl-gold-held">₹0.00</span>';
-        b.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;height:52px;z-index:2147483000;pointer-events:auto';
-        b.addEventListener('pointerdown', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            doCashout();
-        });
-        (document.body || document.documentElement).appendChild(b);
-    })();
 
     // ponytail: mobile assets are huge — never give up waiting for Phaser controls
     (function attach() {

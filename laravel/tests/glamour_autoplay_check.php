@@ -35,8 +35,9 @@ assert($tapY >= $auto['y1'] && $tapY <= $auto['y2'], 'autoplay tap y outside AUT
 // onPointer tests AUTO_ZONE before the spin ellipse, so the zone must stay off the
 // spin button. The ellipse is padded on purpose; what must not be swallowed is the
 // button the bridge measured by hand: fx .38-.62 by fy .82-.92.
-assert(preg_match('/const SPIN = \{ cx: ([\d.]+), cy: ([\d.]+), rx: ([\d.]+), ry: ([\d.]+) \}/', $js, $s) === 1);
-[$cx, $cy] = [(float) $s[1], (float) $s[2]];
+$spinOk = preg_match('/const SPIN = \{ cx: ([\d.]+), cy: ([\d.]+), rx: ([\d.]+), ry: ([\d.]+) \}/', $js, $s) === 1;
+assert($spinOk, 'SPIN ellipse missing');
+[$cx, $cy] = [(float) ($s[1] ?? 0), (float) ($s[2] ?? 0)];
 $BUTTON = ['x1' => 0.38, 'y1' => 0.82, 'x2' => 0.62, 'y2' => 0.92];
 $hits = fn(array $z, array $t) => $t['x1'] <= $z['x2'] && $t['x2'] >= $z['x1']
     && $t['y1'] <= $z['y2'] && $t['y2'] >= $z['y1'];

@@ -1294,7 +1294,7 @@
     @if ($sockLive)
     <script src="/socket.io/socket.io.js"></script>
     @endif
-    <script src="/user/aviatorold.js?v={{env('APP_VERSION')}}"></script>
+    <script src="/user/aviatorold.js?v={{env('APP_VERSION')}}-0823"></script>
     <script src="/user/aviatorbyapp.js?v={{env('APP_VERSION')}}"></script>
 
         
