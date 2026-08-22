@@ -33,15 +33,17 @@ assert($button(812, 375) === 45, 'landscape target size changed');
 assert($button(812, 375) >= 44, 'landscape no longer gives a tappable button');
 assert((int) round($GH * min(812 / $GW, 375 / $GH)) === 375, 'landscape stopped filling the height');
 
-// so portrait has to be sent to landscape, and only on a touch device
-assert(str_contains($js, "matchMedia('(pointer: coarse)')"), 'rotate prompt would hit desktop too');
+assert(str_contains($js, "setText('CASHOUT')"), 'CASHOUT on native MAX BET');
+assert(str_contains($js, "id = 'tl-gold-cash'"), 'HTML cashout for phone');
+assert(str_contains($js, 'tl-gold-css-land'), 'CSS landscape fallback missing');
+assert(str_contains($js, 'orientation.lock'), 'must try auto landscape lock');
+assert(str_contains($js, 'transformPointer'), 'CSS rotate needs pointer remap');
+assert(!str_contains($js, 'Turn your phone sideways'), 'must not ask user to rotate');
+assert(!str_contains($js, 'tl-gold-rotate'), 'ask-to-rotate overlay must be gone');
+assert(str_contains($js, "matchMedia('(pointer: coarse)')"), 'rotate logic would hit desktop too');
 assert(str_contains($js, 'window.innerHeight > window.innerWidth'), 'no portrait test');
-assert(str_contains($js, "addEventListener('orientationchange', paintOrientation)"), 'overlay never re-checks');
-assert(str_contains($js, "addEventListener('resize', paintOrientation)"), 'overlay never re-checks');
-// the canvas must NOT be rotated: Phaser maps pointers off getBoundingClientRect(),
-// which reports a rotated element axis-aligned, so every tap would land elsewhere
+// the canvas alone must NOT be CSS-rotated (AABB breaks hits); body rotate + remap is OK
 assert(!preg_match('/canvas\s*\.\s*style[^\n]*transform/i', $js), 'canvas is being transformed — taps will miss');
-assert(!preg_match('/rotate\(\s*\d/', $js), 'something is rotating a rendered element');
 
 // +/- uses the configured minimum, and the stake stays inside the wallet
 assert(str_contains($js, 'setStakeInr(TL.stakeInr + dir * minInr());'), '+/- does not use configured step');
@@ -51,5 +53,5 @@ assert(str_contains($js, 'TL.stakeInr = Math.max(minInr(), Math.min(maxInr(), in
 
 echo "gold_mobile_check OK\n";
 printf("  bet +/- target: %dpx portrait (too small) -> %dpx landscape\n", $button(375, 812), $button(812, 375));
-echo "  portrait sends touch devices to landscape; canvas is never rotated\n";
+echo "  portrait auto-landscape via lock/CSS; wallet attach never gives up\n";
 echo "  +/- steps by site minimum, clamped to configured min .. wallet balance\n";

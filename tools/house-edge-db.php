@@ -1,13 +1,13 @@
 <?php
 /**
  * House-edge check for the money that lives in a DB.
- *  - Aviator : userbits.amount must be numeric + HOUSE_PCT is 30
+ *  - Aviator : userbits.amount must be numeric + HOUSE_PCT is 5
  *  - Ludo    : every lr_room_tiers.prize_table row must pay out 70% of the pot
  * Pass --fix to write the corrected Ludo prize tables.
  * Run: php tools/house-edge-db.php [--fix]
  */
-const HOUSE_PCT = 30.0;
-const KEEP = (100.0 - HOUSE_PCT) / 100.0;
+const HOUSE_PCT = 5.0;
+const LUDO_KEEP = 0.70;
 
 $fix = in_array('--fix', $argv, true);
 $root = dirname(__DIR__);
@@ -24,7 +24,7 @@ if (!preg_match('/HOUSE_PCT\s*=\s*([\d.]+)/', $src, $m) || (float) $m[1] !== HOU
     echo "  FAIL aviator: PoolCrashEngine::HOUSE_PCT is not " . HOUSE_PCT . "\n";
     $bad++;
 } else {
-    echo "  aviator      HOUSE_PCT " . $m[1] . "% — pool = 70% of round bets\n";
+    echo "  aviator      HOUSE_PCT " . $m[1] . "% — pool = 95% of round bets\n";
 }
 
 $env = env_file($root . '/laravel/.env');
@@ -56,7 +56,7 @@ if (!preg_match('#^mysql://([^:]+):([^@]*)@([^:/]+):(\d+)/(.+)$#', $url, $u)) {
             $wrong = [];
             foreach ($table as $players => $mults) {
                 $sum = round(array_sum($mults), 4);
-                $want = round(KEEP * (int) $players, 4);
+                $want = round(LUDO_KEEP * (int) $players, 4);
                 if (abs($sum - $want) > 0.0001) {
                     $wrong[$players] = [$sum, $want];
                 }
@@ -74,7 +74,7 @@ if (!preg_match('#^mysql://([^:]+):([^@]*)@([^:/]+):(\d+)/(.+)$#', $url, $u)) {
             }
             foreach ($table as $players => $mults) {
                 $sum = array_sum($mults);
-                $scale = $sum > 0 ? (KEEP * (int) $players) / $sum : 0;
+                $scale = $sum > 0 ? (LUDO_KEEP * (int) $players) / $sum : 0;
                 $table[$players] = array_map(fn($m) => round($m * $scale, 4), $mults);
             }
             $pdo->prepare('UPDATE lr_room_tiers SET prize_table = ? WHERE id = ?')

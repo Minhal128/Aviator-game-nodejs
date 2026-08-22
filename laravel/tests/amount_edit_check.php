@@ -20,7 +20,8 @@ $check(str_contains($depJs, '#edit_credited_amount'), 'deposit pencil handler');
 $check(str_contains($depJs, '$("#deposit_amount").val(n)'), 'deposit updates hidden amount');
 $check(str_contains($wdView, 'id="edit_withdraw_amount"'), 'withdraw pencil id');
 $check(str_contains($wdJs, "#edit_withdraw_amount"), 'withdraw pencil handler');
-$check(str_contains($wdJs, '$("#amount")'), 'withdraw focuses amount');
+$check(str_contains($wdJs, 'parseFloat(value)'), 'withdraw compares paise not parseInt');
+$check(!str_contains($wdJs, 'parseInt(value)'), 'withdraw form does not truncate rupees');
 $check(!str_contains($wdJs, 'var $amt = #amount'), 'withdraw js not mangled');
 
 echo $fail === 0 ? "amount_edit_check OK\n" : "amount_edit_check FAILED ($fail)\n";

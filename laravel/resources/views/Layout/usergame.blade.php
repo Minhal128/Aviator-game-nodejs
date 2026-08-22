@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html class="no-js" lang="en">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
+    @include('include.tl-boot')
 
     <!--====== Title ======-->
     <title>turbolegends</title>
@@ -19,32 +20,32 @@
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
     <!--====== mCustomScrollbar CSS ======-->
-    <link rel="stylesheet" href="css/jquery.mCustomScrollbar.min.css" />
+    <link rel="stylesheet" href="{{ asset('css/jquery.mCustomScrollbar.min.css') }}" />
 
     <!--====== Pretty Checkbox CSS ======-->
-    <link rel="stylesheet" href="css/pretty-checkbox.min.css" />
+    <link rel="stylesheet" href="{{ asset('css/pretty-checkbox.min.css') }}" />
     <!--====== Cuntry Selection CSS ======-->
-    <link rel="stylesheet" href="css/niceCountryInput.css" />
-    <link rel="stylesheet" type="text/css" href="css/jquery.ccpicker.css">
+    <link rel="stylesheet" href="{{ asset('css/niceCountryInput.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ asset('css/jquery.ccpicker.css') }}">
 
     <!--====== Owl Carousel CSS ======-->
-    <link rel="stylesheet" href="css/owl.carousel.min.css" />
+    <link rel="stylesheet" href="{{ asset('css/owl.carousel.min.css') }}" />
 
     <!--====== Bootstrap CSS ======-->
-    <link rel="stylesheet" href="css/bootstrap.css" />
+    <link rel="stylesheet" href="{{ asset('css/bootstrap.css') }}" />
 
     <!--====== Style CSS ======-->
-    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="{{ asset('css/style.css') }}" />
 
     <!--====== Turbo Legends UI refresh ======-->
-    <link rel="stylesheet" href="css/tl-ui.css" />
+    <link rel="stylesheet" href="{{ asset('css/tl-ui.css') }}" />
 
     <!-- ====== Toastr CSS ====== -->
-    <link rel="stylesheet" href="css/toastr.min.css" />
+    <link rel="stylesheet" href="{{ asset('css/toastr.min.css') }}" />
 
     <!-- ====== Datatable CSS ====== -->
-    <link rel="stylesheet" href="css/dataTables.bootstrap5.min.css" />
-    <link rel="stylesheet" href="css/responsive.dataTables.min.css" />
+    <link rel="stylesheet" href="{{ asset('css/dataTables.bootstrap5.min.css') }}" />
+    <link rel="stylesheet" href="{{ asset('css/responsive.dataTables.min.css') }}" />
 
 
 
@@ -383,6 +384,7 @@
                                     name="registerForm" id="registerViaEmailForm">
                                     <input type="hidden" name="country" id="countries" value="IN">
                                     <input type="hidden" name="register_type" id="register_type" value="3">
+                                    <input type="hidden" name="device_key" id="device_key" value="">
                                     @csrf
                                     <div class="col-md-6 col-12">
                                         <div class="input-group flex-nowrap mb-3 promocode align-items-center">
@@ -415,8 +417,8 @@
                                                     smartphone
                                                 </span>
                                             </span>
-                                            <input type="number" class="form-control ps-0" id="mobile"
-                                                placeholder="Mobile" name="mobile">
+                                            <input type="tel" class="form-control ps-0" id="mobile"
+                                                placeholder="10-digit mobile" name="mobile" inputmode="numeric" maxlength="10" required>
                                         </div>
                                     </div>
                                     <div class="col-12">
@@ -548,19 +550,19 @@
     <!--====== Avatar Modal End ======-->
 
     <!--====== Plugin js ======-->
-    <script src="js/jquery.min.js"></script>
+    <script src="{{ asset('js/jquery.min.js') }}"></script>
 
     <!--====== Bootstrap js ======-->
-    <script src="js/popper.min.js"></script>
-    <script src="js/bootstrap.bundle.min.js"></script>
+    <script src="{{ asset('js/popper.min.js') }}"></script>
+    <script src="{{ asset('js/bootstrap.bundle.min.js') }}"></script>
 
     <!--====== Slimscroll js ======-->
-    <script src="js/jquery.mCustomScrollbar.js"></script>
+    <script src="{{ asset('js/jquery.mCustomScrollbar.js') }}"></script>
 
 
     <!--====== Country Selection js ======-->
-    <script src="js/niceCountryInput.js"></script>
-    <script src="js/jquery.ccpicker.js" type="text/javascript"></script>
+    <script src="{{ asset('js/niceCountryInput.js') }}"></script>
+    <script src="{{ asset('js/jquery.ccpicker.js') }}" type="text/javascript"></script>
 
     <!--====== Animation Selection js ======-->
     <script src='js/anime.min.js'></script>
@@ -569,19 +571,19 @@
     <script src='js/owl.carousel.min.js'></script>
 
     <!--====== Main js ======-->
-    <script src="js/main.js"></script>
+    <script src="{{ asset('js/main.js') }}"></script>
 
     <!--====== Validate js ======-->
-    <script src="js/jquery.validate.min.js"></script>
+    <script src="{{ asset('js/jquery.validate.min.js') }}"></script>
 
     <!--====== Toastr js ======-->
-    <script src="js/toastr.min.js"></script>
+    <script src="{{ asset('js/toastr.min.js') }}"></script>
 
     <!--====== Datatable js ======-->
-    <script src="js/jquery.dataTables.min.js"></script>
-    <script src="js/dataTables.bootstrap5.min.js"></script>
-    <script src="js/dataTables.responsive.min.js"></script>
-    <script src="unpkg.com/sweetalert%402.1.2/dist/sweetalert.min.js"></script>
+    <script src="{{ asset('js/jquery.dataTables.min.js') }}"></script>
+    <script src="{{ asset('js/dataTables.bootstrap5.min.js') }}"></script>
+    <script src="{{ asset('js/dataTables.responsive.min.js') }}"></script>
+    <script src="{{ asset('unpkg.com/sweetalert%402.1.2/dist/sweetalert.min.js') }}"></script>
 
     <script>
         var successMessage = '';
@@ -596,7 +598,7 @@
         }
 
         $.ajax({
-            url: 'get_user_details',
+            url: '/get_user_details',
             type: 'get',
             success: function(result) {
                 if (result.isSuccess) {
@@ -609,7 +611,7 @@
                             'success'
                         ).then(function() {
                             $.ajax({
-                                url: 'update_is_notify',
+                                url: '/update_is_notify',
                                 type: 'post',
                                 data: {
                                     'id': result.data.id,
@@ -622,7 +624,7 @@
             }
         })
     </script>
-    <script src="user/login.js"></script>
+    <script src="{{ asset('user/login.js') }}?v=20260820-device"></script>
     @yield('js')
 </body>
 

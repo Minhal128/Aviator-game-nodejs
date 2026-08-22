@@ -48,6 +48,7 @@ let animationFrameId = null;
 
 // --- ECONOMY & SEED STATE ---
 let currentBetAmount = 10;
+let lastPaidMult = 0; // last /game/road/step multiplier — HUD must not invent a higher ladder
 // the real balance is injected by Pages::gameStatic(); standalone opens stay on demo coins
 const wallet = window.TL_WALLET || null;
 const CURRENCY = (wallet && wallet.currency) ? wallet.currency : '₹';
@@ -64,7 +65,9 @@ function maxAffordableBet() {
 
 function potentialWinInr() {
     if (!isGameSessionActive || isGameOver) return 0;
-    const mult = parseFloat(getMultiplierVal(absoluteLaneIndex)) || 1;
+    const mult = (wallet && lastPaidMult > 0)
+        ? lastPaidMult
+        : (parseFloat(getMultiplierVal(absoluteLaneIndex)) || 1);
     return Math.round(currentBetAmount * mult * 100) / 100;
 }
 
@@ -127,12 +130,14 @@ async function serverCall(action, body) {
     if (!wallet) return null;
     const res = await fetch(`/game/road/${action}`, {
         method: 'POST',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': wallet.token, 'Accept': 'application/json' },
         body: JSON.stringify(body || {})
     });
     const json = await res.json();
-    if (json.data && typeof json.data.balance === 'number') {
-        currentWalletBalance = json.data.balance;
+    const bal = json.data && json.data.balance;
+    if (bal != null && Number.isFinite(Number(bal))) {
+        currentWalletBalance = Number(bal);
         if (wallet) wallet.balance = currentWalletBalance;
         showBalance();
     }
@@ -267,32 +272,55 @@ window.triggerBetMatchStart = async function() {
     paintHud();
 };
 
+function lockPlayButtons(lock) {
+    cashoutActionButton.disabled = lock;
+    goActionButton.disabled = lock;
+    cashoutActionButton.style.opacity = lock ? "0.5" : "1";
+    goActionButton.style.opacity = lock ? "0.5" : "1";
+    cashoutActionButton.style.cursor = lock ? "not-allowed" : "pointer";
+    goActionButton.style.cursor = lock ? "not-allowed" : "pointer";
+}
+
+cashoutActionButton.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    window.cashoutGame();
+});
+
 window.cashoutGame = async function() {
     if (!isGameSessionActive || isGameOver || isVisualCrashHappening || isJumping) return;
-    isGameOver = true; 
+    isGameOver = true;
     playSound(sndCashout);
+    lockPlayButtons(true);
 
-    cashoutActionButton.disabled = true;
-    goActionButton.disabled = true;
-    cashoutActionButton.style.opacity = "0.5";
-    goActionButton.style.opacity = "0.5";
-    cashoutActionButton.style.cursor = "not-allowed";
-    goActionButton.style.cursor = "not-allowed";
-
-    let multStr = getMultiplierVal(absoluteLaneIndex);
+    let multStr = lastPaidMult > 0 ? `${lastPaidMult.toFixed(2)}x` : getMultiplierVal(absoluteLaneIndex);
+    let paidStr = '';
 
     if (wallet) {
-        const res = await serverCall('cashout', {});
-        if (res && res.isSuccess) multStr = `${res.data.multiplier.toFixed(2)}x`;
+        try {
+            const res = await serverCall('cashout', {});
+            if (!res || !res.isSuccess) {
+                isGameOver = false;
+                lockPlayButtons(false);
+                flashPlayButton((res && res.message) || 'Cashout failed');
+                return;
+            }
+            multStr = `${Number(res.data.multiplier).toFixed(2)}x`;
+            paidStr = ` ${CURRENCY}${Number(res.data.payout).toFixed(2)}`;
+        } catch (e) {
+            isGameOver = false;
+            lockPlayButtons(false);
+            flashPlayButton('Cashout failed');
+            return;
+        }
     } else {
         currentWalletBalance += currentBetAmount * parseFloat(multStr);
         showBalance();
     }
 
-    toastMultiplierText.innerText = multStr;
+    toastMultiplierText.innerText = multStr + paidStr;
     winToastNotification.classList.add('show');
     setTimeout(() => { winToastNotification.classList.remove('show'); }, 3000);
-    
+
     setTimeout(() => { resetGameToDashboard(); }, 1200);
 };
 
@@ -301,24 +329,42 @@ window.performJump = async function() {
     isJumping = true;
     playSound(sndGo);
 
+    let isTrapLane = false;
+    if (wallet) {
+        // wait for the server step before moving: a painted 12.87x with a lagging
+        // session step is how cashout paid a few hundred instead of the trophy HUD
+        try {
+            const res = await serverCall('step', {});
+            if (!res || !res.isSuccess) {
+                isJumping = false;
+                flashPlayButton((res && res.message) || 'Move failed');
+                return;
+            }
+            isTrapLane = !!res.data.crashed;
+            const step = Number(res.data.step);
+            if (Number.isFinite(step)) absoluteLaneIndex = step;
+            lastPaidMult = isTrapLane ? 0 : Number(res.data.multiplier) || 0;
+        } catch (e) {
+            isJumping = false;
+            flashPlayButton('Move failed');
+            return;
+        }
+    }
+
     currentCharacterState = 'jump';
     activeCharacterImg = spriteImages.jump;
     activeFramesSource = jumpFrames;
     currentFrameIndex = 0;
 
-    const newDomLaneIndex = roadContainer.children.length; 
-    const newAbsoluteLaneIndex = absoluteLaneIndex + (newDomLaneIndex - currentLaneIndex);
-    
+    const newDomLaneIndex = roadContainer.children.length;
     const newLane = document.createElement('div');
     newLane.classList.add('lane');
     roadContainer.appendChild(newLane);
-    generateLaneTraffic(newLane, newDomLaneIndex, newAbsoluteLaneIndex);
+    if (!wallet) absoluteLaneIndex++;
+    generateLaneTraffic(newLane, newDomLaneIndex, absoluteLaneIndex);
 
     currentLaneIndex++;
-    absoluteLaneIndex++;
 
-    // fire the step now, read it when the hop lands: the round trip hides behind the animation
-    const stepPromise = wallet ? serverCall('step', {}) : null;
     const targetBallLeft = (currentLaneIndex * LANE_WIDTH) - 9;
     playerRig.style.left = `${targetBallLeft}px`;
 
@@ -330,21 +376,18 @@ window.performJump = async function() {
     playerRig.classList.add('jumping');
     setTimeout(() => { playerRig.classList.remove('jumping'); }, 150);
 
-    setTimeout(async () => {
-        if (isGameOver) return;
+    setTimeout(() => {
+        if (isGameOver) { isJumping = false; return; }
 
-        let isTrapLane;
-        if (stepPromise) {
-            const res = await stepPromise;
-            if (!res || !res.isSuccess) { isJumping = false; return; }
-            isTrapLane = res.data.crashed;
-            safeLaneMap[currentLaneIndex] = !isTrapLane;
-        } else {
+        if (!wallet) {
             isTrapLane = checkIsCrashLane(currentLaneIndex, absoluteLaneIndex);
         }
+        safeLaneMap[currentLaneIndex] = !isTrapLane;
 
         const gridElements = roadContainer.children;
-        badgeText.innerText = getMultiplierVal(absoluteLaneIndex);
+        badgeText.innerText = lastPaidMult > 0
+            ? `${lastPaidMult.toFixed(2)}x`
+            : getMultiplierVal(absoluteLaneIndex);
         paintHud();
 
         if (isTrapLane) {
@@ -676,7 +719,8 @@ function triggerCarOverDeath(hittingCar) {
 function resetGameEnvironment() {
     isGameOver = false; isJumping = false;
     isVisualCrashHappening = false; murderousCarRef = null; 
-    absoluteLaneIndex = 0; 
+    absoluteLaneIndex = 0;
+    lastPaidMult = 0; 
     
     for (let prop in safeLaneMap) delete safeLaneMap[prop];
     for (let prop in laneDirectionMap) delete laneDirectionMap[prop];

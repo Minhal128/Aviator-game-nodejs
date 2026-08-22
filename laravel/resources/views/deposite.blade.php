@@ -18,7 +18,7 @@
                             <div class="grid-view">
                                 <div class="grid-list" onclick="paymentGatewayDetails('3')">
                                     <button class="btn payment-btn" data-tab="upi">
-                                        <img src="images/app-logo/upiMt.svg" alt="UPI" />
+                                        <img src="{{ asset('images/app-logo/upiMt.svg') }}" alt="UPI" />
                                         <div class="PaymentCard_limit">UPI &middot; {{setting('min_recharge')}}–₹1,00,000</div>
                                     </button>
                                 </div>

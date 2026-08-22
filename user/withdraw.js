@@ -21,11 +21,11 @@ function withdraw(id, min_withdraw_amount) {
 }
 
 jQuery.validator.addMethod("wallet_balance", function(value) {
-    value_int = parseInt(value);
-    let wallet_balance =  $("#balance").val();
-    wallet_balance = parseInt(wallet_balance);
-    return value_int <= wallet_balance;
-},`Insufficient general wallet balance.`);
+    var want = parseFloat(value);
+    var have = parseFloat($("#balance").val());
+    if (!isFinite(want) || !isFinite(have)) return false;
+    return Math.round(want * 100) / 100 <= Math.round(have * 100) / 100;
+},`That exceeds your withdrawable balance (bonus must be played first).`);
 
 var min_amount;
 jQuery.validator.addMethod("min_withdraw_amount", function(value) {

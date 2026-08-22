@@ -30,7 +30,7 @@
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark profile-dropdown p-0">
                         <li class="profile-head">
-                            <img src="images/avtar/av-1.png" class="avtar-ico" id="avatar_img">
+                            <img src="{{ asset('images/avtar/av-1.png') }}" class="avtar-ico" id="avatar_img">
                             <div class="tl-profile-meta">
                                 <div class="profile-name" title="{{ user('email') }}">{{ user('email') }}</div>
                                 <div class="tl-profile-id">ID <span id="username">{{ user('id') }}</span></div>

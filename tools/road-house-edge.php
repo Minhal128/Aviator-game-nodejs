@@ -9,7 +9,7 @@ require __DIR__ . '/../laravel/vendor/autoload.php';
 
 use App\Http\Controllers\RoadGame;
 
-const HOUSE_PCT = 30.0;
+const HOUSE_PCT = 5.0;
 const TARGET_RTP = (100.0 - HOUSE_PCT) / 100.0;
 
 if (in_array('--dump', $argv, true)) {

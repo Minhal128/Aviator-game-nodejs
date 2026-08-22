@@ -104,15 +104,17 @@ class Userdetail extends Controller
         $isSuccess = false;
         $exist = User::where('id',$userid)->where('isadmin' , null)->first();
         if ($exist) {
-            if (wallet(user('id'),'num') > 0 && wallet(user('id'),'num') >= $amount) {
-                addwallet($userid,$amount);
+            settle_open_holds(user('id'));
+            $amount = round((float) $amount, 2);
+            if (withdrawable(user('id'), 'num') + 0.001 >= $amount) {
+                addwallet($userid, $amount);
                 addtransaction($userid, 'Transfer By ~'.user('id'), date("ydmhsi"), 'credit', $amount, 'transfer', 'Success', '1');
-                addwallet(user('id'),$amount,'-');
+                addwallet(user('id'), $amount, '-');
                 addtransaction(user('id'), 'Transfer To~'.$userid, date("ydmhsi"), 'debit', $amount, 'transfer', 'Success', '1');
                 $message = "Success";
                 $isSuccess = true;
-            }else {
-                $message = "Amount not enough!!";
+            } else {
+                $message = "Only withdrawable cash can be transferred (bonus must be played first).";
             }
         }else{
             $message = "User Id not found!!";

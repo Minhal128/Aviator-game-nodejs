@@ -225,7 +225,8 @@ class GoldEgypt extends Controller
         }
 
         // free spins are the server's count, so the client cannot mint them
-        $freeLeft = (int) session('gold_free_left', 0);
+        $h = user_hold($userId);
+        $freeLeft = (int) ($h['gold_free_left'] ?? session('gold_free_left', 0));
         $free = $freeLeft > 0;
 
         // Exact ₹ stake from client (no 243×lineBet quantize). lineBet = paytable mult.
@@ -250,7 +251,9 @@ class GoldEgypt extends Controller
             addwallet($userId, $betAmount, '-', true);
             $this->log($userId, $betAmount, 'debit', 'Gold of Egypt bet');
         } else {
-            session()->put('gold_free_left', $freeLeft - 1);
+            $h['gold_free_left'] = $freeLeft - 1;
+            user_hold_put($userId, $h);
+            session()->forget('gold_free_left');
         }
 
         $stops = self::drawStops();
@@ -261,14 +264,17 @@ class GoldEgypt extends Controller
         // ponytail: reel strips are frozen at NATURAL_RTP, so the admin percentage
         // scales the pay. Regenerate the strips instead if the paytable the player
         // reads has to keep matching what a win credits.
-        $winCoins = (int) round($winCoins * win_rtp() / self::NATURAL_RTP);
+        $winCoins = (int) round($winCoins * 0.95 / self::NATURAL_RTP);
         $winAmount = $winCoins / self::COINS_PER_UNIT;
         // Hold wins until CASHOUT — do not credit wallet here.
-        $held = round((float) session('gold_held_win', 0) + $winAmount, 2);
-        session()->put('gold_held_win', $held);
+        $held = round((float) ($h['gold_held_win'] ?? session('gold_held_win', 0)) + $winAmount, 2);
+        $h['gold_held_win'] = $held;
         if ($win['freeSpins'] > 0) {
-            session()->put('gold_free_left', (int) session('gold_free_left', 0) + $win['freeSpins']);
+            $h['gold_free_left'] = (int) ($h['gold_free_left'] ?? 0) + $win['freeSpins'];
         }
+        user_hold_put($userId, $h);
+        session()->forget('gold_held_win');
+        session()->forget('gold_free_left');
 
         $bal = (float) wallet($userId, 'num');
         return response()->json([
@@ -281,7 +287,7 @@ class GoldEgypt extends Controller
                 'heldWin' => $held,
                 'heldCoins' => (int) round($held * self::COINS_PER_UNIT),
                 'win' => $win,
-                'freeLeft' => (int) session('gold_free_left', 0),
+                'freeLeft' => (int) ($h['gold_free_left'] ?? 0),
                 'balance' => $bal,
                 'coins' => (int) round($bal * self::COINS_PER_UNIT),
             ],
@@ -292,13 +298,16 @@ class GoldEgypt extends Controller
     public function cashout()
     {
         $userId = user('id');
-        $held = round((float) session('gold_held_win', 0), 2);
+        $h = user_hold($userId);
+        $held = round((float) ($h['gold_held_win'] ?? session('gold_held_win', 0)), 2);
         if ($held <= 0) {
             return $this->fail('Nothing to cash out.');
         }
         addwallet($userId, $held, '+');
         $this->log($userId, $held, 'credit', 'Gold of Egypt cashout');
-        session()->put('gold_held_win', 0);
+        $h['gold_held_win'] = 0;
+        user_hold_put($userId, $h);
+        session()->forget('gold_held_win');
         $bal = (float) wallet($userId, 'num');
         return response()->json([
             'isSuccess' => true,
@@ -316,7 +325,8 @@ class GoldEgypt extends Controller
     public function state()
     {
         $userId = user('id');
-        $held = round((float) session('gold_held_win', 0), 2);
+        $h = user_hold($userId);
+        $held = round((float) ($h['gold_held_win'] ?? session('gold_held_win', 0)), 2);
         $bal = (float) wallet($userId, 'num');
         return response()->json([
             'isSuccess' => true,
@@ -329,7 +339,7 @@ class GoldEgypt extends Controller
                 'lines' => self::LINES,
                 'lineBetMax' => max(1, (int) ceil($bal * self::COINS_PER_UNIT / self::LINES)),
                 'jackpotPot' => self::model()['jackpot']['defaultAmount'],
-                'freeLeft' => (int) session('gold_free_left', 0),
+                'freeLeft' => (int) ($h['gold_free_left'] ?? session('gold_free_left', 0)),
                 'losingStops' => self::aLosingCombination(),
             ],
         ]);

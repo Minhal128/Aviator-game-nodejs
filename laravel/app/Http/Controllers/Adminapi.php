@@ -78,12 +78,18 @@ class Adminapi extends Controller
         $userid = $pending->userid;
         $amount = (float) $pending->amount;
         if ($event == 'success') {
-            $firstrecharge = Transaction::where('id', $userid)->where('category', 'recharge')->where('status','0')->get();
-            if (count($firstrecharge) == 0) {
+            if (!Transaction::where('id', $id)->where('status', '0')->update(["remark" => 'Success', "status" => '1'])) {
+                return response()->json(array('status' => 0, 'title' => "Already handled", 'message' => "That request is no longer pending."));
+            }
+            addwallet($userid, $amount);
+
+            // First approved deposit only (this row just flipped to status 1).
+            $priorOk = Transaction::where('userid', $userid)->where('category', 'recharge')
+                ->where('status', '1')->where('id', '!=', $id)->exists();
+            if (!$priorOk) {
                 $level1 = User::where('id', user('promocode', $userid))->first();
                 if ($level1) {
-                    $level1amount = ($amount / 100 ) * setting('level1commission');
-                    // return $level1amount;
+                    $level1amount = ($amount / 100) * setting('level1commission');
                     addwallet($level1->id, $level1amount);
                     addtransaction($level1->id, 'Level', date("ydmhsi"), 'credit', $level1amount, 'Level_bonus', 'Success', '1');
 
@@ -100,12 +106,21 @@ class Adminapi extends Controller
                             addtransaction($level3->id, 'Level', date("ydmhsi"), 'credit', $level3amount, 'Level_bonus', 'Success', '1');
                         }
                     }
+
+                    // Referrer flat bonus: first deposit must be ≥ ₹300.
+                    if ($amount >= 300) {
+                        $referrerBonus = (float) setting('referrer_bonus');
+                        $already = Transaction::where('userid', $level1->id)
+                            ->where('category', 'referrer_bonus')
+                            ->where('platform', (string) $userid)
+                            ->exists();
+                        if ($referrerBonus > 0 && !$already) {
+                            credit_bonus($level1->id, $referrerBonus);
+                            addtransaction($level1->id, (string) $userid, date('ydmhsi'), 'credit', $referrerBonus, 'referrer_bonus', 'Referrer reward (first ₹300+ deposit)', '1');
+                        }
+                    }
                 }
             }
-            if (!Transaction::where('id', $id)->where('status', '0')->update(["remark" => 'Success', "status" => '1'])) {
-                return response()->json(array('status' => 0, 'title' => "Already handled", 'message' => "That request is no longer pending."));
-            }
-            addwallet($userid, $amount);
             $response = array('status' => 1, 'title' => "Success!!", 'message' => "Deposit approved, " . $amount . " credited.");
 
         } elseif ($event == 'cancel') {
@@ -138,9 +153,9 @@ class Adminapi extends Controller
         $userid = $pending->userid;
         $amount = (float) $pending->amount;
         if ($event == 'success') {
-            if ((float) wallet($userid, 'num') < $amount) {
-                return response()->json(array('status' => 0, 'title' => "Not enough balance",
-                    'message' => "This player now holds " . wallet($userid) . " and asked for " . $amount . ". Cancel the request instead."));
+            if (round(withdrawable($userid, 'num'), 2) + 0.001 < $amount) {
+                return response()->json(array('status' => 0, 'title' => "Not enough withdrawable",
+                    'message' => "This player can withdraw " . withdrawable($userid) . " and asked for " . $amount . ". Cancel the request instead."));
             }
             if (!Transaction::where('id', $id)->where('status', '0')->update([
                 "transactionno" => 'doltedaviator' . date("dmyhis"),
@@ -310,7 +325,7 @@ class Adminapi extends Controller
         return response()->json(array('status' => 1, 'title' => "Success!!", 'message' => "Limits updated."));
     }
 
-    /** Wallet credits for referred signup + referrer reward. */
+    /** Wallet credits for referred signup + referrer reward + bonus playthrough. */
     public function referral(Request $r)
     {
         foreach (['referral_bonus' => $r->referral_bonus, 'referrer_bonus' => $r->referrer_bonus] as $key => $value) {
@@ -325,6 +340,23 @@ class Adminapi extends Controller
                 $row = new Setting;
                 $row->category = $key;
                 $row->value = (string) (int) $value;
+                $row->status = '1';
+                $row->save();
+            }
+        }
+        $mult = $r->bonus_wager_mult;
+        if ($mult !== null && $mult !== '') {
+            if (!is_numeric($mult) || (float) $mult < 0) {
+                return response()->json(['status' => 0, 'title' => 'Oops!!', 'message' => 'Wager multiplier must be 0 or more.']);
+            }
+            $row = Setting::where('category', 'bonus_wager_mult')->first();
+            if ($row) {
+                $row->value = (string) (float) $mult;
+                $row->save();
+            } else {
+                $row = new Setting;
+                $row->category = 'bonus_wager_mult';
+                $row->value = (string) (float) $mult;
                 $row->status = '1';
                 $row->save();
             }
@@ -433,11 +465,15 @@ class Adminapi extends Controller
      */
     public function withdrawal_query(Request $r)
     {
-        $amount = (float) $r->amount;
+        $amount = round((float) $r->amount, 2);
+        settle_open_holds(user('id'));
         if ($amount < (float) setting('min_withdrawal')) {
             return redirect('/withdraw?msg=min');
         }
-        if ($amount > (float) wallet(user('id'), 'num')) {
+        if ($amount > round(withdrawable(user('id'), 'num'), 2) + 0.001) {
+            return redirect('/withdraw?msg=bonus');
+        }
+        if ($amount > round((float) wallet(user('id'), 'num'), 2) + 0.001) {
             return redirect('/withdraw?msg=balance');
         }
 

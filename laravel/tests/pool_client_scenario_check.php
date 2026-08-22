@@ -1,50 +1,53 @@
 <?php
 /**
- * Client's Aviator pool rule, as a runnable check.
+ * Client Aviator pool rule at 5% house (was 30% → pool 700).
  *
- * total bets 1000 → pool 700 (admin keeps 30%)
- * cashouts: 50@2.5=125, 200@2.7=540 → paid 665 ≤ 700
- * remaining actives must lose when min(active)*mult > remaining
+ * Bets 10+20+25+30+50+65+100+200+500 = 1000
+ * Pool = 95% = 950
+ * Cashout 50@2.5 = 125, 200@2.7 = 540, paid 665 <= 950
+ * Remain 285. Anyone whose bet×2.7 > 285 loses; plane crashes when
+ * min(active)×mult > remaining.
  *
  * Run: php laravel/tests/pool_client_scenario_check.php
  */
-function pool(float $total): float
-{
-    return round($total * 0.70, 2);
-}
+require_once __DIR__ . '/../app/Services/PoolCrashEngine.php';
 
-function should_crash(?float $minActive, float $mult, float $remain): bool
-{
-    if ($minActive === null) {
-        return true; // everyone cashed
-    }
-    return round($minActive * $mult, 2) > $remain;
-}
+use App\Services\PoolCrashEngine;
 
-$total = 1000.0;
-$p = pool($total);
-assert($p === 700.0, 'pool must be 70% of 1000');
+$bets = [10, 20, 25, 30, 50, 65, 100, 200, 500];
+assert(array_sum($bets) === 1000);
 
-// client cashouts
+$pool = PoolCrashEngine::poolFromTotal(1000);
+assert($pool === 950.0, '1000 at 5% house → 950 pool (old 30% was 700)');
+
 $paid = 0.0;
-$paid += 50 * 2.5;   // 125
-$paid += 200 * 2.7;  // 540
+assert(round(50 * 2.5, 2) === 125.0);
+$paid += 125.0;
+assert(round(200 * 2.7, 2) === 540.0);
+$paid += 540.0;
 assert($paid === 665.0);
-$remain = round($p - $paid, 2);
-assert($remain === 35.0);
+assert($paid <= $pool);
 
-// leftover players (example: 65 + 100 + 500 still in) — at 2.7x the smallest 65 needs 175.5 > 35 → crash
-assert(should_crash(65.0, 2.7, $remain) === true, 'others must crash once pool cannot pay them');
+$remain = round($pool - $paid, 2);
+assert($remain === 285.0);
 
-// --- why YOUR solo 10₹ crashed at ~1.7x ---
-// solo 10 → pool 7. Bet 10 cannot be paid even at 1.00x (10 > 7), so the engine
-// cannot use per-round pool math. It switches to house mode: random crash with
-// long-run 30% edge. 1.7x is a valid house-mode crash, not a pool bug.
-$solo = 10.0;
-$soloPool = pool($solo);
-assert($soloPool === 7.0);
-assert(should_crash($solo, 1.00, $soloPool) === true, 'solo 10 cannot use pool mode at 1.00x');
+$left = [10, 20, 25, 30, 65, 100, 500];
+$mult = 2.7;
+$stillIn = [];
+$lost = [];
+foreach ($left as $b) {
+    if (round($b * $mult, 2) > $remain) {
+        $lost[] = $b;
+    } else {
+        $stillIn[] = $b;
+    }
+}
+assert($lost === [500], '500×2.7=1350 > 285 → that bet loses');
+assert($stillIn === [10, 20, 25, 30, 65, 100]);
+
+$min = min($stillIn);
+assert(round($min * $mult, 2) <= $remain, '10×2.7 still fits — plane keeps flying');
+assert(round($min * 28.6, 2) > $remain, 'crash once min×mult blows past remaining pool');
 
 echo "pool_client_scenario_check OK\n";
-echo "  multi: total 1000 → pool 700; after 665 paid, remain 35 → others crash\n";
-echo "  solo 10 → pool 7 → pool mode impossible → house-mode random crash (e.g. 1.7x)\n";
+echo "  1000 bets → pool 950 (5%); 125+540=665 paid; remain 285; 500 loses; others ride until pool empty\n";

@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html class="no-js" lang="en">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
+    {{-- crash already has .load-txt; keep no owl FOUC by dropping no-js --}}
 
     <!--====== Title ======-->
     <title>{{ env('APP_NAME') }}</title>
@@ -23,16 +24,16 @@
     <link rel="stylesheet" href="../../css/jquery.mCustomScrollbar.min.css" />
 
     <!--====== Pretty Checkbox CSS ======-->
-    <link rel="stylesheet" href="css/pretty-checkbox.min.css" />
+    <link rel="stylesheet" href="{{ asset('css/pretty-checkbox.min.css') }}" />
     <!--====== Cuntry Selection CSS ======-->
-    <link rel="stylesheet" href="css/niceCountryInput.css" />
-    <link rel="stylesheet" type="text/css" href="css/jquery.ccpicker.css">
+    <link rel="stylesheet" href="{{ asset('css/niceCountryInput.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ asset('css/jquery.ccpicker.css') }}">
 
     <!--====== Bootstrap CSS ======-->
     <link rel="stylesheet" href="../../css/bootstrap.css" />
 
     <!--====== Owl Carousel CSS ======-->
-    <link rel="stylesheet" href="css/owl.carousel.min.css" />
+    <link rel="stylesheet" href="{{ asset('css/owl.carousel.min.css') }}" />
 
     <!--====== Style CSS ======-->
     <link rel="stylesheet" href="../../css/style.css" />
@@ -507,8 +508,8 @@
                 <div class="stop-number"></div>
             </div>
             <div class="got-block position-relative d-flex align-items-center justify-content-center">
-                <img src="images/star.svg" class="star-right" />
-                <img src="images/star1.svg" class="star-left" />
+                <img src="{{ asset('images/star.svg') }}" class="star-right" />
+                <img src="{{ asset('images/star1.svg') }}" class="star-left" />
                 <div class="got-amout">
                     <div style="font-weight: 600;">You got:</div>
                     <div class="out-amount" style="font-weight: 600;"></div>
@@ -525,8 +526,8 @@
                 <div class="stop-number"></div>
             </div>
             <div class="got-block position-relative d-flex align-items-center justify-content-center">
-                <img src="images/star.svg" class="star-right" />
-                <img src="images/star1.svg" class="star-left" />
+                <img src="{{ asset('images/star.svg') }}" class="star-right" />
+                <img src="{{ asset('images/star1.svg') }}" class="star-left" />
                 <div class="got-amout">
                     <div style="font-weight: 600;">You got:</div>
                     <div class="out-amount" style="font-weight: 600;"></div>
@@ -744,10 +745,10 @@
                             </div>
                         </div>
                         <div class="bottom-left-plane">
-                            <img class="plane-static" src="images/p.png" />
+                            <img class="plane-static" src="{{ asset('images/p.png') }}" />
                         </div>
                     </div>
-                    <img src="images/bg-rotate-old.svg" class="rotateimage rotatebg" />
+                    <img src="{{ asset('images/bg-rotate-old.svg') }}" class="rotateimage rotatebg" />
                     <canvas id="myCanvas" height=400 width="1900"></canvas>
                 </div>
                 <!-- <h6 id="running_type" class="text-center text-white">...........</h6> -->
@@ -1082,21 +1083,21 @@
                     <div class="steps-container">
                         <div class="step step-1">
                             <h3>01</h3>
-                            <img src="images/step-01.png" class="w-100" />
+                            <img src="{{ asset('images/step-01.png') }}" class="w-100" />
                             <div class="step-text pt-2">
                                 <span>BET</span> before take-off
                             </div>
                         </div>
                         <div class="step step-1">
                             <h3>02</h3>
-                            <img src="images/step-02.png" class="w-100" />
+                            <img src="{{ asset('images/step-02.png') }}" class="w-100" />
                             <div class="step-text pt-2">
                                 <span>WATCH</span> as your Lucky Plane takes off and your winnings increase.
                             </div>
                         </div>
                         <div class="step step-1">
                             <h3>03</h3>
-                            <img src="images/step-03.png" class="w-100" />
+                            <img src="{{ asset('images/step-03.png') }}" class="w-100" />
                             <div class="step-text pt-2">
                                 <span>CASH OUT</span>before the plane disappears and wins X times more!
                             </div>
@@ -1306,7 +1307,7 @@
             'false';
         }
         $.ajax({
-            url: 'get_user_details',
+            url: '/get_user_details',
             type: 'get',
             success: function(result) {
                 if (result.isSuccess) {
@@ -1319,7 +1320,7 @@
                             'success'
                         ).then(function() {
                             $.ajax({
-                                url: 'update_is_notify',
+                                url: '/update_is_notify',
                                 type: 'post',
                                 data: {
                                     'id': result.data.id,

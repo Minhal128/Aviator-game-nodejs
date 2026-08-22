@@ -11,7 +11,7 @@
                 </span> Referral
             </h3>
         </div>
-        <p class="text-muted" style="margin-top:-.5rem;">Credits paid when someone registers with a referral link.</p>
+        <p class="text-muted" style="margin-top:-.5rem;">New-player bonus on signup. Referrer reward only after the referred player’s first approved deposit of ₹300 or more. Bonus is playable but not withdrawable until wagered.</p>
 
         <div class="row">
             <div class="col-lg-6 col-12 grid-margin stretch-card">
@@ -29,6 +29,12 @@
                                 <label for="referrer_bonus">Referrer reward (₹)</label>
                                 <input type="number" min="0" step="1" class="form-control" id="referrer_bonus"
                                     name="referrer_bonus" value="{{ $referrerBonus }}">
+                            </div>
+                            <div class="form-group">
+                                <label for="bonus_wager_mult">Bonus wager multiplier (×)</label>
+                                <input type="number" min="0" step="0.1" class="form-control" id="bonus_wager_mult"
+                                    name="bonus_wager_mult" value="{{ $bonusWagerMult }}">
+                                <small class="form-text text-muted">1 = play the bonus once before it unlocks. 5 = stake 5× the bonus in games.</small>
                             </div>
                             <button type="submit" class="btn btn-gradient-primary me-2">Save</button>
                         </form>

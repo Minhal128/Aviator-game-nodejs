@@ -31,7 +31,7 @@ assert(str_contains($c3, 'BET_ZONE'), 'tap coin bet to edit');
 assert(str_contains($c3, '/game/glamour/cashout'), 'glamour cashout client');
 $glamour = file_get_contents(base_path('app/Http/Controllers/GlamourSpins.php'));
 assert(str_contains($glamour, 'glamour_held_win'), 'glamour holds wins');
-assert(str_contains($glamour, 'HOUSE_PCT = 30'), 'glamour 30% house');
+assert(str_contains($glamour, 'HOUSE_PCT = 5'), 'glamour 5% house');
 assert(str_contains(file_get_contents(base_path('routes/web.php')), '/game/glamour/cashout'), 'glamour cashout route');
 
 // Gold Egypt: site minimum, max = wallet (server + bridge)

@@ -4,11 +4,11 @@
     $loggedIn = session()->has('userlogin');
     // name, tag, tile, hero banner, route, blurb, demo (fun coins, not the wallet)
     $games = [
-        ['Aviator', 'Crash', 'images/tile-aviator.jpg', 'images/slider2.jpg', '/crash', 'Cash out before the plane flies away.', false],
-        ['Chicken Road', 'Arcade', 'images/tile-chicken-road.jpg', 'images/slider5.jpg', '/chicken-road/', 'Cross the traffic, bank your multiplier.', false],
-        ['Ludo Royale', 'Multiplayer', 'images/tile-ludo.jpg', 'images/slider4.jpg', '/ludo/', 'Real players, real money boards.', false],
-        ['Gold of Egypt', 'Slot', 'images/tile-gold-egypt.jpg', 'images/slider3.jpg', '/gold-egypt/', '243 ways to win, wilds, free spins.', false],
-        ['Glamour Spins', 'Slot', 'images/tile-slot-glamour.jpg', 'images/slider1.jpg', '/slot-glamour/', 'Cascading match-3 reels, free spins.', false],
+        ['Aviator', 'Crash', asset('images/tile-aviator.jpg'), asset('images/slider2.jpg'), '/crash', 'Cash out before the plane flies away.', false],
+        ['Chicken Road', 'Arcade', asset('images/tile-chicken-road.jpg'), asset('images/slider5.jpg'), '/chicken-road/', 'Cross the traffic, bank your multiplier.', false],
+        ['Ludo Royale', 'Multiplayer', asset('images/tile-ludo.jpg'), asset('images/slider4.jpg'), '/ludo/', 'Real players, real money boards.', false],
+        ['Gold of Egypt', 'Slot', asset('images/tile-gold-egypt.jpg'), asset('images/slider3.jpg'), '/gold-egypt/', '243 ways to win, wilds, free spins.', false],
+        ['Glamour Spins', 'Slot', asset('images/tile-slot-glamour.jpg'), asset('images/slider1.jpg'), '/slot-glamour/', 'Cascading match-3 reels, free spins.', false],
     ];
 @endphp
 <div class="tl-lobby">
@@ -19,7 +19,7 @@
                 <a class="tl-slide"
                     @if ($loggedIn) href="{{ $href }}"
                     @else href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#login-modal" @endif>
-                    <img class="owl-lazy" data-src="{{ $banner }}" alt="{{ $name }}">
+                    <img class="owl-lazy" data-src="{{ $banner }}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="{{ $name }}">
                 </a>
             @endforeach
         </div>
@@ -51,7 +51,7 @@
     </div>
     <div class="tl-grid">
         @foreach ($games as [$name, $tag, $tile, $banner, $href, $desc, $demo])
-            <article class="tl-card">
+            <article class="tl-card{{ $tag === 'Slot' ? ' tl-card--slot' : '' }}{{ $name === 'Gold of Egypt' ? ' tl-card--egypt' : '' }}{{ $name === 'Glamour Spins' ? ' tl-card--glamour' : '' }}">
                 <div class="tl-card-media">
                     <img src="{{ $tile }}" alt="{{ $name }}" loading="lazy">
                     <span class="tl-tag">{{ $tag }}</span>

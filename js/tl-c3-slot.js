@@ -66,8 +66,10 @@
     window.TL_C3 = TL;
 
     function syncHud(n) {
-        wallet.balance = n;
-        if (typeof window.TL_setWallet === 'function') window.TL_setWallet(n);
+        var v = Number(n);
+        if (!Number.isFinite(v)) return;
+        wallet.balance = v;
+        if (typeof window.TL_setWallet === 'function') window.TL_setWallet(v);
     }
 
     function paintHeld() {
@@ -246,6 +248,7 @@
 
     const post = (url, body) => fetch(url, {
         method: 'POST',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': wallet.token },
         body: JSON.stringify(body || {}),
         keepalive: true,
@@ -385,7 +388,8 @@
         say('');
         TL.fresh = false;
         TL.serverBalance = res.data.balance;
-        TL.heldWin = typeof res.data.heldWin === 'number' ? res.data.heldWin : TL.heldWin;
+        TL.heldWin = Number(res.data.heldWin);
+        if (!Number.isFinite(TL.heldWin)) TL.heldWin = 0;
         syncHud(res.data.balance);
         paintHeld();
         // Hold model: wallet has only lost the bet. Start the game at post-debit
@@ -559,12 +563,11 @@
     /** ir.layout throws outright until a layout is running, so never read it bare. */
     const layoutName = (ir) => { try { return ir.layout.name; } catch (e) { return null; } };
 
-    let tries = 0;
     (async function attach() {
         let ir = null;
         try { ir = iface._GetLocalRuntime().GetIRuntime(); } catch (e) { ir = null; }
         if (!ir || !ir.globalVars) {
-            if (++tries < 400) setTimeout(attach, 50);
+            setTimeout(attach, 100);
             return;
         }
         TL.ir = ir;

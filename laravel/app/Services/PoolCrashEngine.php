@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Log;
  * House keeps 5%. Payout pool = 95% of round bets.
  * Example: ₹1000 staked → ₹950 pool. Cashouts (50×2.5 + 200×2.7 = 665) that
  * fit in the pool stay; when the next active bet would blow past remaining
- * pool, the plane crashes.
+ * pool, that bet loses and the plane crashes if nobody left can be paid.
  *
  * Crash when no active (non-cashed) bet can be paid at current multiplier:
  *   min(active.amount) * multiplier > remaining_pool
@@ -35,6 +35,12 @@ class PoolCrashEngine
     public const MAX_MULT = 100.0;
     /** Pool mode needs room for the smallest bet to ride this far, else it can only bust early */
     public const POOL_MIN_RIDE = 3.0;
+
+    /** Payable pool: house keeps HOUSE_PCT (5% → ₹1000 staked pays ₹950). */
+    public static function poolFromTotal(float $total): float
+    {
+        return round($total * (100.0 - self::HOUSE_PCT) / 100.0, 2);
+    }
 
     /**
      * Pool mode is only fair when the pool can actually pay a win. With few players
@@ -62,7 +68,7 @@ class PoolCrashEngine
     public static function pickWinner(array $bets, float $mult, ?float $pct = null): ?array
     {
         $total = array_sum(array_map(fn($b) => (float) $b['amount'], $bets));
-        $cap = round($total * ($pct ?? win_pct()) / 100.0, 2);
+        $cap = round($total * ($pct ?? (100.0 - self::HOUSE_PCT)) / 100.0, 2);
         $winner = null;
         foreach ($bets as $bet) {
             if (round((float) $bet['amount'] * $mult, 2) > $cap) {
@@ -111,7 +117,7 @@ class PoolCrashEngine
         }
 
         $total = (float) Userbit::where('gameid', (string) $gameId)->sum('amount');
-        $pool = round($total * win_pct() / 100.0, 2);
+        $pool = self::poolFromTotal($total);
         $minBet = $this->minActiveBet($gameId);
 
         $state = [
@@ -127,7 +133,7 @@ class PoolCrashEngine
         ];
 
         if ($state['mode'] === 'house') {
-            $state['crash_at'] = self::houseCrashPoint(win_pct());
+            $state['crash_at'] = self::houseCrashPoint(100.0 - self::HOUSE_PCT);
         }
 
         $this->put($gameId, $state);
@@ -323,7 +329,7 @@ class PoolCrashEngine
             return;
         }
         $state['total_bets'] = $total;
-        $state['pool'] = round($total * win_pct() / 100.0, 2);
+        $state['pool'] = self::poolFromTotal($total);
 
         // Bets that landed after startFlight can make pool mode viable. Only before
         // the first payout — re-deciding mid-round would move an announced crash point.
@@ -458,7 +464,7 @@ class PoolCrashEngine
                     'multiplier' => 1.0,
                     'started_at' => microtime(true),
                 ];
-                $state['pool'] = round($state['total_bets'] * win_pct() / 100.0, 2);
+                $state['pool'] = self::poolFromTotal((float) $state['total_bets']);
             }
             $this->settleCrash($gameId, $state, $this->liveMultiplier($state));
         });

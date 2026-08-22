@@ -197,26 +197,61 @@ $('#resetPasswordForm').validate({
     }
 });
 
+function tlDeviceKey() {
+    // ponytail: UUID in localStorage+cookie; private browser / wipe storage = new device
+    var k = null;
+    try { k = localStorage.getItem('tl_device_key'); } catch (e) {}
+    if (!k) {
+        var m = document.cookie.match(/(?:^|; )tl_dk=([^;]*)/);
+        k = m ? decodeURIComponent(m[1]) : null;
+    }
+    if (!k || !/^[A-Za-z0-9_-]{16,80}$/.test(k)) {
+        k = (window.crypto && crypto.randomUUID)
+            ? crypto.randomUUID().replace(/-/g, '')
+            : ('d' + Date.now().toString(36) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2));
+        k = k.slice(0, 80);
+    }
+    try { localStorage.setItem('tl_device_key', k); } catch (e) {}
+    document.cookie = 'tl_dk=' + encodeURIComponent(k) + ';path=/;max-age=315360000;SameSite=Lax';
+    return k;
+}
+
 $('#registerViaEmailForm').validate({
     rules: {
-        email: {
-            required: true
+        name: { required: true },
+        mobile: {
+            required: true,
+            digits: true,
+            minlength: 10,
+            maxlength: 10
         },
-        regpassword: {
-            required: function (element) {
-                return $('#email').val() != '' && $('#regpassword').val() == '';
-            }
+        email: {
+            required: true,
+            email: true
+        },
+        password: {
+            required: true,
+            minlength: 4
         }
     },
     messages: {
+        name: { required: "Enter your name." },
+        mobile: {
+            required: "Mobile number is required.",
+            digits: "Digits only.",
+            minlength: "Enter a 10-digit mobile number.",
+            maxlength: "Enter a 10-digit mobile number."
+        },
         email: {
             required: "Field must not be empty!",
+            email: "Enter a valid email."
         },
-        regpassword: {
+        password: {
             required: "Field must not be empty!",
         }
     },
     submitHandler: function(form) {
+        $("#device_key").val(tlDeviceKey());
         $(".registerSubmit").prop('disabled', true);
         $.ajax({
             url: $(form).attr('action'),
@@ -236,13 +271,24 @@ $('#registerViaEmailForm').validate({
                         password : result.data.password,
                     }
                     login_ajax(data,'/dashboard')
-                } else if (result.data.is_email_exist == 1) {
+                } else if (result.data && result.data.is_email_exist == 1) {
                     $('#forgot-modal').modal('show');
                     $("#user_name").val(result.data.email);
                 } else {
                     $("#promo_code_error").show();
                     $("#promo_code_error").text(result.message);
                 }
+            },
+            error: function(xhr) {
+                $(".registerSubmit").prop('disabled', false);
+                var msg = "Registration failed.";
+                if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    var e = xhr.responseJSON.errors;
+                    msg = e.mobile ? e.mobile[0] : (e.device_key ? e.device_key[0] : msg);
+                }
+                $("#promo_code_error").show();
+                $("#promo_code_error").text(msg);
             }
         });
     }

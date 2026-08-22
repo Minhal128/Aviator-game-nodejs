@@ -93,6 +93,28 @@ class RoadGame extends Controller
         $t->save();
     }
 
+    private function roundOf(int $userId): ?array
+    {
+        $h = user_hold($userId);
+        if (!empty($h['road_round']) && is_array($h['road_round'])) {
+            return $h['road_round'];
+        }
+        $old = session('road_round');
+        return is_array($old) ? $old : null;
+    }
+
+    private function saveRound(int $userId, ?array $round): void
+    {
+        $h = user_hold($userId);
+        if ($round === null) {
+            unset($h['road_round']);
+        } else {
+            $h['road_round'] = $round;
+        }
+        user_hold_put($userId, $h);
+        session()->forget('road_round');
+    }
+
     public function bet(Request $r)
     {
         $mode = $this->mode($r);
@@ -109,10 +131,9 @@ class RoadGame extends Controller
         if (wallet($userId, 'num') < $bet) {
             return response()->json(['isSuccess' => false, 'message' => 'Insufficient balance']);
         }
-        if (session()->has('road_round')) {
-            // reload mid-round: refund the orphan stake so money is not eaten
-            $old = session('road_round');
-            session()->forget('road_round');
+        $old = $this->roundOf($userId);
+        if ($old) {
+            $this->saveRound($userId, null);
             $orphan = round((float) ($old['bet'] ?? 0), 2);
             if ($orphan > 0) {
                 addwallet($userId, $orphan, '+');
@@ -122,14 +143,12 @@ class RoadGame extends Controller
 
         addwallet($userId, $bet, '-', true);
         $this->log($userId, $bet, 'debit', 'bet ' . (string) $r->mode);
-        // ponytail: one round per session, so no table. Add one if you need round history.
-        session()->put('road_round', [
+        $this->saveRound($userId, [
             'bet' => $bet,
             'mode' => (string) $r->mode,
             'step' => 0,
-            'crash_step' => self::drawCrashStep($mode, win_rtp()),
-            // frozen at bet time: an admin change mid-round must not repay an open round
-            'rtp' => win_rtp(),
+            'crash_step' => self::drawCrashStep($mode, self::RTP),
+            'rtp' => self::RTP,
         ]);
 
         return response()->json(['isSuccess' => true, 'data' => ['balance' => (float) wallet($userId, 'num')]]);
@@ -137,7 +156,8 @@ class RoadGame extends Controller
 
     public function step(Request $r)
     {
-        $round = session('road_round');
+        $userId = (int) user('id');
+        $round = $this->roundOf($userId);
         if (!$round) {
             return response()->json(['isSuccess' => false, 'message' => 'No open round']);
         }
@@ -146,10 +166,10 @@ class RoadGame extends Controller
         $crashed = $round['step'] >= $round['crash_step'];
 
         if ($crashed) {
-            session()->forget('road_round');
-            $this->log((int) user('id'), 0, 'credit', 'crash at step ' . $round['step']);
+            $this->saveRound($userId, null);
+            $this->log($userId, 0, 'credit', 'crash at step ' . $round['step']);
         } else {
-            session()->put('road_round', $round);
+            $this->saveRound($userId, $round);
         }
 
         return response()->json(['isSuccess' => true, 'data' => [
@@ -162,15 +182,15 @@ class RoadGame extends Controller
 
     public function cashout(Request $r)
     {
-        $round = session('road_round');
+        $userId = (int) user('id');
+        $round = $this->roundOf($userId);
         if (!$round || $round['step'] < 1) {
             return response()->json(['isSuccess' => false, 'message' => 'Nothing to cash out']);
         }
-        $userId = (int) user('id');
         $mult = self::multiplier(self::MODES[$round['mode']], $round['step'], $round['rtp'] ?? null);
         $payout = round($round['bet'] * $mult, 2);
 
-        session()->forget('road_round');   // before crediting, so a double-click cannot pay twice
+        $this->saveRound($userId, null);
         addwallet($userId, $payout);
         $this->log($userId, $payout, 'credit', 'cashout ' . $mult . 'x at step ' . $round['step']);
 

@@ -140,6 +140,7 @@ Route::group(['middleware' => ['isUser']], function () {
     Route::get('/deposit', [Pages::class, 'deposit']);
     Route::get('/amount-transfer', [Pages::class, "amount_transfer"]);
     Route::get('/withdraw', function () {
+        settle_open_holds(user('id'));
         return view('withdraw');
     });
     Route::get('/referal', function () {

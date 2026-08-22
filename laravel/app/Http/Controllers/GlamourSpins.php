@@ -150,8 +150,9 @@ class GlamourSpins extends Controller
     public function state()
     {
         $userId = user('id');
-        $w = self::weights(win_rtp());
-        $held = round((float) session('glamour_held_win', 0), 2);
+        $w = self::weights(self::TARGET_RTP);
+        $h = user_hold($userId);
+        $held = round((float) ($h['glamour_held_win'] ?? session('glamour_held_win', 0)), 2);
         $bal = (float) wallet($userId, 'num');
         return response()->json([
             'isSuccess' => true,
@@ -164,7 +165,7 @@ class GlamourSpins extends Controller
                 'maxBet' => (float) setting('max_bet_amount'),
                 'seedsMeasured' => self::table()['count'] ?? count(self::table()['seeds']),
                 'rtp' => round($w['rtp'], 4),
-                'housePct' => round(100.0 - win_pct(), 2),
+                'housePct' => self::HOUSE_PCT,
             ],
         ]);
     }
@@ -194,13 +195,16 @@ class GlamourSpins extends Controller
             return $this->fail('Not enough balance for this spin.');
         }
 
-        [$seed, $mult] = self::draw(win_rtp());
+        [$seed, $mult] = self::draw(self::TARGET_RTP);
+        $h = user_hold($userId);
         $win = round($bet * $mult, 2);
 
         addwallet($userId, $bet, '-', true);
         $this->log($userId, $bet, 'debit', 'Glamour Spins bet');
-        $held = round((float) session('glamour_held_win', 0) + $win, 2);
-        session()->put('glamour_held_win', $held);
+        $held = round((float) ($h['glamour_held_win'] ?? session('glamour_held_win', 0)) + $win, 2);
+        $h['glamour_held_win'] = $held;
+        user_hold_put($userId, $h);
+        session()->forget('glamour_held_win');
 
         $bal = (float) wallet($userId, 'num');
         return response()->json([
@@ -220,13 +224,16 @@ class GlamourSpins extends Controller
     public function cashout()
     {
         $userId = user('id');
-        $held = round((float) session('glamour_held_win', 0), 2);
+        $h = user_hold($userId);
+        $held = round((float) ($h['glamour_held_win'] ?? session('glamour_held_win', 0)), 2);
         if ($held <= 0) {
             return $this->fail('Nothing to cash out.');
         }
         addwallet($userId, $held, '+');
         $this->log($userId, $held, 'credit', 'Glamour Spins cashout');
-        session()->put('glamour_held_win', 0);
+        $h['glamour_held_win'] = 0;
+        user_hold_put($userId, $h);
+        session()->forget('glamour_held_win');
         $bal = (float) wallet($userId, 'num');
         return response()->json([
             'isSuccess' => true,

@@ -6,6 +6,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Userbit;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -114,15 +115,11 @@ function setting($parameter)
 }
 
 /**
- * Share of what players stake that is payable back, set by the admin
- * (settings.win_percentage). Every game reads this one row: 100 = the whole pot
- * can be won and the house keeps nothing, 95 = house keeps 5% (Aviator pool =
- * 95% of round bets). Ships at 95.
+ * House keeps 5% on every game. Admin row is leftover; do not read it.
  */
 function win_pct(): float
 {
-    $v = Setting::where('category', 'win_percentage')->value('value');
-    return $v === null ? 95.0 : max(0.0, min(100.0, (float) $v));
+    return 95.0;
 }
 
 /** win_pct() as an RTP fraction, e.g. 70 -> 0.70. */
@@ -207,6 +204,99 @@ function addwallet($id, $amount, $symbol = "+", $wager = false)
     Wallet::where('userid', (string) $id)->update($payload);
     // ponytail: old return was wallet()+amount AFTER update → lied by +$amount to every caller
     return $new;
+}
+
+/**
+ * Open-round / held-win state keyed by user, not PHP session.
+ * Mobile Safari / WebView drops or splits the session cookie; cashout then
+ * credited a stale/empty hold while the HUD still showed the last spin.
+ */
+function user_hold(int|string $userId): array
+{
+    $v = Cache::get('user_hold:' . $userId);
+    return is_array($v) ? $v : [];
+}
+
+function user_hold_put(int|string $userId, array $data): void
+{
+    Cache::put('user_hold:' . $userId, $data, 86400);
+}
+
+/**
+ * Move uncashed game wins (and an open Chicken Road round) into the wallet
+ * so a player can withdraw without tapping CASHOUT in every title.
+ */
+function settle_open_holds($userId): float
+{
+    $uid = (int) $userId;
+    $credited = 0.0;
+    $h = user_hold($uid);
+
+    foreach (['gold_held_win', 'glamour_held_win'] as $k) {
+        $v = round((float) ($h[$k] ?? 0), 2);
+        if ($v <= 0) {
+            $v = round((float) session($k, 0), 2);
+        }
+        if ($v <= 0) {
+            continue;
+        }
+        addwallet($uid, $v, '+');
+        $credited += $v;
+        $h[$k] = 0;
+    }
+
+    $round = $h['road_round'] ?? null;
+    if (!is_array($round) && is_array(session('road_round'))) {
+        $round = session('road_round');
+    }
+    if (is_array($round)) {
+        $bet = round((float) ($round['bet'] ?? 0), 2);
+        $step = (int) ($round['step'] ?? 0);
+        $modeKey = (string) ($round['mode'] ?? '');
+        $modes = \App\Http\Controllers\RoadGame::MODES;
+        if ($step >= 1 && isset($modes[$modeKey])) {
+            $payout = round($bet * \App\Http\Controllers\RoadGame::multiplier($modes[$modeKey], $step, $round['rtp'] ?? null), 2);
+            addwallet($uid, $payout, '+');
+            $credited += $payout;
+        } elseif ($bet > 0) {
+            addwallet($uid, $bet, '+');
+            $credited += $bet;
+        }
+        unset($h['road_round']);
+        session()->forget('road_round');
+    }
+
+    user_hold_put($uid, $h);
+
+    $open = Userbit::where('userid', (string) $uid)->where('status', '0')->orderBy('id')->get();
+    if ($open->isNotEmpty()) {
+        $engine = app(\App\Services\PoolCrashEngine::class);
+        foreach ($open as $bet) {
+            $stake = round((float) $bet->amount, 2);
+            try {
+                $out = $engine->cashout((int) $bet->gameid, (int) $bet->id, $uid, 0);
+            } catch (\Throwable $e) {
+                $out = ['ok' => false];
+            }
+            if (!empty($out['ok'])) {
+                $credited += (float) $out['cash_out_amount'];
+                continue;
+            }
+            $row = Userbit::where('id', $bet->id)->first();
+            if ($row && (string) $row->status === '0') {
+                Userbit::where('id', $bet->id)->update([
+                    'status' => 1,
+                    'cashout_multiplier' => '1.00',
+                ]);
+            }
+            if ($stake > 0) {
+                addwallet($uid, $stake, '+');
+                $credited += $stake;
+            }
+        }
+    }
+
+    return $credited;
 }
 
 /** Credit promotional funds: playable immediately, withdrawable only after wagering. */

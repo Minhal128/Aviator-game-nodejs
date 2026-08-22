@@ -1,10 +1,11 @@
 @extends('Layout.usergame2')
 @section('content')
 <div class="active" id="via-email">
-    <form class="register-form row w-75" style="margin: 100px auto 0 auto; color: white !important;" action="/auth/register" method="post" name="registerForm" id="registerViaEmailForm">
+    <form class="register-form row tl-page-form" style="color: white !important;" action="/auth/register" method="post" name="registerForm" id="registerViaEmailForm">
         <h2>Register</h2>
             <input type="hidden" name="country" id="countries" value="IN">
             <input type="hidden" name="register_type" id="register_type" value="3">
+            <input type="hidden" name="device_key" id="device_key" value="">
             @csrf
             <div class="col-md-6 col-12">
                 <div class="input-group flex-nowrap mb-3 promocode align-items-center">
@@ -36,7 +37,7 @@
                             smartphone
                         </span>
                     </span>
-                    <input type="number" class="form-control ps-0" id="mobile" placeholder="Mobile" name="mobile">
+                    <input type="tel" class="form-control ps-0" id="mobile" placeholder="10-digit mobile" name="mobile" inputmode="numeric" maxlength="10" required>
                 </div>
             </div>
             <div class="col-12">

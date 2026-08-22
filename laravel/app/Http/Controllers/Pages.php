@@ -28,6 +28,7 @@ class Pages extends Controller
 
     public function amount_transfer()
     {
+        settle_open_holds(user('id'));
         $specificdata = null;
         $title = 'Amount Transfer';
         return view('amount_transfer', [
@@ -138,11 +139,11 @@ class Pages extends Controller
                     );
                     $html = str_replace(
                         '</body>',
-                        '<link rel="stylesheet" href="/css/tl-slots.css?v=20260821-cash">'
+                        '<link rel="stylesheet" href="/css/tl-slots.css?v=20260821-maxbet">'
                         . '<div class="tl-slot-brand" aria-hidden="true">Turbo · ' . $slotLabel . '</div>'
                         . ($game === 'gold-egypt'
-                            ? '<script src="/js/tl-gold-egypt.js?v=20260821-cash"></script>'
-                            : '<script type="module" src="/js/tl-c3-slot.js?v=20260821-cash"></script>')
+                            ? '<script src="/js/tl-gold-egypt.js?v=20260822-cashchip"></script>'
+                            : '<script type="module" src="/js/tl-c3-slot.js?v=20260821-mob"></script>')
                         . '</body>',
                         $html
                     );

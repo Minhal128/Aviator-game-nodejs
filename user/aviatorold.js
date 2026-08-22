@@ -283,6 +283,9 @@ function showBetToast(amt) {
 }
 
 function cash_out_now(element, section_no, increment = '') {
+    var lockK = '_tlAviCash' + section_no;
+    if (window[lockK] && (Date.now() - window[lockK]) < 900) return;
+    window[lockK] = Date.now();
 
     if (section_no == 0) {
         cashOutSound();
@@ -1796,10 +1799,10 @@ $(".fill-line").bind('oanimationstart animationstart webkitAnimationStart', func
 
 /*-------HINAL (START)-------*/
 
-$(document).click(function () {
-    if ($(".button-block").hasClass('show')) {
-        $(".button-block").removeClass('show');
-    }
+$(document).on('pointerdown', '#cashout_button', function (e) {
+    e.preventDefault();
+    var sec = $(this).closest('#extra_bet_section').length ? 1 : 0;
+    cash_out_now(this, sec);
 });
 
 $(".history-top").click(function (e) {

@@ -33,7 +33,7 @@ $bad = json_decode($api->referral(Request::create('/admin/api/referral', 'POST',
 ]))->getContent(), true);
 assert(($bad['status'] ?? 1) === 0, 'negative should fail');
 
-// signup with referral credits both wallets
+// signup with referral: newbie may get referral_bonus; referrer waits for first ₹300 deposit
 $ref = new User;
 $ref->name = 'Ref Smoke';
 $ref->email = 'ref_smoke_' . time() . '@test.local';
@@ -60,19 +60,19 @@ $out = json_decode($auth->register(Request::create('/auth/register', 'POST', [
     'mobile' => $mob,
     'password' => 'secret123',
     'promocode' => (string) $ref->id,
+    'device_key' => 'refsmoke' . time() . 'devicekey',
 ]))->getContent(), true);
 assert(($out['isSuccess'] ?? false) === true, 'register failed: ' . ($out['message'] ?? ''));
 
 $newbie = User::where('email', $mail)->first();
 assert($newbie, 'newbie missing');
 assert(abs((float) wallet($newbie->id, 'num') - 100) < 0.001, 'newbie wallet');
-assert(abs((float) wallet($ref->id, 'num') - ($before + 50)) < 0.001, 'referrer wallet');
+assert(abs((float) wallet($ref->id, 'num') - $before) < 0.001, 'referrer not paid on signup');
 assert(Transaction::where('userid', $newbie->id)->where('category', 'referral_bonus')->exists(), 'newbie txn');
-assert(Transaction::where('userid', $ref->id)->where('category', 'referrer_bonus')->exists(), 'referrer txn');
+assert(!Transaction::where('userid', $ref->id)->where('category', 'referrer_bonus')->exists(), 'no referrer txn yet');
 
 // cleanup
 Transaction::where('userid', $newbie->id)->where('category', 'referral_bonus')->delete();
-Transaction::where('userid', $ref->id)->where('category', 'referrer_bonus')->delete();
 Wallet::where('userid', $newbie->id)->delete();
 Wallet::where('userid', $ref->id)->delete();
 $newbie->delete();

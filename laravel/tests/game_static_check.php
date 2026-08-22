@@ -35,9 +35,11 @@ if ($uid) {
     $e = $c->gameStatic('gold-egypt', null);
     assert(str_contains($e->getContent(), 'base href="/goldegypt/game/"'), 'egypt base points at the static folder');
     assert(is_file(dirname(base_path()) . '/goldegypt/game/png/Symbols/Wick.png'), 'egypt static base resolves to real files');
-    // slot-glamour must keep going through PHP: main.js is patched at serve time
+    // Glamour same as Egypt: Apache serves art; main.js is patched on disk (useWorker:false)
     $g = $c->gameStatic('slot-glamour', null);
-    assert(str_contains($g->getContent(), 'base href="/slot-glamour/"'), 'slot-glamour stays on the PHP route');
+    assert(str_contains($g->getContent(), 'base href="/slotglamor/game/"'), 'slot-glamour base points at the static folder');
+    assert(is_file(dirname(base_path()) . '/slotglamor/game/scripts/main.js'), 'glamour static base resolves');
+    assert(str_contains(file_get_contents(dirname(base_path()) . '/slotglamor/game/scripts/main.js'), 'const e=false;window["c3_runtimeInterface"]'), 'glamour main.js useWorker false on disk');
 }
 
 echo "game_static_check OK\n";

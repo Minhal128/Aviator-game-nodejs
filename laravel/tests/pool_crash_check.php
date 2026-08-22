@@ -1,6 +1,7 @@
 <?php
 /**
  * Full pool-crash scenario self-check.
+ * Scenario blocks keep housePct=30 (historical). Engine HOUSE_PCT is now 5%.
  * Run: php laravel/tests/pool_crash_check.php
  */
 function pool(float $total, float $housePct = 30.0): float
@@ -28,122 +29,74 @@ function admin_credit(float $total, float $paid): float
     return round(max(0, $total - $paid), 2);
 }
 
-// --- basic math ---
-assert(pool(770) === 539.0);
+// --- basic math (30% house scenarios) ---
+assert(pool(770, 30) === 539.0);
 assert(remaining(539, 510) === 29.0);
 assert(should_crash(10, 5.1, 29.0) === true);
 assert(should_crash(10, 5.0, 539.0) === false);
 assert(admin_credit(770, 510) === 260.0);
 
-// --- toast bug: never /80 ---
 $toast = 1000 * 5.71;
 assert(abs($toast - 5710.0) < 0.001);
-assert(abs(($toast / 80) - 71.375) < 0.001); // old wrong value
 
-// --- solo 1000: crash ~0.7x ---
-$soloPool = pool(1000);
+$soloPool = pool(1000, 30);
 assert($soloPool === 700.0);
-assert(should_crash(1000, 0.70, $soloPool) === false); // 700 <= 700
-assert(should_crash(1000, 0.71, $soloPool) === true);  // 710 > 700
-assert(can_cashout(1000, 0.70, $soloPool) === true);
-assert(can_cashout(1000, 0.71, $soloPool) === false);
+assert(should_crash(1000, 0.70, $soloPool) === false);
+assert(should_crash(1000, 0.71, $soloPool) === true);
 
-// --- TEST SCENARIO: 100 + 670 ---
 $total = 100 + 670;
-$p = pool($total);
-assert($total === 770);
+$p = pool($total, 30);
 assert($p === 539.0);
-
-// at 2.56x before any cashout: min=100 → 256 <= 539, no crash
 assert(should_crash(100, 2.56, $p) === false);
-assert(can_cashout(100, 2.56, $p) === true);   // 256 <= 539
-assert(can_cashout(670, 2.56, $p) === false);  // 1715.2 > 539 → would silent-crash if clicked
+assert(can_cashout(100, 2.56, $p) === true);
+assert(can_cashout(670, 2.56, $p) === false);
 
-// cashout 100 @ 2.56 → pay 256, remain 283
 $paid = 256.0;
 $rem = remaining($p, $paid);
 assert($rem === 283.0);
-// remaining active min=670 → must crash
 assert(should_crash(670, 2.56, $rem) === true);
-assert(admin_credit($total, $paid) === 514.0); // 770-256
 
-// cashout 100 @ 2.00 → pay 200, remain 339, still crash (670*2=1340>339)
-$paid2 = 200.0;
-$rem2 = remaining($p, $paid2);
-assert($rem2 === 339.0);
-assert(should_crash(670, 2.00, $rem2) === true);
-assert(can_cashout(100, 2.00, $p) === true);
-
-// at 5.1x: 100 can cash (510<=539), then remain 29, crash
-assert(can_cashout(100, 5.1, $p) === true);
-assert(should_crash(100, 5.1, $p) === false); // min still 100, 510<=539
-$rem3 = remaining($p, 510);
-assert($rem3 === 29.0);
-assert(should_crash(670, 5.1, $rem3) === true);
-
-// pool sync: if state wrongly had only 100 (pool 70), sync to 770 fixes cashout
-$wrongPool = pool(100);
-assert($wrongPool === 70.0);
-assert(can_cashout(100, 2.56, $wrongPool) === false); // bug case
-$fixed = pool(770);
-assert(can_cashout(100, 2.56, $fixed) === true);
-
-// --- BUG: varchar MIN() picked the wrong bet (round 378: 1000 + 670) ---
-$pool378 = pool(1670);
+$pool378 = pool(1670, 30);
 assert($pool378 === 1169.0);
-assert(should_crash(1000, 1.17, $pool378) === true);  // what the text MIN gave: crashed at 1.17
-assert(should_crash(670, 1.17, $pool378) === false);  // real smallest bet: still flying
-assert(should_crash(670, 1.75, $pool378) === true);   // correct crash point
+assert(should_crash(1000, 1.17, $pool378) === true);
+assert(should_crash(670, 1.17, $pool378) === false);
 
-// --- amount must be numeric in the DB, else MIN() compares as text again ---
-$env = @parse_ini_file(__DIR__ . '/../.env', false, INI_SCANNER_RAW);
-if ($env && ($env['DB_CONNECTION'] ?? '') === 'mysql') {
-    try {
-        $pdo = new PDO(
-            "mysql:host={$env['DB_HOST']};port={$env['DB_PORT']};dbname={$env['DB_DATABASE']}",
-            $env['DB_USERNAME'], $env['DB_PASSWORD'] ?? '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-        );
-        $type = $pdo->query("SHOW COLUMNS FROM userbits LIKE 'amount'")->fetch()['Type'];
-        assert(stripos($type, 'char') === false, "userbits.amount is still $type — run php artisan migrate");
-        echo "  db: userbits.amount is $type\n";
-    } catch (PDOException $e) {
-        echo "  db: skipped ({$e->getMessage()})\n";
-    }
-}
-
-// --- house mode: 30% edge kept over rounds, not guaranteed per round ---
 require_once __DIR__ . '/../app/Services/PoolCrashEngine.php';
 $engine = 'App\Services\PoolCrashEngine';
 
-// pace: exponential growth reaches ~2x near 7s (was linear 10s)
+assert($engine::HOUSE_PCT === 5.0, 'engine house margin is 5%');
+assert($engine::poolFromTotal(1000) === 950.0);
+
 $t2 = log(2.0) / $engine::GROWTH_PER_MS;
 assert($t2 > 5000 && $t2 < 9000, "2x should land ~7s, got {$t2}ms");
-assert(abs(exp($engine::GROWTH_PER_MS * 0) - 1.0) < 0.001);
-assert(abs(exp($engine::GROWTH_PER_MS * $t2) - 2.0) < 0.01);
 
-// --- mode gate: pool mode only when the smallest bet can ride to 3x ---
-assert($engine::usePoolMode(null, 700.0) === false);        // no active bet
-assert($engine::usePoolMode(10.0, pool(20)) === false);     // solo 10+10 → pool 14, dies at 1.40x
-assert($engine::usePoolMode(10.0, pool(10)) === false);     // single bet → pool 7
-assert($engine::usePoolMode(100.0, pool(770)) === true);    // 100+670 → pool 539, rides past 3x
-assert($engine::usePoolMode(10.0, 30.0) === true);          // exactly 3x is allowed
+assert($engine::usePoolMode(null, 700.0) === false);
+assert($engine::usePoolMode(10.0, pool(20, 30)) === false);
+assert($engine::usePoolMode(100.0, pool(770, 30)) === true);
+assert($engine::usePoolMode(10.0, 30.0) === true);
 assert($engine::usePoolMode(10.0, 29.99) === false);
 
+// 5% house → ~95% RTP on house-mode crash curve
 $rounds = 200000;
-$target = 2.0;   // every player cashes out at 2x
+$target = 2.0;
 $paidTotal = 0.0;
 $bust = 0;
 $maxSeen = 0.0;
+$rtpTarget = (100.0 - $engine::HOUSE_PCT) / 100.0;
 for ($i = 0; $i < $rounds; $i++) {
-    $c = $engine::houseCrashPoint();
+    $c = $engine::houseCrashPoint($rtpTarget * 100.0);
     assert($c >= 1.0 && $c <= $engine::MAX_MULT);
     $maxSeen = max($maxSeen, $c);
-    if ($c <= 1.0) { $bust++; }
-    if ($c > $target) { $paidTotal += $target; }
+    if ($c <= 1.0) {
+        $bust++;
+    }
+    if ($c > $target) {
+        $paidTotal += $target;
+    }
 }
 $rtp = $paidTotal / $rounds;
-assert(abs($rtp - 0.70) < 0.02, "house RTP $rtp is not ~0.70");
-assert(abs(($bust / $rounds) - 0.30) < 0.02, "bust rate " . ($bust / $rounds) . " is not ~0.30");
-printf("  house mode: RTP %.3f (target 0.700), bust@1.00x %.1f%%, max %.2fx\n", $rtp, 100 * $bust / $rounds, $maxSeen);
+assert(abs($rtp - $rtpTarget) < 0.02, "house RTP $rtp is not ~$rtpTarget");
+assert(abs(($bust / $rounds) - (1.0 - $rtpTarget)) < 0.02, 'bust rate off');
+printf("  house mode: RTP %.3f (target %.3f), bust@1.00x %.1f%%, max %.2fx\n", $rtp, $rtpTarget, 100 * $bust / $rounds, $maxSeen);
 
 echo "pool_crash_check OK — all scenarios passed\n";

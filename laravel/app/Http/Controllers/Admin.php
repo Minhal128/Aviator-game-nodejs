@@ -92,6 +92,7 @@ class Admin extends Controller
         return $this->page('admin.referral', [
             'referralBonus' => Setting::where('category', 'referral_bonus')->value('value') ?? '100',
             'referrerBonus' => Setting::where('category', 'referrer_bonus')->value('value') ?? '100',
+            'bonusWagerMult' => Setting::where('category', 'bonus_wager_mult')->value('value') ?? '1',
         ]);
     }
     /**

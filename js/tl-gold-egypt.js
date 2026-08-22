@@ -29,6 +29,7 @@
     const post = async (url, body) => {
         const res = await fetch(url, {
             method: 'POST',
+            credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': wallet.token },
             body: JSON.stringify(body || {}),
         });
@@ -58,88 +59,92 @@
 
     document.addEventListener('DOMContentLoaded', () => document.body.appendChild(banner));
 
-    // Visible CASHOUT (Glamour-style). Panel art still says LINES — players never find the tap target.
-    const cashBtn = document.createElement('button');
-    cashBtn.id = 'tl-gold-cash';
-    cashBtn.type = 'button';
-    cashBtn.className = 'tl-slot-cash';
-    cashBtn.innerHTML = 'CASHOUT <span id="tl-gold-held">₹0.00</span>';
-
-    function placeCashBtn() {
-        const c = document.querySelector('canvas');
-        if (!c || !cashBtn.isConnected) return;
-        const r = c.getBoundingClientRect();
-        if (!r.width || !r.height) return;
-        // bottom-left LINES box on the 1850×1080 egypt layout
-        const left = r.left + r.width * 0.012;
-        const top = r.top + r.height * 0.86;
-        const w = r.width * 0.16;
-        const h = r.height * 0.09;
-        cashBtn.style.cssText = 'position:fixed;left:' + left + 'px;top:' + top + 'px;width:' + w + 'px;height:' + h + 'px;'
-            + 'z-index:2147483000;display:flex;align-items:center;justify-content:center;gap:6px;'
-            + 'padding:0 8px;cursor:pointer;box-sizing:border-box;pointer-events:auto;font-size:14px';
-    }
-
-    function mountCashBtn() {
-        if (cashBtn.isConnected) return;
-        document.body.appendChild(cashBtn);
-        cashBtn.addEventListener('pointerdown', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            doCashout();
-        });
-        cashBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); });
-        placeCashBtn();
-        window.addEventListener('resize', placeCashBtn);
-        window.addEventListener('orientationchange', placeCashBtn);
-        setInterval(placeCashBtn, 1000);
-    }
-
     // ---- portrait phones ---------------------------------------------------
     // slotGame.js builds a fixed 1850x1080 landscape canvas on Scale.FIT, and there
     // is no portrait layout in the build. On a 375px-wide phone FIT gives a 219px
     // band - about a fifth of the screen - and the TOTAL BET +/- sprites come out
-    // 129 * (375/1850) = 26 CSS px, well under a thumb, with the TOTAL BET text that
-    // opens the stake dialog sitting between them. That is why +/- "does not add
-    // 100" on a phone: the taps land on the neighbour. Landscape fixes it outright -
-    // at 812x375 the same buttons are ~45px and the canvas fills the height.
+    // 129 * (375/1850) = 26 CSS px, well under a thumb.
     //
-    // ponytail: a prompt, not a CSS rotate. Phaser maps pointers through
-    // canvas.getBoundingClientRect(), which reports a rotated element axis-aligned,
-    // so rotating the canvas would silently send every tap to the wrong place.
-    const rotate = document.createElement('div');
-    rotate.id = 'tl-gold-rotate';
-    rotate.style.cssText = 'position:fixed;inset:0;z-index:10001;display:none;flex-direction:column;'
-        + 'align-items:center;justify-content:center;gap:18px;background:#0e0c16;color:#fff;'
-        + 'text-align:center;padding:24px;font:600 16px/1.5 Roboto,system-ui,sans-serif';
-    rotate.innerHTML = '<div style="font-size:52px">📱</div>'
-        + '<div>Turn your phone sideways to play<br><span style="opacity:.6;font-weight:400;font-size:14px">'
-        + 'Gold of Egypt is a landscape game</span></div>'
-        + '<button type="button" style="padding:12px 22px;border:0;border-radius:10px;background:#e50539;'
-        + 'color:#fff;font:600 15px Roboto,system-ui,sans-serif">Play full screen</button>';
-
-    // Only phones/tablets get this. A desktop window can just be widened.
+    // ponytail: auto landscape — try orientation.lock, else CSS-rotate the page
+    // (never ask the user to turn the phone). Phaser maps pointers via pageX/Y, so
+    // CSS-rotate remaps them before transformPointer. Do not transform the canvas
+    // alone (AABB would still break hits).
     const touch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
 
-    function paintOrientation() {
-        if (!rotate.isConnected) return;
-        rotate.style.display = (touch && window.innerHeight > window.innerWidth) ? 'flex' : 'none';
+    function isPortrait() {
+        return window.innerHeight > window.innerWidth;
     }
 
-    rotate.querySelector('button').addEventListener('click', () => {
-        // lock() needs fullscreen, and iOS Safari has neither - both are best effort,
-        // and the overlay stays up until the phone is actually sideways
+    function lockLandscape() {
         const el = document.documentElement;
-        const full = el.requestFullscreen ? el.requestFullscreen() : Promise.reject();
-        full.then(() => screen.orientation && screen.orientation.lock('landscape')).catch(() => {});
-    });
+        const lock = () => {
+            try {
+                if (screen.orientation && screen.orientation.lock) {
+                    return screen.orientation.lock('landscape').catch(function () {});
+                }
+            } catch (e) {}
+            return Promise.resolve();
+        };
+        if (document.fullscreenElement) return lock();
+        if (el.requestFullscreen) {
+            return el.requestFullscreen().then(lock, lock);
+        }
+        return lock();
+    }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        document.body.appendChild(rotate);
-        paintOrientation();
-    });
-    window.addEventListener('resize', paintOrientation);
-    window.addEventListener('orientationchange', paintOrientation);
+    (function injectCssLand() {
+        if (document.getElementById('tl-gold-css-land')) return;
+        const s = document.createElement('style');
+        s.id = 'tl-gold-css-land';
+        s.textContent = 'html.tl-gold-css-land,html.tl-gold-css-land body{width:100vh!important;height:100vw!important;'
+            + 'overflow:hidden!important;margin:0!important;padding:0!important}'
+            + 'html.tl-gold-css-land body{position:absolute!important;top:-100vw!important;left:0!important;'
+            + 'transform:rotate(90deg);transform-origin:bottom left}';
+        document.head.appendChild(s);
+    })();
+
+    function patchPhaserPointers() {
+        const game = typeof slotGame !== 'undefined' ? slotGame : null;
+        if (!game || !game.input || !game.input.manager || game.input.manager.__tlLand) return;
+        const mgr = game.input.manager;
+        mgr.__tlLand = true;
+        const orig = mgr.transformPointer.bind(mgr);
+        mgr.transformPointer = function (pointer, pageX, pageY, wasMove) {
+            if (document.documentElement.classList.contains('tl-gold-css-land')) {
+                const x = pageY;
+                const y = window.innerWidth - pageX;
+                return orig(pointer, x, y, wasMove);
+            }
+            return orig(pointer, pageX, pageY, wasMove);
+        };
+    }
+
+    function syncLandscape() {
+        if (!touch) {
+            document.documentElement.classList.remove('tl-gold-css-land');
+            return;
+        }
+        if (!isPortrait()) {
+            document.documentElement.classList.remove('tl-gold-css-land');
+            return;
+        }
+        // ponytail: no Promise.finally — old Android WebViews lack it
+        lockLandscape().then(afterLock, afterLock);
+        function afterLock() {
+            if (isPortrait()) document.documentElement.classList.add('tl-gold-css-land');
+            else document.documentElement.classList.remove('tl-gold-css-land');
+            patchPhaserPointers();
+            if (typeof slotGame !== 'undefined' && slotGame && slotGame.scale) slotGame.scale.refresh();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', syncLandscape);
+    window.addEventListener('resize', syncLandscape);
+    window.addEventListener('orientationchange', syncLandscape);
+    document.addEventListener('pointerdown', function () {
+        if (touch && isPortrait()) lockLandscape().then(syncLandscape, syncLandscape);
+    }, true);
+    setInterval(patchPhaserPointers, 500);
 
     function scene() {
         const game = (typeof slotGame !== 'undefined') ? slotGame : null;
@@ -157,15 +162,15 @@
         return inrText(Number(coins) / TL.coinsPerUnit);
     }
 
-    /** Bitmap font hides `.` → money fields use canvas text with visible decimals. */
-    function useReadableMoneyText(bmp) {
+    /** Bitmap font hides `.` / some letters → canvas text for money + CASHOUT. */
+    function useReadableMoneyText(bmp, fontSize) {
         if (!bmp) return bmp;
         if (bmp.__tlMoney) return bmp.__tlMoney;
         const sc = bmp.scene;
         const t = sc.add
             .text(bmp.x, bmp.y, '0.00', {
                 fontFamily: 'Arial, Helvetica, sans-serif',
-                fontSize: '40px',
+                fontSize: (fontSize || 40) + 'px',
                 fontStyle: '700',
                 color: '#ffffff',
             })
@@ -297,6 +302,7 @@
         const controls = Object.getPrototypeOf(s.slotControls);
         if (player.__tlOwned) return true;
 
+        try {
         player.addCoins = function (count) {
             if (count > 0) settle();
         };
@@ -308,22 +314,21 @@
 
         rebindClick(s.slotControls.totalBetPlusButton, () => stepStake(1));
         rebindClick(s.slotControls.totalBetMinusButton, () => stepStake(-1));
-        rebindClick(s.slotControls.slotMaxBetButton, () => {
-            s.slotControls.linesController.selectAllLines(true);
-            setStakeInr(maxInr());
-            if (s.soundController) s.soundController.playClip('button_click');
-        });
+        // CASHOUT lives on the native MAX BET button (no HTML overlay)
+        const cashLab = useReadableMoneyText(s.slotControls.maxBetText, 28);
+        if (cashLab && cashLab.setText) cashLab.setText('CASHOUT');
+        s.slotControls.__tlCashAmt = useReadableMoneyText(s.slotControls.maxBetText1, 30);
+        if (s.slotControls.__tlCashAmt && s.slotControls.__tlCashAmt.setText) {
+            s.slotControls.__tlCashAmt.setText('0.00');
+        }
+        rebindClick(s.slotControls.slotMaxBetButton, doCashout);
 
         // Idle money check must use exact stake, not 243×lineBet
         s.slotControls.getTotalBet = function () {
             return Math.round(TL.stakeInr * TL.coinsPerUnit);
         };
 
-        // LINES box → CASHOUT (same row as TOTAL BET). Lines stay pinned at 243.
-        if (s.slotControls.linesText) {
-            s.slotControls.linesText.setText('CASHOUT');
-            s.slotControls.linesText.setVisible(true);
-        }
+        // Left panel mirrors held ₹ (label stays LINES — bitmap may lack H/D for HELD)
         if (s.slotControls.linesPanel) s.slotControls.linesPanel.setVisible(true);
         if (s.slotControls.linesCountText) s.slotControls.linesCountText.setVisible(true);
 
@@ -337,13 +342,6 @@
         s.slotControls.creditSumText = balSum;
         s.slotControls.linesCountText = heldSum;
 
-        [s.slotControls.linesPanel, s.slotControls.linesText, heldSum].forEach((o) => {
-            if (!o || o.__tlCash) return;
-            o.__tlCash = true;
-            o.setInteractive();
-            o.on('pointerdown', doCashout);
-        });
-
         s.slotControls.changeTotalBetEvent.events = [];
         s.slotControls.changeTotalBetEvent.add(function (coins) {
             paintBet(this);
@@ -355,8 +353,8 @@
         }, s.slotControls);
 
         s.slotPlayer.changeWinCoinsEvents = [];
-        s.slotPlayer.addWinCoinsChangeEvent(function (coins) {
-            paintWin(this, coins);
+        s.slotPlayer.addWinCoinsChangeEvent(function () {
+            paintHeld((TL.pending && TL.pending.heldCoins) || 0);
         }, s.slotControls);
 
         s.slotControls.refreshBetLines = function () {
@@ -379,6 +377,10 @@
 
         player.__tlOwned = true;
         return true;
+        } catch (e) {
+            console.warn('[tl] gold takeover failed', e);
+            return false;
+        }
     }
 
     function abortSpin(reels, cfg, completeCallback, msg) {
@@ -420,11 +422,8 @@
             }
             TL.message('');
             TL.pending = res.data;
-            if (wallet && typeof res.data.balance === 'number') {
-                wallet.balance = res.data.balance;
-                if (typeof window.TL_setWallet === 'function') window.TL_setWallet(res.data.balance);
-                syncMaxLineBet();
-            }
+            // paint balance as soon as the server takes the stake (don't wait for reel stop)
+            applyWallet(res.data);
             cfg.reels_simulate = res.data.stops;
             origSpinReels(reels, cfg, completeCallback);
         }).catch(() => {
@@ -434,19 +433,25 @@
 
     function paintHeld(coins) {
         const s = scene();
+        const amt = coinsToInrText(coins);
         if (s && s.slotControls && s.slotControls.linesCountText && s.slotControls.linesCountText.setText) {
-            s.slotControls.linesCountText.setText(coinsToInrText(coins));
+            s.slotControls.linesCountText.setText(amt);
         }
+        if (s && s.slotControls && s.slotControls.__tlCashAmt && s.slotControls.__tlCashAmt.setText) {
+            s.slotControls.__tlCashAmt.setText(amt);
+        }
+        var goldChip = document.getElementById('tl-gold-held');
+        if (goldChip) goldChip.textContent = '₹' + amt;
         paintWin(s && s.slotControls, coins);
-        const el = document.getElementById('tl-gold-held');
-        if (el) el.textContent = '₹' + coinsToInrText(coins);
     }
 
     function applyWallet(data) {
-        if (!data || typeof data.balance !== 'number') return;
-        wallet.balance = data.balance;
-        if (typeof window.TL_setWallet === 'function') window.TL_setWallet(data.balance);
-        if (typeof data.coins === 'number') showBalance(data.coins);
+        if (!data) return;
+        const bal = Number(data.balance);
+        if (!Number.isFinite(bal)) return;
+        wallet.balance = bal;
+        if (typeof window.TL_setWallet === 'function') window.TL_setWallet(bal);
+        if (data.coins != null && Number.isFinite(Number(data.coins))) showBalance(Number(data.coins));
         syncMaxLineBet();
         if (stakeInr() > maxInr()) setStakeInr(maxInr());
     }
@@ -474,13 +479,29 @@
         }).catch(() => TL.message('Connection lost.'));
     }
 
-    let tries = 0;
+    (function mountGoldCash() {
+        if (document.getElementById('tl-gold-cash')) return;
+        const b = document.createElement('button');
+        b.id = 'tl-gold-cash';
+        b.className = 'tl-slot-cash';
+        b.type = 'button';
+        b.setAttribute('aria-label', 'Cashout to wallet');
+        b.innerHTML = 'CASHOUT <span id="tl-gold-held">₹0.00</span>';
+        b.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;height:52px;z-index:2147483000;pointer-events:auto';
+        b.addEventListener('pointerdown', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            doCashout();
+        });
+        (document.body || document.documentElement).appendChild(b);
+    })();
+
+    // ponytail: mobile assets are huge — never give up waiting for Phaser controls
     (function attach() {
         if (!takeOverMoney()) {
-            if (++tries < 400) setTimeout(attach, 50);
+            setTimeout(attach, 100);
             return;
         }
-        mountCashBtn();
         // Block runSlot before the reels sequence starts (client coins can lag the wallet HUD).
         const sc0 = scene();
         if (sc0 && !sc0.__tlRunGuard) {

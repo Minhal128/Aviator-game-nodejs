@@ -58,7 +58,7 @@
 
         window.TL_setWallet = function (n) {
             var v = Number(n);
-            if (isNaN(v)) return;
+            if (!isFinite(v)) return;
             w.balance = v;
             paint(v);
         };

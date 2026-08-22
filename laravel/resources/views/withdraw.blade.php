@@ -4,6 +4,17 @@
         <div class="tl-wallet-head">
             <h1>Cashier</h1>
             <div class="tl-wallet-bal">Wallet balance <b>{{wallet(user('id'))}}</b></div>
+            @php
+                $wrow = ensure_wallet(user('id'));
+                $locked = (float) ($wrow->bonus ?? 0);
+            @endphp
+            @if ($locked > 0)
+                <div class="tl-wallet-bal" style="opacity:.85;font-size:.92em">
+                    Withdrawable <b>{{withdrawable(user('id'))}}</b>
+                    · bonus locked <b>{{number_format($locked, 2)}}</b>
+                    (wager {{number_format((float) $wrow->wager_left, 2)}} more to unlock)
+                </div>
+            @endif
         </div>
         <div class="pay-tabs">
             <a href="/deposit" class="custom-tabs-link">DEPOSIT</a>
@@ -17,7 +28,7 @@
                                 <!--<div class="grid-list">-->
                                 <!--    <button class="btn payment-btn" data-bs-toggle="modal" data-bs-target="#withdraw-modal"-->
                                 <!--        onclick="withdraw('1' , '')">-->
-                                <!--        <img src="images/app-logo/g_pay_mt.svg " />-->
+                                <!--        <img src="{{ asset('images/app-logo/g_pay_mt.svg') }}" />-->
                                 <!--        <div class="PaymentCard_limit">GPay</div>-->
                                 <!--    </button>-->
                                 <!--</div>-->
@@ -28,7 +39,7 @@
                                 <!--<div class="grid-list">-->
                                 <!--    <button class="btn payment-btn" data-bs-toggle="modal" data-bs-target="#withdraw-modal"-->
                                 <!--        onclick="withdraw('2' , '')">-->
-                                <!--        <img src="images/app-logo/phone_pe_mt.svg " />-->
+                                <!--        <img src="{{ asset('images/app-logo/phone_pe_mt.svg') }}" />-->
                                 <!--        <div class="PaymentCard_limit">PhonePe</div>-->
                                 <!--    </button>-->
                                 <!--</div>-->
@@ -37,7 +48,7 @@
                                 <div class="grid-list">
                                     <button class="btn payment-btn" data-bs-toggle="modal" data-bs-target="#withdraw-modal"
                                         onclick="withdraw('6' , '{{setting('min_withdrawal')}}')">
-                                        <img src="images/app-logo/netbankinglogo.png" alt="Net Banking" />
+                                        <img src="{{ asset('images/app-logo/netbankinglogo.png') }}" alt="Net Banking" />
                                         <div class="PaymentCard_limit">Net Banking</div>
                                     </button>
                                 </div>
@@ -45,7 +56,7 @@
                                 <div class="grid-list">
                                     <button class="btn payment-btn" data-bs-toggle="modal" data-bs-target="#withdraw-modal"
                                         onclick="withdraw('3' , '{{setting('min_withdrawal')}}')">
-                                        <img src="images/app-logo/upiMt.svg " alt="UPI" />
+                                        <img src="{{ asset('images/app-logo/upiMt.svg') }}" alt="UPI" />
                                         <div class="PaymentCard_limit">UPI</div>
                                     </button>
                                 </div>
@@ -53,7 +64,7 @@
                                 <!--<div class="grid-list">-->
                                 <!--    <button class="btn payment-btn" data-bs-toggle="modal" data-bs-target="#withdraw-modal"-->
                                 <!--        onclick="withdraw('5' , '')">-->
-                                <!--        <img src="images/app-logo/paytm_amount.svg " />-->
+                                <!--        <img src="{{ asset('images/app-logo/paytm_amount.svg') }}" />-->
                                 <!--        <div class="PaymentCard_limit">Payment</div>-->
                                 <!--    </button>-->
                                 <!--</div>-->
@@ -61,7 +72,7 @@
                                 <!--<div class="grid-list">-->
                                 <!--    <button class="btn payment-btn" data-bs-toggle="modal" data-bs-target="#withdraw-modal"-->
                                 <!--        onclick="withdraw('9' , '')">-->
-                                <!--        <img src="images/app-logo/imps.svg " />-->
+                                <!--        <img src="{{ asset('images/app-logo/imps.svg') }}" />-->
                                 <!--        <div class="PaymentCard_limit">imps</div>-->
                                 <!--    </button>-->
                                 <!--</div>-->
@@ -102,8 +113,8 @@
                                         oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1').replace(/^0[^.]/, '0');">
                                 </label>
                             </div>
-                            <label for="amount" class="form-label text-secondary">Available balance {{wallet(user('id'))}} &middot; minimum {{setting('min_withdrawal')}} &middot; paid out by hand after an admin approves</label>
-                            <input type="hidden" name="wallet_balance" id="balance" value="{{wallet(user('id'),"num")}}">
+                            <label for="amount" class="form-label text-secondary">Withdrawable {{withdrawable(user('id'))}} of {{wallet(user('id'))}} total &middot; minimum {{setting('min_withdrawal')}} &middot; bonus must be played before cash-out</label>
+                            <input type="hidden" name="wallet_balance" id="balance" value="{{withdrawable(user('id'),"num")}}">
                         </div>
                         <label id="amount-error" class="error" for="amount"></label>
 
@@ -177,6 +188,7 @@
         'Success' => ['success', 'Request sent. An admin pays out by hand, then it leaves your balance.'],
         'min'     => ['error', 'Minimum withdrawal is ' . setting('min_withdrawal') . '.'],
         'balance' => ['error', 'That is more than your balance.'],
+        'bonus'   => ['error', 'Bonus must be played first. You can withdraw up to ' . withdrawable(user('id')) . '.'],
         'error'   => ['error', 'Something went wrong, please try again.'],
     ][$_GET['msg']] ?? null;
 @endphp

@@ -15,6 +15,8 @@ ob_start(static function ($html) {
     // bank IFSC in the deposit instructions (a real IFSC the player needs) is untouched.
     $html = preg_replace('/(id="ifsc_code_title"[^>]*>)\s*IFSC[^<]*/i', '$1UTR Code / Number', $html) ?? $html;
     $html = preg_replace('/(<label[^>]*for="ifsc_code"[^>]*>)\s*IFSC[^<]*/i', '$1UTR Code / Number', $html) ?? $html;
+    // ponytail: old Pages.php left base on /slot-glamour/ (PHP→508); force Apache path
+    $html = str_replace('base href="/slot-glamour/"', 'base href="/slotglamor/game/"', $html);
     if (strpos($html, 'Download Game') === false) {
         $html = preg_replace(
             '/(?=<button class="register-btn)/',
