@@ -45,10 +45,6 @@
     <link rel="stylesheet" href="../../css/dataTables.bootstrap5.min.css" />
     <link rel="stylesheet" href="../../css/responsive.dataTables.min.css" />
 
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-
-
     <style>
         label.error {
             color: #fa0000;
@@ -1249,7 +1245,7 @@
 
     <!--====== Slimscroll js ======-->
     <!--<script src="/js/jquery.mCustomScrollbar.js"></script>-->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/malihu-custom-scrollbar-plugin/3.1.5/jquery.mCustomScrollbar.concat.min.js"></script>
+    <script src="/js/jquery.mCustomScrollbar.js"></script>
 
 
     <!--====== Country Selection js ======-->
@@ -1275,7 +1271,7 @@
     <script src="/js/jquery.dataTables.min.js"></script>
     <script src="/js/dataTables.bootstrap5.min.js"></script>
     <script src="/js/dataTables.responsive.min.js"></script>
-    <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+    <script src="/unpkg.com/sweetalert%402.1.2/dist/sweetalert.min.js"></script>
     <script>
         var successMessage = '';
         var errorMessage = '';
@@ -1290,8 +1286,14 @@
         var is_game_generated = 0;
     </script>
     <script src="/user/avatar.js"></script>
-    <script src="/user/canvas.js"></script>
+    <script src="/user/canvas.js?v=20260823-mob"></script>
+    @php
+        $sock = (string) env('GAME_SOCKET_URL', '');
+        $sockLive = $sock !== '' && !preg_match('#^https?://(127\.0\.0\.1|localhost)#i', $sock);
+    @endphp
+    @if ($sockLive)
     <script src="/socket.io/socket.io.js"></script>
+    @endif
     <script src="/user/aviatorold.js?v={{env('APP_VERSION')}}"></script>
     <script src="/user/aviatorbyapp.js?v={{env('APP_VERSION')}}"></script>
 

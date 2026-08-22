@@ -1,14 +1,19 @@
 // audio.js
-export const sndBgm = new Audio('assets/audio/bgm.mp3'); 
+function a(src) {
+    var el = new Audio(src);
+    el.preload = 'none';
+    return el;
+}
+export const sndBgm = a('assets/audio/bgm.mp3');
 sndBgm.loop = true;
-export const sndCrash = new Audio('assets/audio/crash.mp3');
-export const sndPassby = new Audio('assets/audio/passby.mp3');
-export const sndHonk1 = new Audio('assets/audio/honk1.mp3');
-export const sndHonk2 = new Audio('assets/audio/honk2.mp3');
-export const sndBrake = new Audio('assets/audio/brake.mp3');
-export const sndGo = new Audio('assets/audio/go.mp3');
-export const sndCashout = new Audio('assets/audio/cashout.mp3');
-export const sndButton = new Audio('assets/audio/buttons.mp3');
+export const sndCrash = a('assets/audio/crash.mp3');
+export const sndPassby = a('assets/audio/passby.mp3');
+export const sndHonk1 = a('assets/audio/honk1.mp3');
+export const sndHonk2 = a('assets/audio/honk2.mp3');
+export const sndBrake = a('assets/audio/brake.mp3');
+export const sndGo = a('assets/audio/go.mp3');
+export const sndCashout = a('assets/audio/cashout.mp3');
+export const sndButton = a('assets/audio/buttons.mp3');
 
 let sfxVolume = 1.0;
 

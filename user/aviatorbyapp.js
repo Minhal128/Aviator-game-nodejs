@@ -161,6 +161,9 @@ var _last_tick_at = 0;
 (function initGameSocket() {
     // ponytail: empty GAME_SOCKET_URL means no game-server, so stay on the poll
     if (typeof io === 'undefined' || typeof GAME_SOCKET_URL === 'undefined' || !GAME_SOCKET_URL) return;
+    // default env is 127.0.0.1:3001 — on a real phone that is the phone, not the game
+    if (/^https?:\/\/(127\.0\.0\.1|localhost)\b/i.test(GAME_SOCKET_URL)
+        && !/^(127\.0\.0\.1|localhost)$/i.test(location.hostname)) return;
     try {
         gameSocket = io(GAME_SOCKET_URL, { transports: ['websocket', 'polling'], autoConnect: true });
         gameSocket.on('tick', function (tick) {
@@ -201,7 +204,9 @@ function startRoundWatchdog() {
             _round_watchdog = null;
             return;
         }
-        if (Date.now() - _last_progress_at > 5000) {
+        // no tick yet → wait; a 5s stall at 1.00x on slow mobile was ending the round instantly
+        if (!_last_progress_mult) return;
+        if (Date.now() - _last_progress_at > 12000) {
             end_flight_crash($("#auto_increment_number").text().slice(0, -1) || '1.00');
         }
     }, 1000);
@@ -249,7 +254,7 @@ function startFlightPoll(gameId) {
                 }
             }
         });
-    }, 100);
+    }, 250);
 }
 
 function run_multiplier() {

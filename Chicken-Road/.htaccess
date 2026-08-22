@@ -1,0 +1,7 @@
+# Serve art/js/audio off disk so they never lock the Laravel session.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+    RewriteRule ^ /index.php [L]
+</IfModule>

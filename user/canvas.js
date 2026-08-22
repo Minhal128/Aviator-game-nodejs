@@ -119,7 +119,7 @@ function setVariable(is_plan = '') {
         imgwidth = 200;
         imgyposition = 45;
         imgxposition = 10;
-        imgTag.src = "./images/sprite2.png";
+        imgTag.src = "/images/canvas/plane-2.svg";
         settimeinterval = 40;
         checkuplinedownlinecount = 50;
 
@@ -129,7 +129,7 @@ function setVariable(is_plan = '') {
         imgwidth = 300;
         imgyposition = 66;
         imgxposition = 15;
-        imgTag.src = "./images/sprite3.png";
+        imgTag.src = "/images/canvas/plane-3.svg";
         settimeinterval = 20;
         checkuplinedownlinecount = 150;
     }
@@ -418,7 +418,7 @@ function drawBezierSplit(ctx, x0, y0, x1, y1, x2, y2, t0, t1, imgTag) {
             animationVerticalDots();
             ctx.moveTo(x0, y0);
             ctx.quadraticCurveTo(x1, y1, x2, y2);
-            GameObject(imgTag, x2 - imgxposition, y2 - imgyposition, imgwidth, imgheight, 300, 2, ctx);
+            GameObject(imgTag, x2 - imgxposition, y2 - imgyposition, imgwidth, imgheight, 300, 1, ctx);
             ctx.lineWidth = 5;
             ctx.strokeStyle = '#F00B3E';
             ctx.stroke();
@@ -455,7 +455,7 @@ function drawBezierSplit(ctx, x0, y0, x1, y1, x2, y2, t0, t1, imgTag) {
                 ny1 = lerp(lerp(y0, y1, t0), lerp(y1, y2, t0), t1);
             ctx.moveTo(nx0, ny0);
             ctx.quadraticCurveTo(nx1, ny1, nx2, ny2);
-            GameObject(imgTag, nx2 - imgxposition, ny2 - imgyposition, imgwidth, imgheight, 300, 2, ctx);
+            GameObject(imgTag, nx2 - imgxposition, ny2 - imgyposition, imgwidth, imgheight, 300, 1, ctx);
             ctx.lineWidth = 5;
             ctx.strokeStyle = '#F00B3E';
             ctx.stroke();

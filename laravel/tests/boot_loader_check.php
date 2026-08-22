@@ -7,7 +7,9 @@ $root = __DIR__ . '/../resources/views';
 $boot = file_get_contents($root . '/include/tl-boot.blade.php');
 assert(str_contains($boot, 'id="tl-boot"'), 'boot markup');
 assert(str_contains($boot, 'tl-boot-spin'), 'boot spinner');
-assert(str_contains($boot, "addEventListener('load'"), 'hides on load');
+assert(str_contains($boot, "addEventListener('DOMContentLoaded'"), 'hides on DOMContentLoaded');
+assert(str_contains($boot, 'setTimeout(hide, 4000)'), 'boot timeout so CDNs cannot freeze mobile');
+assert(!str_contains($boot, "addEventListener('click'"), 'click overlay froze games on mobile');
 
 foreach (['Layout/usergame.blade.php', 'Layout/usergame2.blade.php'] as $f) {
     $html = file_get_contents("$root/$f");
