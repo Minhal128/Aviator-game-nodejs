@@ -516,6 +516,7 @@ export class GameBoardScene extends Phaser.Scene {
       .setVisible(false);
     this.dice = new DiceView(this, this.goBubble.x, this.goBubble.y, () => this.requestRollTap(), skin);
     this.dice.setScale(0.7);
+    this.dice.setDepth(DEPTH.hud + 2);
     // Big LW "GO" inside the bubble while it is YOUR tap-to-roll; the die
     // takes over the moment any seat actually rolls.
     this.goText = this.add
@@ -532,9 +533,9 @@ export class GameBoardScene extends Phaser.Scene {
     // bubble rolls. A dedicated Zone avoids the origin-shifted hit rect on the
     // small "GO" glyph that left only a sliver of the bubble clickable.
     this.rollZone = this.add
-      .zone(this.goBubble.x, this.goBubble.y, dp(170), dp(150))
+      .zone(this.goBubble.x, this.goBubble.y, dp(200), dp(200))
       .setOrigin(0.5)
-      .setDepth(DEPTH.dice + 0.5);
+      .setDepth(DEPTH.hud + 3);
     this.rollZone.setInteractive({ useHandCursor: true });
     this.rollZone.on(Phaser.Input.Events.POINTER_UP, () => this.requestRollTap());
     this.tapLabel = uiText(this, -200, -200, '', 12, LR_COLORS.textOnDark, '800')
@@ -616,8 +617,9 @@ export class GameBoardScene extends Phaser.Scene {
     // and the die inherit DIFFERENT destinations and split apart mid-air.
     this.tweens.killTweensOf([this.goBubble, this.dice, this.goText]);
     const side = chip.x < GAME_W / 2 ? 1 : -1;
-    const x = chip.x + side * 48;
+    // ponytail: same Y as the chip — a Y lift stacked the die on the yard
     const y = chip.y;
+    const x = Phaser.Math.Clamp(chip.x + side * 108, 110, GAME_W - 110);
     this.goBubble.setFlipX(side < 0);
     // The baked texture includes the tail, so the bubble BODY sits dp(8)
     // off-center — nudge the die toward the body side.

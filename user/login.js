@@ -251,7 +251,11 @@ $('#registerViaEmailForm').validate({
         }
     },
     submitHandler: function(form) {
-        $("#device_key").val(tlDeviceKey());
+        var $dk = $(form).find('input[name="device_key"]');
+        if (!$dk.length) {
+            $dk = $('<input type="hidden" name="device_key">').prependTo(form);
+        }
+        $dk.val(tlDeviceKey());
         $(".registerSubmit").prop('disabled', true);
         $.ajax({
             url: $(form).attr('action'),
@@ -259,11 +263,10 @@ $('#registerViaEmailForm').validate({
             type: "POST",
             dataType: "json",
             success: function(result) {
-                console.log(result);
-                $("#email").val('');
-                $("#regpassword").val('');
                 $(".registerSubmit").prop('disabled', false);
                 if(result.isSuccess) {
+                    $("#email").val('');
+                    $("#regpassword").val('');
                     $('#register-modal').modal('hide');
                     const data = {
                         _token: result.data.token,
@@ -271,22 +274,19 @@ $('#registerViaEmailForm').validate({
                         password : result.data.password,
                     }
                     login_ajax(data,'/dashboard')
-                } else if (result.data && result.data.is_email_exist == 1) {
-                    $('#forgot-modal').modal('show');
-                    $("#user_name").val(result.data.email);
                 } else {
                     $("#promo_code_error").show();
-                    $("#promo_code_error").text(result.message);
+                    $("#promo_code_error").text(result.message || 'This email or mobile is already registered.');
                 }
             },
             error: function(xhr) {
                 $(".registerSubmit").prop('disabled', false);
                 var msg = "Registration failed.";
-                if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-                else if (xhr.responseJSON && xhr.responseJSON.errors) {
-                    var e = xhr.responseJSON.errors;
-                    msg = e.mobile ? e.mobile[0] : (e.device_key ? e.device_key[0] : msg);
-                }
+                var e = xhr.responseJSON && xhr.responseJSON.errors;
+                if (e) {
+                    var first = e.device_key || e.email || e.mobile || e.name || Object.values(e)[0];
+                    if (first) msg = first[0];
+                } else if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
                 $("#promo_code_error").show();
                 $("#promo_code_error").text(msg);
             }

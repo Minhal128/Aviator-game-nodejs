@@ -624,7 +624,7 @@
             }
         })
     </script>
-    <script src="{{ asset('user/login.js') }}?v=20260820-device"></script>
+    <script src="{{ asset('user/login.js') }}?v=20260824-refreg"></script>
     @yield('js')
 </body>
 

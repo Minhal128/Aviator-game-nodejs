@@ -18,7 +18,8 @@ class Authentication extends Controller
         $data = "";
         $isSuccess = false;
         $message = "";
-        $usernameexist = User::where('mobile', $r->username)->orWhere('email', $r->username)->first();
+        $login = trim((string) $r->username);
+        $usernameexist = User::where('mobile', $login)->orWhereRaw('LOWER(email) = ?', [strtolower($login)])->first();
         if ($usernameexist) {
             if (Hash::check($r->password, $usernameexist->password)) {
                 $r->session()->put('userlogin', $usernameexist);
@@ -42,7 +43,7 @@ class Authentication extends Controller
             'email' => 'required|email',
             'password' => 'required',
             'mobile' => 'required',
-            'device_key' => 'required|string|min:16|max:80',
+            'device_key' => 'nullable|string|max:80',
         ]);
 
         $fail = function (string $message) {
@@ -54,20 +55,12 @@ class Authentication extends Controller
             return $fail('Enter a valid 10-digit mobile number.');
         }
 
-        // ponytail: browser UUID in localStorage+cookie — clearing both / private mode bypasses
-        $deviceKey = trim((string) $r->device_key);
-        if (!preg_match('/^[A-Za-z0-9_-]{16,80}$/', $deviceKey)) {
-            return $fail('This device could not be verified. Refresh and try again.');
-        }
-
+        $email = strtolower(trim((string) $r->email));
         if (User::where('mobile', $mobile)->exists()) {
             return $fail('This mobile number is already registered.');
         }
-        if (User::where('email', $r->email)->exists()) {
+        if (User::whereRaw('LOWER(email) = ?', [$email])->exists()) {
             return $fail('This email is already registered.');
-        }
-        if (User::where('device_key', $deviceKey)->exists()) {
-            return $fail('An account was already created on this device.');
         }
 
         $promocode = '';
@@ -91,8 +84,7 @@ class Authentication extends Controller
         $user->name = $r->name;
         $user->image = '/images/avtar/av-' . rand(1, 72) . '.png';
         $user->mobile = $mobile;
-        $user->device_key = $deviceKey;
-        $user->email = $r->email;
+        $user->email = $email;
         $user->password = Hash::make($r->password);
         $user->currency = '₹';
         $user->gender = $r->gender;

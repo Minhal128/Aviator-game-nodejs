@@ -35,10 +35,11 @@ export const CHIP = {
   radius: dp(80) / 2, // 40 — big, readable avatars (Jose: "mas grandes")
   rivalRadius: dp(80) / 2,
   youRadius: dp(80) / 2,
-  topY: 148,
+  topY: 186,
   bottomY: 952,
-  leftX: 78,
-  rightX: GAME_W - 78,
+  // ponytail: 78 put the You+die stack on the canvas edge (clipped, untappable)
+  leftX: 124,
+  rightX: GAME_W - 124,
 } as const;
 
 export const ACTION = {

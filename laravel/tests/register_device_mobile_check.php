@@ -11,9 +11,9 @@ use App\Http\Controllers\Authentication;
 use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
 
-assert(Schema::hasColumn('users', 'device_key'), 'device_key column');
+$src = file_get_contents(dirname(__DIR__) . '/app/Http/Controllers/Authentication.php');
+assert(!str_contains($src, 'already created on this device'), 'device unique check removed');
 
 $auth = new Authentication();
 $stamp = (string) time();
@@ -43,6 +43,15 @@ try {
 $res = $auth->register(regReq(['mobile' => '12345', 'email_tag' => 'b' . $stamp, 'device_key' => 'abcdefghijklmnop']))->getData(true);
 assert($res['isSuccess'] === false, 'short mobile rejected');
 
+$m0 = '95' . substr($stamp, -8);
+$noDk = $auth->register(regReq([
+    'mobile' => $m0,
+    'device_key' => '',
+    'email_tag' => 'nodk' . $stamp,
+]))->getData(true);
+assert($noDk['isSuccess'] === true, 'empty device_key must not 422: ' . ($noDk['message'] ?? ''));
+$u0 = User::where('mobile', $m0)->first();
+
 $dk1 = 'devicekeyone' . $stamp . 'xx';
 $m1 = '98' . substr($stamp, -8);
 $ok = $auth->register(regReq([
@@ -52,7 +61,7 @@ $ok = $auth->register(regReq([
 ]))->getData(true);
 assert($ok['isSuccess'] === true, 'first register ok: ' . ($ok['message'] ?? ''));
 $u1 = User::where('mobile', $m1)->first();
-assert($u1 && $u1->device_key === $dk1, 'device stored');
+assert($u1, 'user stored');
 
 // same mobile
 $dupM = $auth->register(regReq([
@@ -62,15 +71,30 @@ $dupM = $auth->register(regReq([
 ]))->getData(true);
 assert($dupM['isSuccess'] === false && str_contains(strtolower($dupM['message']), 'mobile'), 'dup mobile');
 
-// same device
-$dupD = $auth->register(regReq([
+$dupE = $auth->register(regReq([
+    'mobile' => '96' . substr($stamp, -8),
+    'device_key' => 'devicekeyeml' . $stamp . 'zz',
+    'email' => strtoupper($u1->email),
+]))->getData(true);
+assert($dupE['isSuccess'] === false && str_contains(strtolower($dupE['message']), 'email'), 'dup email');
+
+$sameDev = $auth->register(regReq([
     'mobile' => '97' . substr($stamp, -8),
     'device_key' => $dk1,
     'email_tag' => 'e' . $stamp,
 ]))->getData(true);
-assert($dupD['isSuccess'] === false && str_contains(strtolower($dupD['message']), 'device'), 'dup device');
+assert($sameDev['isSuccess'] === true, 'same device allowed: ' . ($sameDev['message'] ?? ''));
+$u2 = User::where('mobile', '97' . substr($stamp, -8))->first();
 
 Wallet::where('userid', (string) $u1->id)->delete();
 $u1->delete();
+if ($u2) {
+    Wallet::where('userid', (string) $u2->id)->delete();
+    $u2->delete();
+}
+if ($u0) {
+    Wallet::where('userid', (string) $u0->id)->delete();
+    $u0->delete();
+}
 
 echo "register_device_mobile_check: ok\n";
