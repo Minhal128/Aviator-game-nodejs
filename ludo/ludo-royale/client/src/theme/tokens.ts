@@ -305,7 +305,6 @@ export const LR_MOTION = {
     finalSquashX: 1.14,
     finalSquashY: 0.88,
     trailCount: 4,
-    reducedSlideMs: 260,
   },
   capture: {
     hitStopMs: 45,

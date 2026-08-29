@@ -122,16 +122,18 @@ export class PieceView extends Phaser.GameObjects.Container {
     const last = points[points.length - 1];
 
     if (reducedMotion()) {
-      if (last) {
-        sfx('step');
+      for (let i = 0; i < points.length; i++) {
+        const point = points[i];
+        if (!point) continue;
+        sfx('step', i);
         await tweenP(this.scene, {
           targets: this,
-          x: last.x,
-          y: last.y,
-          duration: LR_MOTION.hop.reducedSlideMs,
-          ease: 'Cubic.easeInOut',
+          x: point.x,
+          y: point.y,
+          duration: LR_MOTION.hop.perCellMs,
+          ease: 'Linear',
         });
-        this.anchor = last;
+        this.anchor = point;
       }
       this.syncDepth();
       return;

@@ -38,8 +38,16 @@ assert((int) round($GH * min(812 / $GW, 375 / $GH)) === 375, 'landscape stopped 
 assert(str_contains($js, "setText('CASHOUT')"), 'CASHOUT on native MAX BET');
 assert(!str_contains($js, 'tl-gold-cash'), 'HTML cashout for phone');
 assert(str_contains($js, 'tl-gold-css-land'), 'CSS landscape fallback missing');
+assert(str_contains($js, 'min-height:0!important'), 'slot shell min-height keeps the rotated body portrait-sized');
+assert(str_contains($js, 'position:absolute!important;top:50%!important;left:50%!important'), 'slot shell overrides the centered canvas position');
+assert(str_contains($js, 'width:min(100vh,171.2963vw)!important'), 'CSS landscape width does not preserve the 1850:1080 game ratio');
+assert(str_contains($js, 'height:min(100vw,58.3784vh)!important'), 'CSS landscape height does not fit the visible portrait viewport');
 assert(str_contains($js, 'orientation.lock'), 'must try auto landscape lock');
 assert(str_contains($js, 'transformPointer'), 'CSS rotate needs pointer remap');
+assert(str_contains($js, 'parentSize.setSize(window.innerHeight, window.innerWidth)'), 'Phaser still measures the rotated parent as portrait');
+assert(str_contains($js, 'this.canvasBounds.x = rect.top'), 'rotated canvas X bounds are not inverted');
+assert(str_contains($js, 'this.canvasBounds.y = window.innerWidth - rect.right'), 'rotated canvas Y bounds are not inverted');
+assert(str_contains($js, "scale.getParentBounds();\n        scale.refresh();"), 'late Phaser patch does not measure before resizing the canvas');
 assert(!str_contains($js, 'Turn your phone sideways'), 'must not ask user to rotate');
 assert(!str_contains($js, 'tl-gold-rotate'), 'ask-to-rotate overlay must be gone');
 assert(str_contains($js, "matchMedia('(pointer: coarse)')"), 'rotate logic would hit desktop too');

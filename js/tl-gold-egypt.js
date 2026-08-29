@@ -97,16 +97,20 @@
         const s = document.createElement('style');
         s.id = 'tl-gold-css-land';
         s.textContent = 'html.tl-gold-css-land,html.tl-gold-css-land body{width:100vh!important;height:100vw!important;'
-            + 'overflow:hidden!important;margin:0!important;padding:0!important}'
+            + 'min-height:0!important;overflow:hidden!important;margin:0!important;padding:0!important}'
             + 'html.tl-gold-css-land body{position:absolute!important;top:-100vw!important;left:0!important;'
-            + 'transform:rotate(90deg);transform-origin:bottom left}';
+            + 'transform:rotate(90deg);transform-origin:bottom left}'
+            + 'html.tl-gold-css-land canvas{position:absolute!important;top:50%!important;left:50%!important;'
+            + 'transform:translate(-50%,-50%)!important;width:min(100vh,171.2963vw)!important;'
+            + 'height:min(100vw,58.3784vh)!important}';
         document.head.appendChild(s);
     })();
 
-    function patchPhaserPointers() {
+    function patchPhaserLandscape() {
         const game = typeof slotGame !== 'undefined' ? slotGame : null;
         if (!game || !game.input || !game.input.manager || game.input.manager.__tlLand) return;
         const mgr = game.input.manager;
+        const scale = game.scale;
         mgr.__tlLand = true;
         const orig = mgr.transformPointer.bind(mgr);
         mgr.transformPointer = function (pointer, pageX, pageY, wasMove) {
@@ -117,15 +121,46 @@
             }
             return orig(pointer, pageX, pageY, wasMove);
         };
+
+        // A transformed body still reports a portrait bounding box. Feed Phaser the
+        // unrotated landscape box so FIT fills it, then invert the rotated canvas box
+        // for the same coordinate space used by transformPointer above.
+        const getParentBounds = scale.getParentBounds.bind(scale);
+        scale.getParentBounds = function () {
+            if (!document.documentElement.classList.contains('tl-gold-css-land')) {
+                return getParentBounds();
+            }
+            const changed = this.parentSize.width !== window.innerHeight
+                || this.parentSize.height !== window.innerWidth;
+            this.parentSize.setSize(window.innerHeight, window.innerWidth);
+            return changed;
+        };
+        const updateBounds = scale.updateBounds.bind(scale);
+        scale.updateBounds = function () {
+            if (!document.documentElement.classList.contains('tl-gold-css-land')) {
+                return updateBounds();
+            }
+            const rect = this.canvas.getBoundingClientRect();
+            this.canvasBounds.x = rect.top;
+            this.canvasBounds.y = window.innerWidth - rect.right;
+            this.canvasBounds.width = rect.height;
+            this.canvasBounds.height = rect.width;
+        };
+        scale.getParentBounds();
+        scale.refresh();
     }
 
     function syncLandscape() {
         if (!touch) {
             document.documentElement.classList.remove('tl-gold-css-land');
+            patchPhaserLandscape();
+            if (typeof slotGame !== 'undefined' && slotGame && slotGame.scale) slotGame.scale.refresh();
             return;
         }
         if (!isPortrait()) {
             document.documentElement.classList.remove('tl-gold-css-land');
+            patchPhaserLandscape();
+            if (typeof slotGame !== 'undefined' && slotGame && slotGame.scale) slotGame.scale.refresh();
             return;
         }
         // ponytail: no Promise.finally — old Android WebViews lack it
@@ -133,7 +168,7 @@
         function afterLock() {
             if (isPortrait()) document.documentElement.classList.add('tl-gold-css-land');
             else document.documentElement.classList.remove('tl-gold-css-land');
-            patchPhaserPointers();
+            patchPhaserLandscape();
             if (typeof slotGame !== 'undefined' && slotGame && slotGame.scale) slotGame.scale.refresh();
         }
     }
@@ -144,7 +179,7 @@
     document.addEventListener('pointerdown', function () {
         if (touch && isPortrait()) lockLandscape().then(syncLandscape, syncLandscape);
     }, true);
-    setInterval(patchPhaserPointers, 500);
+    setInterval(patchPhaserLandscape, 500);
 
     function scene() {
         const game = (typeof slotGame !== 'undefined') ? slotGame : null;

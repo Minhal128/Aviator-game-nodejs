@@ -149,7 +149,7 @@ class Pages extends Controller
                         '<link rel="stylesheet" href="/css/tl-slots.css?v=20260823-hud">'
                         . '<div class="tl-slot-brand" aria-hidden="true">Turbo · ' . $slotLabel . '</div>'
                         . ($game === 'gold-egypt'
-                            ? '<script src="/js/tl-gold-egypt.js?v=20260823-revert"></script>'
+                            ? '<script src="/js/tl-gold-egypt.js?v=20260829-landscape-center"></script>'
                             : '<script type="module" src="/js/tl-c3-slot.js?v=20260823-fit"></script>')
                         . '</body>',
                         $html

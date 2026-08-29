@@ -18,7 +18,7 @@ assert(str_contains($js, '/game/gold/cashout'), 'cashout endpoint');
 assert(str_contains($js, 'applyWallet(res.data)'), 'balance paints on spin debit');
 
 $pages = file_get_contents(dirname(__DIR__) . '/app/Http/Controllers/Pages.php');
-assert(str_contains($pages, 'tl-gold-egypt.js?v=20260823-revert'), 'cache bust');
+assert(str_contains($pages, 'tl-gold-egypt.js?v=20260829-landscape-center'), 'cache bust');
 assert(str_contains($pages, 'id="tl-gboot"'), 'game boot overlay');
 assert(str_contains($pages, 'name="viewport"'), 'injects viewport when missing');
 
