@@ -23,7 +23,6 @@ laravel/bootstrap/cache/*.php
 
 # IDE / OS
 .idea/
-.vscode/
 .fleet/
 *.swp
 Thumbs.db

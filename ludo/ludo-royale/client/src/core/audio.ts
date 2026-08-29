@@ -1,7 +1,7 @@
 /**
  * AudioManager — 100% synthesized WebAudio (no binary assets, no licensing):
- * a soft candy-pop background LOOP (I–V–vi–IV arpeggios + sine bass, 104
- * BPM, lookahead scheduler) plus the six game SFX (dice roll ticks, hop
+ * a soft candy-pop background LOOP (warm pad + I–V–vi–IV arpeggios and
+ * sine bass, 92 BPM, lookahead scheduler) plus the game SFX (dice roll, hop
  * blip, capture sting, win arpeggio, shield shimmer, power zap). Browsers
  * gate audio behind a user gesture: `unlockAudio()` runs once on the first
  * pointerdown (wired in main.ts). Music and SFX have separate persistent
@@ -51,7 +51,7 @@ function ensureCtx(): AudioContext | null {
   master.gain.value = 0.9;
   master.connect(ctx.destination);
   musicBus = ctx.createGain();
-  musicBus.gain.value = 0.13;
+  musicBus.gain.value = 0.1;
   musicBus.connect(master);
   sfxBus = ctx.createGain();
   sfxBus.gain.value = 0.5;
@@ -101,7 +101,7 @@ export function setMusicOn(on: boolean): void {
 // Background music — generative candy loop (C – G – Am – F)
 // ---------------------------------------------------------------------------
 
-const BPM = 104;
+const BPM = 92;
 const BEAT = 60 / BPM;
 const BAR = BEAT * 4;
 /** Chord tones as MIDI notes. */
@@ -145,6 +145,8 @@ function stopMusic(): void {
 
 function scheduleBar(c: AudioContext, bus: GainNode, t0: number, bar: number): void {
   const chord = PROGRESSION[bar % PROGRESSION.length] ?? [60, 64, 67];
+  // Warm overlapping chords keep the loop calm without loading an audio file.
+  warmPad(c, bus, chord, t0, BAR + 0.18);
   // Bass: root as two half-notes, one octave down.
   for (let i = 0; i < 2; i++) {
     tone(c, bus, midiHz((chord[0] ?? 60) - 12), t0 + i * BEAT * 2, BEAT * 1.8, 'sine', 0.5);
@@ -168,6 +170,37 @@ function scheduleBar(c: AudioContext, bus: GainNode, t0: number, bar: number): v
   if (bar % 2 === 1) {
     tone(c, bus, midiHz((chord[2] ?? 64) + 24), t0 + BEAT * 2.5, BEAT * 0.9, 'sine', 0.16);
   }
+}
+
+/** Soft low-passed chord with a slow attack/release so bar changes cross-fade. */
+function warmPad(
+  c: AudioContext,
+  bus: GainNode,
+  chord: readonly number[],
+  at: number,
+  dur: number,
+): void {
+  const filter = c.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 950;
+  filter.Q.value = 0.35;
+  const g = c.createGain();
+  g.gain.setValueAtTime(0.0001, at);
+  g.gain.linearRampToValueAtTime(0.055, at + 0.4);
+  g.gain.setValueAtTime(0.055, at + dur - 0.55);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+  g.connect(filter);
+  filter.connect(bus);
+
+  chord.forEach((midi, i) => {
+    const osc = c.createOscillator();
+    osc.type = i === 0 ? 'sine' : 'triangle';
+    osc.frequency.value = midiHz(midi);
+    osc.detune.value = i === 1 ? -4 : i === 2 ? 4 : 0;
+    osc.connect(g);
+    osc.start(at);
+    osc.stop(at + dur + 0.05);
+  });
 }
 
 /** Per-bar lead phrases [beat, midi, lengthBeats] over C-G-Am-F. */
