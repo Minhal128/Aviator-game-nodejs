@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Wallet;
+use App\Support\PersistentLogin;
 use Hash;
 use Illuminate\Http\Request;
 
@@ -22,6 +23,7 @@ class Authentication extends Controller
         $usernameexist = User::where('mobile', $login)->orWhereRaw('LOWER(email) = ?', [strtolower($login)])->first();
         if ($usernameexist) {
             if (Hash::check($r->password, $usernameexist->password)) {
+                $r->session()->regenerate();
                 $r->session()->put('userlogin', $usernameexist);
                 $message = "";
                 $isSuccess = true;
@@ -32,7 +34,12 @@ class Authentication extends Controller
             $message = "Username not found!";
         }
         $res = array("data" => $data, "isSuccess" => $isSuccess, "message" => $message);
-        return response()->json($res);
+        $response = response()->json($res);
+        if ($isSuccess) {
+            $response->withCookie(PersistentLogin::cookieFor($usernameexist, $r));
+        }
+
+        return $response;
     }
 
     public function register(Request $r)

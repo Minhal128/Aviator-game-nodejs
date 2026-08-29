@@ -143,10 +143,6 @@
                             <label id="login-error" class="error"></label>
                         </div>
 
-                        <div class="form-check form-switch md-switch d-flex align-items-center checkforlogin">
-                            <input class="form-check-input me-1" type="checkbox" id="rememberme">
-                            <label class="form-check-label f-14 ms-1" for="rememberme">Remember me</label>
-                        </div>
                         <button class="btn green-btn md-btn custm-btn-2 mx-auto mt-3 mb-1"
                             id="loginSubmit">LOGIN</button>
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\PersistentLogin;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -16,10 +17,18 @@ class userlogin
      */
     public function handle(Request $request, Closure $next)
     {
-        if (session()->has('userlogin')) {
+        if ($request->session()->has('userlogin')) {
             return $next($request);
-        }else{
-            return redirect('/');
         }
+
+        $user = PersistentLogin::userFrom($request);
+        if ($user) {
+            $request->session()->regenerate();
+            $request->session()->put('userlogin', $user);
+
+            return $next($request);
+        }
+
+        return redirect('/')->withCookie(PersistentLogin::forgetCookie());
     }
 }

@@ -10,6 +10,8 @@ use App\Http\Controllers\RoadGame;
 use App\Http\Controllers\SlotApi;
 use App\Http\Controllers\Userdetail;
 use App\Http\Controllers\Adminapi;
+use App\Support\PersistentLogin;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -156,11 +158,11 @@ Route::group(['middleware' => ['isUser']], function () {
     Route::get('/level-management', [Pages::class,'level_management']);
 
     Route::get('/deposit_withdrawals', [Userdetail::class, "deposit_withdrawal"]);
-    Route::get('/logout', function () {
-        if (session()->has('userlogin')) {
-            session()->forget('userlogin');
-        }
-        return redirect('/');
+    Route::get('/logout', function (Request $request) {
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect('/')->withCookie(PersistentLogin::forgetCookie());
     });
     //Api
     Route::get('/get_user_details', [Userdetail::class, "get_user_detail"]);
